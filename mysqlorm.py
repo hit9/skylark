@@ -23,8 +23,21 @@ import MySQLdb
 class Database:
 	"""class to manage Database connection"""
 
-	"""configs default"""
+	configs = { # default configs for connection
+		'host' : 'localhost' , # mysql host
+		'port' : 3306 , # mysql port
+		'db' : "" , # database name
+		'user' : "" ,  # mysql user
+		'passwd' : "" , # mysql passwd for user
+		'charset' : "utf8"  # mysql connection charset, default set as utf8
+	}
 
+	conn = None # connection object of MySQLdb
+	
+	@classmethod
+	def config(cls, **configs):
+		"""update configs for  Database connection.
+default configs:
 	configs = {
 		'host' : 'localhost' , # mysql host
 		'port' : 3306 , # mysql port
@@ -32,24 +45,19 @@ class Database:
 		'user' : "" ,  # mysql user
 		'passwd' : "" , # mysql passwd for user
 		'charset' : "utf8" # mysql connection charset, default set as utf8
-	}
-
-	conn = None
-	
-	@classmethod
-	def config(cls, **configs):
+	}"""
 		cls.configs.update(configs)
 	
-	"""connect to mysql # singleton"""
 	@classmethod
 	def connect(cls):
+		"""connect to mysql (singleton)"""
 		if not cls.conn or not cls.conn.open: # if not connected, new one, else use the exist
 			cls.conn = MySQLdb.connect(**cls.configs) 
 		return cls.conn
 
-	"""close connection to mysql"""
 	@classmethod
 	def close(cls):
+		"""close connection to mysql"""
 		cls.conn.close()
 
 
@@ -64,12 +72,19 @@ class MetaModel(type):
 class BaseModel(object):
 	"""Any Model based on this Class"""
 	fields = [] # cache table fields
+	primarykey = 'id' # default primary key for Model
 
 	def __init__(self):
+		"""Model init will update its attributes"""
 		self.__dict__.update({}.fromkeys(self.get_fields(), None))
+
+	def save(self):
+		"""write data from model object into database"""
+		pass
 
 	@classmethod
 	def get_fields(cls):
+		"""get table's fields list."""
 		if not cls.fields: # if cls.fields is [], get it from database, else use cls.fields
 			cursor = Database.connect().cursor(cursorclass=MySQLdb.cursors.DictCursor) # get a dict cursor
 			cursor.execute("show columns from "+cls.table_name) # use classname's lower case as table name
