@@ -1,3 +1,24 @@
+"""
+test code so far:
+
+------------------- ------------------ ---------------
+
+from mysqlorm import *
+
+BaseModel.config(db = "mydb", user = "root", passwd = "123456", charset = "utf8") # db & table: mydb.user:
+
+class Model(BaseModel): # connect to mysql when this class was defined
+	__metaclass__ = BaseModel
+
+class User(Model):pass
+
+print User.__dict__
+
+------------------- ------------------ ---------------
+
+
+"""
+
 import MySQLdb
 
 class BaseModel(type):
@@ -12,32 +33,43 @@ class BaseModel(type):
 		'charset' : "utf8" # mysql connection charset, default set as utf8
 	}
 
-	"""flag of connection"""
-	conn = None #rethink about the mark of connection's open
+	conn = None
 
-	"""this function will be called when a class based on Model is defined"""
 	def __init__(cls, name, bases, attrs):
-		if cls.__base__ is not BaseModel:
-			cls.connect()
-		
+		cls.connect() # connect to mysql
 
-	"""config global Model"""
+		if cls.__base__ is not BaseModel: # if this is not the direct subclass of BaseModel
+			for cols in cls.get_columns_dict():
+				setattr(cls, cols['Field'], None)
+
 	@classmethod
 	def config(cls, **configs):
 		cls.configs.update(configs)
 	
-	"""connect to mysql via singleton"""
+	"""connect to mysql # singleton"""
 	@classmethod
 	def connect(cls):
 		if not BaseModel.conn or not BaseModel.conn.open: # if not connected, new one, else use the exist
 			BaseModel.conn = MySQLdb.connect(**cls.configs) 
 		return BaseModel.conn
 
-	"""close connection"""
+	"""close connection to mysql"""
 	@classmethod
 	def close(cls):
 		BaseModel.conn.close()
 
+	"""exec_sql function."""
+	# here need a function for all SQL query
 
-class Model(BaseModel):
-	__metaclass__ = BaseModel
+
+	"""get table's columns dict"""
+	@classmethod
+	def get_columns_dict(cls):
+		cursor = BaseModel.conn.cursor(cursorclass=MySQLdb.cursors.DictCursor) # get a dict cursor
+		cursor.execute("show columns from "+cls.__name__.lower()) # use classname's lower case as table name
+		return cursor.fetchall()
+
+	"""create a record"""
+	@classmethod 
+	def create(cls, **fields):
+		pass
