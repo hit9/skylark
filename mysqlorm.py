@@ -1,29 +1,30 @@
-"""
+""""
 test code so far:
 
-------------------- ------------------ ---------------
 
 from mysqlorm import *
 
-BaseModel.config(db = "mydb", user = "root", passwd = "123456", charset = "utf8") # db & table: mydb.user:
+Database.config(db = "mydb", user = 'root', passwd = "123456", charset = "utf8")
 
-class Model(BaseModel): # connect to mysql when this class was defined
-	__metaclass__ = BaseModel
+class Model(BaseModel):
+	__metaclass__ = MetaModel
 
 class User(Model):pass
 
-print User.__dict__
+class Post(Model):pass
 
-------------------- ------------------ ---------------
+print User().__dict__
 
 
 """
 
 import MySQLdb
 
-class BaseModel(type):
+class Database:
+	"""class to manage Database connection"""
 
 	"""configs default"""
+
 	configs = {
 		'host' : 'localhost' , # mysql host
 		'port' : 3306 , # mysql port
@@ -34,14 +35,7 @@ class BaseModel(type):
 	}
 
 	conn = None
-
-	def __init__(cls, name, bases, attrs):
-		cls.connect() # connect to mysql
-
-		if cls.__base__ is not BaseModel: # if this is not the direct subclass of BaseModel
-			for cols in cls.get_columns_dict():
-				setattr(cls, cols['Field'], None)
-
+	
 	@classmethod
 	def config(cls, **configs):
 		cls.configs.update(configs)
@@ -49,27 +43,36 @@ class BaseModel(type):
 	"""connect to mysql # singleton"""
 	@classmethod
 	def connect(cls):
-		if not BaseModel.conn or not BaseModel.conn.open: # if not connected, new one, else use the exist
-			BaseModel.conn = MySQLdb.connect(**cls.configs) 
-		return BaseModel.conn
+		if not cls.conn or not cls.conn.open: # if not connected, new one, else use the exist
+			cls.conn = MySQLdb.connect(**cls.configs) 
+		return cls.conn
 
 	"""close connection to mysql"""
 	@classmethod
 	def close(cls):
-		BaseModel.conn.close()
-
-	"""exec_sql function."""
-	# here need a function for all SQL query
+		cls.conn.close()
 
 
-	"""get table's columns dict"""
+class MetaModel(type):
+	"""Any Model's  MetaClass"""
+
+	def __init__(cls, name, bases , attrs):
+		if cls.__base__ is not BaseModel: # if the class is not the direct subclass of BaseModel
+			cls.table_name = cls.__name__.lower() # set table name
+
+
+class BaseModel(object):
+	"""Any Model based on this Class"""
+	fields = [] # cache table fields
+
+	def __init__(self):
+		self.__dict__.update({}.fromkeys(self.get_fields(), None))
+
 	@classmethod
-	def get_columns_dict(cls):
-		cursor = BaseModel.conn.cursor(cursorclass=MySQLdb.cursors.DictCursor) # get a dict cursor
-		cursor.execute("show columns from "+cls.__name__.lower()) # use classname's lower case as table name
-		return cursor.fetchall()
-
-	"""create a record"""
-	@classmethod 
-	def create(cls, **fields):
-		pass
+	def get_fields(cls):
+		if not cls.fields: # if cls.fields is [], get it from database, else use cls.fields
+			cursor = Database.connect().cursor(cursorclass=MySQLdb.cursors.DictCursor) # get a dict cursor
+			cursor.execute("show columns from "+cls.table_name) # use classname's lower case as table name
+			d = cursor.fetchall() # fields dict
+			cls.fields = [x['Field'] for x in d]
+		return cls.fields
