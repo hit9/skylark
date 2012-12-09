@@ -31,12 +31,13 @@ model_instance.save()
 
 """
 
-
 import MySQLdb
 import MySQLdb.cursors 
 import re
 
-cursor_matched_re = re.compile(r'Rows matched: (\d+)')
+vg_cursor_matched_re = re.compile(r'Rows matched: (\d+)')
+
+vg_join_fields = lambda dct : ", ".join([x+"='"+MySQLdb.escape_string(str(y))+"'" for x, y in dct.iteritems()])
 
 class Database:
     """class to manage Database connection"""
@@ -75,7 +76,7 @@ class Database:
         cursor = Database.get_con().cursor()
         setattr(cursor, 're', None) # add attribute 'match' to cursor:store query matched rows number
         cursor.execute(sql)
-        cursor.re = int(cursor_matched_re.search(cursor._info).group(1)) if cursor._info else cursor.rowcount
+        cursor.re = int(vg_cursor_matched_re.search(cursor._info).group(1)) if cursor._info else cursor.rowcount
         return cursor
 
 
@@ -124,6 +125,7 @@ class Model(object):
 
     def __init__(self, **attrs):
         self._data.update(attrs)
+        self._cache = self._data.copy() # cache data last time changed 
         self.sync = False # if this object data sync to database
 
     @classmethod
@@ -132,30 +134,39 @@ class Model(object):
         obj.sync = True
         return obj
 
+    def data_changed(self):# get changed data of this object
+        return dict(set(self._data.iteritems())-set(self._cache.iteritems()))
+        
+    def commit_cache(self): # commit cache after save success
+        self._cache = self._data.copy()
+
     def save(self): # return True for success
         data = dict((x, y) for x, y in self._data.iteritems() if y) 
         if not self.sync :
             if  self.__class__.insert(data):
                 self.sync = True # sync success
+                self.commit_cache()
                 return True # success save
         else:
-            if self.__class__.update_by_key(self._data[self.primarykey], data) :
+            if self.update_by_key() :
+                self.commit_cache()
                 return True
         return False # failed
 
     @classmethod
-    def join_fields(cls, d):
-        return ", ".join([x+"='"+MySQLdb.escape_string(str(y))+"'" for x, y in d.iteritems()])
-
-    @classmethod
     def insert(cls, dct): # just insert one row to db, do nothing to the obj
-        cur = Database.query("insert into "+cls.table_name+" set "+cls.join_fields(dct))
+        cur = Database.query("insert into "+cls.table_name+" set "+vg_join_fields(dct))
         return cur.re # return 0 for failure, else for success
 
-    @classmethod
-    def update_by_key(cls, value, dct): # update one row by primarykey
-        cur = Database.query("update "+cls.table_name+" set "+cls.join_fields(dct)+" where "+cls.primarykey+" = "+str(value))
-        return cur.re # return 0 for failure
+    def update(self, conditions):# where conditions
+        dct = self.data_changed()
+        if dct:
+            cur = Database.query("update "+self.table_name+" set "+vg_join_fields(dct)+" where "+conditions) # where conditions temporarily as string~
+            return cur.re # return 0 for failuer ...
+        return 1 # noting to update
+
+    def update_by_key(self): # update one row by primarykey
+        return self.update(self.primarykey+"="+str(self._data[self.primarykey]))
 
     @classmethod
     def select(cls):pass
@@ -166,5 +177,5 @@ class Model(object):
 
     @classmethod
     def find(cls, key): # find one row by primarykey
-        dct = Database.query("select * from "+cls.table_name+" where "+cls.join_fields({cls.primarykey:key})).fetchone()
+        dct = Database.query("select * from "+cls.table_name+" where "+vg_join_fields({cls.primarykey:key})).fetchone()
         return cls.obj_from(dct) if dct else None # if not found, return None
