@@ -137,21 +137,18 @@ class Model(object):
     def data_changed(self):# get changed data of this object
         return dict(set(self._data.iteritems())-set(self._cache.iteritems()))
         
-    def commit_cache(self): # commit cache after save success
+    def commit_cache(self): # commit cache after each save()
         self._cache = self._data.copy()
 
-    def save(self): # return True for success
-        data = dict((x, y) for x, y in self._data.iteritems() if y) 
+    def save(self): # return 1 for success, 0 for failure
         if not self.sync :
-            if  self.__class__.insert(data):
-                self.sync = True # sync success
-                self.commit_cache()
-                return True # success save
+            data = dict((x, y) for x, y in self._data.iteritems() if y is not None) 
+            re = self.__class__.insert(data)
+            self.sync = True if re else False # sync set to True if insert success
         else:
-            if self.update_by_key() :
-                self.commit_cache()
-                return True
-        return False # failed
+            re = self.update_by_key() 
+        self.commit_cache()
+        return re 
 
     @classmethod
     def insert(cls, dct): # just insert one row to db, do nothing to the obj
