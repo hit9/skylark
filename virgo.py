@@ -74,8 +74,8 @@ class Database:
     @classmethod
     def query(cls, sql):
         cursor = Database.get_con().cursor()
-        setattr(cursor, 're', None) # add attribute 'match' to cursor:store query matched rows number
         cursor.execute(sql)
+        # add attribute 'match' to cursor:store query matched rows number
         cursor.re = int(vg_cursor_matched_re.search(cursor._info).group(1)) if cursor._info else cursor.rowcount
         return cursor
 
