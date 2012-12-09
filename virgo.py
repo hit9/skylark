@@ -34,6 +34,9 @@ model_instance.save()
 
 import MySQLdb
 import MySQLdb.cursors 
+import re
+
+cursor_matched_re = re.compile(r'Rows matched: (\d+)')
 
 class Database:
     """class to manage Database connection"""
@@ -70,7 +73,9 @@ class Database:
     @classmethod
     def query(cls, sql):
         cursor = Database.get_con().cursor()
+        setattr(cursor, 're', None) # add attribute 'match' to cursor:store query matched rows number
         cursor.execute(sql)
+        cursor.re = int(cursor_matched_re.search(cursor._info).group(1)) if cursor._info else cursor.rowcount
         return cursor
 
 
@@ -119,27 +124,47 @@ class Model(object):
 
     def __init__(self, **attrs):
         self._data.update(attrs)
+        self.sync = False # if this object data sync to database
 
-    def save(self):
-        a = dict((x, y) for x, y in self._data.iteritems() if y) 
-        self.__class__.insert(**a)
+    @classmethod
+    def obj_from(cls, data_dct): # return a instance marked sync True from a data_dct
+        obj = cls(**data_dct)
+        obj.sync = True
+        return obj
+
+    def save(self): # return True for success
+        data = dict((x, y) for x, y in self._data.iteritems() if y) 
+        if not self.sync :
+            if  self.__class__.insert(data):
+                self.sync = True # sync success
+                return True # success save
+        else:
+            if self.__class__.update_by_key(self._data[self.primarykey], data) :
+                return True
+        return False # failed
 
     @classmethod
     def join_fields(cls, d):
         return ", ".join([x+"='"+MySQLdb.escape_string(str(y))+"'" for x, y in d.iteritems()])
 
     @classmethod
-    def insert(cls, dct):
-        return Database.query("insert into "+cls.table_name+" set "+cls.join_fields(dct))
+    def insert(cls, dct): # just insert one row to db, do nothing to the obj
+        cur = Database.query("insert into "+cls.table_name+" set "+cls.join_fields(dct))
+        return cur.re # return 0 for failure, else for success
+
+    @classmethod
+    def update_by_key(cls, value, dct): # update one row by primarykey
+        cur = Database.query("update "+cls.table_name+" set "+cls.join_fields(dct)+" where "+cls.primarykey+" = "+str(value))
+        return cur.re # return 0 for failure
 
     @classmethod
     def select(cls):pass
 
     @classmethod
     def create(cls, **dct):
-        cls.insert(dct)
-        return cls(**dct)
+        return cls.obj_from(dct) if cls.insert(dct) else None # if failed, return None
+
     @classmethod
-    def find(cls, key):
+    def find(cls, key): # find one row by primarykey
         dct = Database.query("select * from "+cls.table_name+" where "+cls.join_fields({cls.primarykey:key})).fetchone()
-        return cls(**dct)
+        return cls.obj_from(dct) if dct else None # if not found, return None
