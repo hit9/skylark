@@ -1,35 +1,17 @@
-"""
-test code so far:
----------------------------------- test code -------------------
-from mysqlorm import *
+#                  
+# ++ @  @ ++  ++++++++
+#  ++    ++   ++
+#   ++  ++    ++  ++++
+#    ++++     ++     +
+#     ++      ++++++++
+#              
+#
+#   LOW LEVEL & SIMPLE & LIGHTWEIGHT
+#
+#   E-mail:nz2324@126.com
+#
+#   URL:http://hit9.org
 
-Database.config(db = "mydb", user = 'root', passwd = "123456", charset = "utf8")
-
-class User(Model):
-    username = Field()
-    email = Field()
-
-user = User.find(1)
-
-print user._data
-
-----------------------------------------------------------------
-
-implemented APIs and Attributes
-
-model_instance Model.create(**field_value)
-
-list Model.fields
-
-str Model.table_name
-
-model_instance Model.find(key)
-
-model_instance.save()
-
-
-
-"""
 
 import MySQLdb
 import MySQLdb.cursors 
