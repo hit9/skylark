@@ -227,7 +227,7 @@ class Query(object): # one Model  => one Query instance
     def set_select(self, fields):
         self.runtime.select = fields
 
-    def _Q(type): 
+    def _Q(type):  # function generator for CURD
         def func(self):
             re = None
             SQL = self.runtime.makeSQL(type = type)
@@ -241,6 +241,8 @@ class Query(object): # one Model  => one Query instance
             self.runtime.reset() # reset runtime
             return re
         return func
+        
+    #generate CURD Functions
 
     insert = _Q(1)
 
@@ -249,6 +251,8 @@ class Query(object): # one Model  => one Query instance
     select = _Q(3)
 
     delete = _Q(4)
+
+
 
 class ModelInfo(object): # one Model => one  ModelInfo instance .store info of Model Class
 
@@ -308,7 +312,7 @@ class Model(object):
         return self._info.primarykey.name
 
     @property
-    def _id(self):
+    def _id(self): # the primarykey marks one object
         return self._data[self._primarykey]
 
     def set_id(self, _id):
@@ -318,11 +322,11 @@ class Model(object):
         model = self.__class__
         if not self._id:
             model._query.set_set(self._data)
-            id = model._query.insert()
-            if id:
-                self.set_id(id)
+            _id = model._query.insert()
+            if _id:
+                self.set_id(_id)
                 self._cache = self._data.copy() # sync cache after save
-                return True
+                return _id # success insert, return the insert record's id
         else:
             model._query.set_where(model._info.primarykey ==  self._id)
             dct = dict(set(self._data.items()) - set(self._cache.items())) # only update changed data
@@ -330,9 +334,15 @@ class Model(object):
             re = model._query.update()
             if re:
                 self._cache = self._data.copy() # sync cache after save
-                return True
-        return False
+                return re #success insert
+        return 0
 
+    def destroy(self):
+        if self._id:
+            model = self.__class__
+            model._query.set_where(model._info.primarykey == self._id)
+            return model._query.delete()
+        return 0
 
     @classmethod
     def create(cls, **data):
@@ -364,7 +374,8 @@ class Model(object):
     def find(cls, key):
         cls._query.set_where(cls._info.primarykey == key)
         cur = cls._query.select()
-        return cls(**cur.fetchone())
+        dct = cur.fetchone()
+        return cls(**dct) if dct else None # if find, return it, else return None
 
     @classmethod
     def delete(cls):
