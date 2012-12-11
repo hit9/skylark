@@ -206,7 +206,6 @@ class QueryRuntime(object): # store Single SQL Runtime information
             SQL = "select "+self._select+" from "+self.table+self._where+self._orderby
         elif type == 4:#delete
             SQL = "delete from "+self.table+self._where
-        print SQL
         return SQL
     
 
