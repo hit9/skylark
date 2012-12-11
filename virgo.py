@@ -117,7 +117,7 @@ class Field(object): # Field Object
             if isinstance(r, Field):
                 s = r.fullname
             else :
-                s = "'"+str(r)+"'"
+                s = "'"+MySQLdb.escape_string(str(r))+"'" # escape_string 
             return Expr(self.fullname+op+s)
         return e
 
@@ -147,7 +147,7 @@ class QueryRuntime(object): # store Single SQL Runtime information
         self.primarykey = primarykey # primarykey instance
         self.ks = (
             "where",  # runtime.where  => expr 
-            "set",  # set  => data dct to set into db
+            "set",  # set  => expr  lst
             "orderby", # (field, desc) tuple , desc => bool
             "select" # fields lst to select from db
         )
@@ -169,14 +169,10 @@ class QueryRuntime(object): # store Single SQL Runtime information
 
     @property
     def _set(self): # make set string
-        dct = self.set
-        kn = self.primarykey.name
-        setstr = ""
-        if dct: # pop primarykey, it can not be set
-            if kn in dct.keys():
-                dct.pop(kn)
-            setstr = " set " + ", ".join([self.table+"."+x+" = '"+MySQLdb.escape_string(str(y))+"'" for x, y in dct.iteritems() if y])
-        return setstr
+        lst = self.set
+        if lst:
+            return " set "+", ".join([expr.expstr for expr in lst])
+        return ""
 
     @property
     def _select(self):#make select fields str
@@ -220,8 +216,14 @@ class Query(object): # one Model  => one Query instance
         self.model = model 
         self.runtime = QueryRuntime(model._info.table_name, model._info.primarykey) # make  an empty runtime
 
-    def set_set(self, dct):
-        self.runtime.set = dct
+    def set_set(self, dct): # set_set by data dct
+        lst = []
+        model = self.model
+        for f in model._info.fields:
+            if f.name in dct.keys() and f is not model._info.primarykey:
+                lst.append(f == dct[f.name])
+        self.runtime.set = lst
+
 
     def set_where(self, expr):
         self.runtime.where = expr
@@ -264,7 +266,7 @@ class ModelInfo(object): # one Model => one  ModelInfo instance .store info of M
     def __init__(self, 
             table_name = None, # Model class 's table name
             primarykey = None, # PrimaryKey instance
-            fields  = None     # fields name dct
+            fields  = None     # fields lst
             ):
         self.table_name = table_name
         self.primarykey = primarykey
@@ -277,20 +279,20 @@ class MetaModel(type):
     def __init__(cls, name, bases , attrs):
 
         table_name = cls.__name__.lower()  
-        fields = [] 
+        fields = []  # list of fields
         primarykey = None 
         
         for name, attr in cls.__dict__.iteritems():
             if isinstance(attr, Field):
                 attr.describe(name, cls) # describe attr
-                fields.append(name)
+                fields.append(attr)
                 if attr.primarykey:
                     primarykey = attr
 
         if primarykey is None: # default primarykey is id
             primarykey = PrimaryKey()
             primarykey.describe('id', cls)
-            fields.append('id')
+            fields.append(primarykey)
 
         # set attributes for Model Class
         cls._info = ModelInfo(
@@ -307,8 +309,8 @@ class Model(object):
     __metaclass__ = MetaModel
 
     def __init__(self, **data):
-
-        self._data = {}.fromkeys(self._info.fields, None)
+        lst = [f.name for f in self._info.fields] # list of field's name
+        self._data = {}.fromkeys(lst, None)
         self._data.update(data)
         self._cache = self._data.copy()
 
@@ -335,6 +337,8 @@ class Model(object):
         else:
             model._query.set_where(model._info.primarykey ==  self._id)
             dct = dict(set(self._data.items()) - set(self._cache.items())) # only update changed data
+            if not dct:
+                return 1 # data not change
             model._query.set_set(dct)
             re = model._query.update()
             if re:
