@@ -63,6 +63,20 @@ class Expr(object):
         self.expstr = expstr
 
 
+    def _expr(op):
+        def e(self, r):
+            if isinstance(r, Expr): # if r is a expr
+                self.expstr = self.expstr+" "+op+" "+r.expstr
+                return self
+            return False
+        return e
+
+    __and__ = _expr("and")
+
+    __or__ = _expr("or")
+
+
+
 class FieldDescriptor(object): # descriptor for Field objs
 
     def __init__(self, field):
@@ -93,7 +107,7 @@ class Field(object): # Field Object
     def fullname(self):
         return self.model._info.table_name+"."+self.name
 
-    def _expr(op):
+    def _expr(op): # decorator 
         def e(self, r):
             if isinstance(r, Field):
                 s = r.fullname
@@ -103,6 +117,16 @@ class Field(object): # Field Object
         return e
 
     __eq__ = _expr(" = ")
+
+    __lt__ = _expr(" < ")
+
+    __le__ = _expr(" <= ")
+
+    __gt__ = _expr(" > ")
+
+    __ge__ = _expr(" >= ")
+
+    __ne__ = _expr(" <> ") 
     
 
 class PrimaryKey(Field):
@@ -115,12 +139,19 @@ class Query(object): # one Model  => one Query instance
 
     def __init__(self, model):
         self.model = model
-        self._where = None 
+        self.where = None 
 
     @property
     def _table(self):# get Model's table name
         return self.model._info.table_name
 
+    @property
+    def _primarykey(self):
+        return self.model._info.primarykey
+
+    @property
+    def _where(self):
+        return " where "+self.where
 
     def join_f_v(self, dct): # join {fields:value} dict into "field = 'value', ..." if value
         return ", ".join([self._table+"."+x+" = '"+MySQLdb.escape_string(str(y))+"'" for x, y in dct.iteritems() if y])
@@ -128,15 +159,26 @@ class Query(object): # one Model  => one Query instance
     def insert(self, dct):
         SQL = "insert into "+self._table+" set "+self.join_f_v(dct)
         return Database.execute(SQL)  # return a cursor
-    """
-    def update(self, dct):
-        where = self._where if self._where else ""
-        SQL = "update "+self._table+" set "+self.join_f_v(dct)+where
+
+    def select(self, flst): #field list
+        if flst:
+            fnlst = []
+            pk = None
+            for f in flst:
+                if f is self._primarykey:
+                    pk = f
+                fnlst.append(f.name)
+            if not pk:#if no primarykey in flst
+                fnlst.append(self._primarykey.name)
+
+            fstr = ", ".join(fnlst)
+        else:
+            fstr = "*"
+
+        SQL = "select "+fstr+" from "+self._table+self._where
+
         return Database.execute(SQL)
 
-    def where(self, where):
-        self._where = where
-        return self"""
 
 class ModelInfo(object): # one Model => one  ModelInfo instance .store info of Model Class
 
@@ -227,3 +269,14 @@ class Model(object):
             data[cls._info.primarykey.name] = cur.lastrowid # add id to data dct
             return cls.obj_fromdb(data)
         return None
+
+    @classmethod
+    def where(cls, expr):
+        cls._query.where = expr.expstr
+        return cls
+
+    @classmethod
+    def select(cls, *flst):
+        cur = cls._query.select(flst)
+        for dct in cur.fetchall():
+            yield cls.obj_fromdb(dct)
