@@ -8,9 +8,13 @@
 #
 #   LOW LEVEL & SIMPLE & LIGHTWEIGHT
 #
-#   E-mail:nz2324@126.com
+#   E-mail : nz2324@126.com
 #
-#   URL:http://hit9.org
+#   URL : http://hit9.org
+#   Licence : BSD
+#   
+#   Permission to use, copy, modify, and distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
+#
 
 import re
 import MySQLdb
@@ -87,6 +91,7 @@ class FieldDescriptor(object): # descriptor for Field objs
         if instance:
             return instance._data[self.name]
         return self.field
+
     def __set__(self, instance, value):
         instance._data[self.name] = value
 
@@ -371,7 +376,7 @@ class Model(object):
             yield cls(**dct)
 
     @classmethod
-    def find(cls, key):
+    def get(cls, key): # select by primarykey
         cls._query.set_where(cls._info.primarykey == key)
         cur = cls._query.select()
         dct = cur.fetchone()
