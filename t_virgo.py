@@ -57,6 +57,12 @@ class Database:
     # cursor.lastrowid  => record primarykey value of row last insert 
 
 
+class Expr(object):
+
+    def __init__(self, expstr):
+        self.expstr = expstr
+
+
 class FieldDescriptor(object): # descriptor for Field objs
 
     def __init__(self, field):
@@ -70,6 +76,7 @@ class FieldDescriptor(object): # descriptor for Field objs
     def __set__(self, instance, value):
         instance._data[self.name] = value
 
+    
 
 class Field(object): # Field Object
 
@@ -81,6 +88,21 @@ class Field(object): # Field Object
         self.name = name
         self.model = model
         setattr(model, name, FieldDescriptor(self))
+
+    @property
+    def fullname(self):
+        return self.model._info.table_name+"."+self.name
+
+    def _expr(op):
+        def e(self, r):
+            if isinstance(r, Field):
+                s = r.fullname
+            else :
+                s = "'"+str(r)+"'"
+            return Expr(self.fullname+op+s)
+        return e
+
+    __eq__ = _expr(" = ")
     
 
 class PrimaryKey(Field):
@@ -106,7 +128,7 @@ class Query(object): # one Model  => one Query instance
     def insert(self, dct):
         SQL = "insert into "+self._table+" set "+self.join_f_v(dct)
         return Database.execute(SQL)  # return a cursor
-"""
+    """
     def update(self, dct):
         where = self._where if self._where else ""
         SQL = "update "+self._table+" set "+self.join_f_v(dct)+where
@@ -114,9 +136,8 @@ class Query(object): # one Model  => one Query instance
 
     def where(self, where):
         self._where = where
-        return self
+        return self"""
 
-""""
 class ModelInfo(object): # one Model => one  ModelInfo instance .store info of Model Class
 
     def __init__(self, 
