@@ -406,7 +406,7 @@ class Model(object):
 
     def save(self):
         model = self.__class__
-        if not self._id:
+        if not self._id: # insert one record
             model.query.set_set([], self._data)
             id = model.query.insert()
             if id:
@@ -422,7 +422,7 @@ class Model(object):
             re = model.query.update()
             if re:
                 self._cache = self._data.copy() # sync cache after save
-                return re #success insert
+                return re #success update
         return 0
 
     def destroy(self):
