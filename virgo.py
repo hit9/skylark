@@ -184,18 +184,51 @@ class SelectResult(object): # wrap select result
     def __init__(self, model):
         self.model = model
         self.cursor = None
+        self.flst = None
 
-    def fetchall(self):# fetchall result
-        for dct in self.cursor.fetchall():
-            yield self.model(**dct)
+    
+    @property
+    def nfdct(self):# result data dict key <=> field instance pairs dict
+        dct = {}
+        for f in self.flst:
+            if not dct.has_key(f.name):
+                dct[f.name] = f
+            else:
+                dct[f.fullname] = f
+        return dct
+
+    def mddct(self, dct, nfdct): # model data_dict pasirs dict
+        mlst = self.model.models
+        b = dict((m, {}) for m in mlst)
+        for k, v in dct.iteritems():
+            field = nfdct[k]
+            data_dct = b[field.model]
+            data_dct[field.name] = v
+        return b
 
     def fetchone(self):# fetchone a time
         dct = self.cursor.fetchone()
-        return self.model(**dct) if dct else None
 
-    @property
-    def data(self):
-        return self.cursor.fetchall()
+        if self.model.single:
+            return self.model(**dct) if dct else None
+        else:
+            nfdct = self.nfdct
+            b = self.mddct(dct, nfdct)
+            return (m(**b[m]) for m in self.model.models)
+
+    def fetchall(self):# fetchall result
+        
+        data = self.cursor.fetchall()
+
+        if self.model.single:
+            for dct in data:
+                yield self.model(**dct)
+        else:
+            nfdct = self.nfdct
+
+            for dct in data:
+                b = self.mddct(dct, nfdct)
+                yield (m(**(b[m])) for m in self.model.models)
 
 
 class Query(object):# Runtime Query
@@ -203,7 +236,7 @@ class Query(object):# Runtime Query
     def __init__(self, model = None):
 
         self.model = model
-        self.runtime = ( # record infomation in single query => type:string
+        self.runtime = ( # infomation in single query => type:string
                 "_where",
                 "_set",
                 "_orderby",
@@ -213,7 +246,7 @@ class Query(object):# Runtime Query
         self.select_result = SelectResult(model) # store select result
 
     def reset_runtime(self):
-        self.__dict__.update({}.fromkeys(self.runtime, "")) # reset to ""
+        self.__dict__.update({}.fromkeys(self.runtime, "")) 
 
     def set_orderby(self, t): # t => (Field instance, True of False)
         s = " order by "+t[0].fullname
@@ -223,15 +256,16 @@ class Query(object):# Runtime Query
     
     def set_select(self, flst): # flst => Field instance list
         primarykey = self.model.primarykey
-        flst = list(flst) # cast to list
+        flst = list(flst) 
         if flst: # if no field figured out, select all as default
             if self.model.single:
                 flst.append(primarykey) # add primarykey to select
             else:
                 flst.extend(primarykey)
             flst = list(set(flst)) # remove duplicates
-        else:  # here select all 
+        else:  
             flst = self.model.get_field_lst()
+        self.select_result.flst = flst # set select field list
         fstr = ", ".join([f.fullname for f in flst])
         self._select = fstr
 
@@ -244,11 +278,11 @@ class Query(object):# Runtime Query
 
 
     def set_set(self, lst, dct):
-        lst = list(lst) # cast to list type
+        lst = list(lst) 
         if self.model.single:
             fields = self.model.fields
             primarykey = self.model.primarykey
-            lst.extend([fields[k] == v for k, v in dct.iteritems() if fields[k] is not primarykey]) # for Model Only, not JoinModel
+            lst.extend([fields[k] == v for k, v in dct.iteritems() if fields[k] is not primarykey]) 
         self._set = " set " + ", ".join([expr._tostr for expr in lst])
 
 
@@ -286,12 +320,11 @@ class Query(object):# Runtime Query
             SQL = self.makeSQL(type = type)
             cursor = Database.execute(SQL)
 
-            # different results with different query type
-            if type in (2, 4):# if update or delete, return success or failure
+            if type in (2, 4):# update or delete, return 0/1
                 re = cursor.re
-            elif type is 1:# if insert , return lastrowid
+            elif type is 1:# insert , return lastrowid
                 re = cursor.lastrowid if cursor.re else None
-            elif type is 3:# if select
+            elif type is 3:
                 self.select_result.cursor = cursor # reset select_result's cursor
                 re = self.select_result
             self.reset_runtime() # reset runtime
@@ -333,6 +366,13 @@ class MetaModel(type): # metaclass for 'single Model' Class
         cls.fields = fields
         cls.primarykey = primarykey
         cls.query = Query(cls) # instance a Query for Model cls
+
+    def __and__(self, m):
+        if m.single:
+            return JoinModel(self, m)
+        else:
+            m.models.insert(0, self)
+            return m
 
 
 class Model(object):
@@ -423,3 +463,47 @@ class Model(object):
     def orderby(cls, field, desc = False):
         cls.query.set_orderby((field, desc))
         return cls
+
+
+class JoinModel(object):
+
+    def __init__(self, *models):
+        self.models = list(models) # cast to list
+        self.single = False
+        self.query = Query(self)
+
+    def __and__(self, m):
+        if m.single:# if  a Model, append to models
+            self.models.append(m)
+        else: # if JoinModel
+            self.models.extend(m.models)
+        return self
+
+    @property
+    def table_name(self):
+        return ", ".join([m.table_name for m in self.models])
+
+    @property
+    def primarykey(self):
+        return [m.primarykey for m in self.models]
+
+    def get_field_lst(self):
+        fls = []
+        lst = [m.get_field_lst() for m in self.models]
+        return sum(lst, [])
+
+    def where(self, *lst):
+        self.query.set_where(lst, {})
+        return self
+
+    def select(self, *lst):
+        self.query.set_select(lst)
+        return self.query.select()
+
+    def update(self, *lst):
+        self.query.set_set(lst, {})
+        return self.query.update()
+
+    def orderby(self, field, desc = False):
+        self.query.set_orderby((field, desc))
+        return self
