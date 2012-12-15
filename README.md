@@ -61,9 +61,13 @@ for user, post in (User & Post).where(Post.user_id == User.id).select().fetchall
     print "user:%s post's name:%s" %(user.name, post.name)
 ```
 
-**Like virgo ? Star it!**
+**Like virgo ? Star it On Github!**
 
-For more information and codes, see [wiki](https://github.com/hit9/virgo/wiki)
+
+Document
+--------
+
+For more information and codes, see [virgo's doc](https://hit9.org/virgo/doc.html)
 
 License:BSD
 -----------
