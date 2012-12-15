@@ -1,5 +1,7 @@
+virgo
+=====
+
 Simple and easy to use ORM module for MySQL Database and Python 2
-=================================================================
 
 Install
 -------
@@ -59,7 +61,7 @@ for user, post in (User & Post).where(Post.user_id == User.id).select().fetchall
     print "user:%s post's name:%s" %(user.name, post.name)
 ```
 
-**like it? Star virgo !**
+**Like virgo ? Star it!**
 
 For more information and codes, see [wiki](https://github.com/hit9/virgo/wiki)
 
