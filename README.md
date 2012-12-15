@@ -1,26 +1,69 @@
-Simple ORM module for MySQL Database & Python
+Simple and easy to use ORM module for MySQL Database and Python 2
+=================================================================
 
-Under Dev now..
+Install
+-------
 
-
-Sample Code:
-
-```python
-
-from virgo import *
-
-Database.config(db = "mydb", user = 'root', passwd = "123456", charset = "utf8")
-
-class User(Model):
-    username = Field()
-    email = Field()
-
-for user in User.where((User.id >=  1)  & (User.email  ==  "hit9@hit9.org")).select():
-    print user.username
+virgo requires [MySQL-python](http://pypi.python.org/pypi/MySQL-python/) module.
 
 ```
+pip install virgo
+```
 
-For more sample codes, see `runtest.py`
+or 
 
+```
+git clone https://github.com/hit9/virgo
+cd virgo
+[sudo] python setup.py install
+```
 
-Star virgo !
+Sample Codes
+------------
+
+codes works with virgo looks like ..
+
+```python
+from virgo import *
+
+Database.config(db = "mydb", user = "root", passwd = "123456")
+
+class User(Model):
+    name = Field()
+    email = Field()
+
+user = User(name = "Liming", email = "Liming@github.com")
+
+user.save() # insert
+
+user = User.where(name = "Liming").select().fetchone() # select,and fetch one result
+
+print user.email
+```
+
+virgo only support CURD
+
+Sample codes for multiple tables:
+
+```python
+class User(Model):
+    name = Field()
+    email = Field()
+
+class Post(Model):
+    post_id = PrimaryKey() # default primary key is id
+    name = Field()
+    user_id = Field()
+
+for user, post in (User & Post).where(Post.user_id == User.id).select().fetchall():
+    print "user:%s post's name:%s" %(user.name, post.name)
+```
+
+**like it? Star virgo !**
+
+For more information and codes, see [wiki](https://github.com/hit9/virgo/wiki)
+
+License:BSD
+-----------
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
