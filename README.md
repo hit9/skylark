@@ -67,7 +67,7 @@ for user, post in (User & Post).where(Post.user_id == User.id).select().fetchall
 Document
 --------
 
-For more information and codes, see [virgo's doc](http://hit9.org/virgo/doc.html)
+For more information and codes, see [virgo's doc](https://github.com/hit9/virgo/wiki)
 
 License:BSD
 -----------
