@@ -77,15 +77,39 @@ class Database:
         return cursor
 
 
-class Expr(object):
+class Leaf(object):
+
+    def _expr(op):
+        def _e(self, r):
+            return Expr(left = self, right = r, op = op)
+        return _e
+
+    __lt__ = _expr(" < ")
+
+    __le__ = _expr(" <= ")
+
+    __gt__ = _expr(" > ")
+
+    __ge__ = _expr(" >= ")
+
+    __ne__ = _expr(" <> ")
+
+    __eq__ = _expr(" = ")
+
+    __and__ = _expr(" and ")
+
+    __or__ = _expr(" or ")
+
+
+class Expr(Leaf):
 
     # api
     # return func
     # str expr._tostr
 
     def __init__(self, left, right, op):
-        self.left = left # the left field
-        self.right = right # the right , field or string
+        self.left = left # the left 
+        self.right = right # the right 
         self.op = op # the operator string
 
         self.exprstr = None # record exprstr
@@ -93,26 +117,17 @@ class Expr(object):
     @property
     def _tostr(self): # singleton get exprstr, set exprstr when needed
         if not self.exprstr:
-            self.exprstr = self.left.fullname+self.op+self._str(self.right)
+            self.exprstr = self._str(self.left)+self.op+self._str(self.right)
         return self.exprstr
 
     def _str(self, side) :# turn some side to str in SQL
         if isinstance(side, Field):
             return side.fullname # return fullname if it's Field
+        elif isinstance(side, Expr):
+            return side._tostr
         else:
             return "'"+MySQLdb.escape_string(str(side))+"'" # escape_string
     
-    def _expr(op):
-        def e(self, right_expr): # return expr instance
-            self.exprstr = self._tostr+" "+op+" "+right_expr._tostr
-            return self
-        return e
-
-    __and__ = _expr("and")
-
-    __or__ = _expr("or")
-
-
 
 class EqExpr(Expr): # eq expr
     #
@@ -143,7 +158,7 @@ class FieldDescriptor(object): # descriptor for Field objs
         instance._data[self.name] = value
 
 
-class Field(object): # Field Class
+class Field(Leaf): # Field Class
 
     def __init__(self):
 
@@ -155,23 +170,8 @@ class Field(object): # Field Class
         self.fullname = self.model.table_name+"."+self.name # fullname, for quick get
         setattr(model, name, FieldDescriptor(self)) # add Descriptor
 
-    def _expr(op): # function generator
-        def e(self, r): # return Expr instance
-            return Expr(left = self, right = r, op = op)
-        return e
-
-    def __eq__(self, r): # return EqExpr instance
+    def __eq__(self, r): # overload Leaf __eq__.return  EqExpr instance
         return EqExpr(left = self, right = r)
-
-    __lt__ = _expr(" < ")
-
-    __le__ = _expr(" <= ")
-
-    __gt__ = _expr(" > ")
-
-    __ge__ = _expr(" >= ")
-
-    __ne__ = _expr(" <> ")
 
 
 class PrimaryKey(Field):
