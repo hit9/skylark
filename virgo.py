@@ -96,6 +96,8 @@ class Leaf(object):
 
     __eq__ = _expr(" = ")
 
+    __add__ = _expr(" + ")
+
     __and__ = _expr(" and ")
 
     __or__ = _expr(" or ")
@@ -230,6 +232,10 @@ class SelectResult(object): # wrap select result
             for dct in data:
                 b = self.mddct(dct, nfdct)
                 yield (m(**(b[m])) for m in self.model.models)
+
+    @property
+    def count(self):
+        return self.cursor.rowcount
 
 
 class Query(object):# Runtime Query
@@ -375,6 +381,11 @@ class MetaModel(type): # metaclass for 'single Model' Class
             m.models.insert(0, self)
             return m
 
+    def __contains__(self, obj):
+        if isinstance(obj, self) and  self.where(**obj.data).select().count:
+            return True
+        return False
+
 
 class Model(object):
 
@@ -382,7 +393,8 @@ class Model(object):
     single = True # if joinModel
 
     def __init__(self, *lst, **dct):
-        self._data = {}.fromkeys(self.fields.keys(), None) # init self._data
+        #self._data = {}.fromkeys(self.fields.keys(), None) # init self._data
+        self._data = {}
         self._data.update(dict(x._toitem for x in lst)) # update _data by expr lst
         self._data.update(dct)
         self._cache = self._data.copy()
@@ -393,7 +405,7 @@ class Model(object):
 
     @property
     def _id(self):
-        return self._data[self.primarykey.name]
+        return self._data.setdefault(self.primarykey.name, None)
 
     @classmethod
     def get_field_lst(cls):
