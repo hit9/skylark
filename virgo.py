@@ -22,9 +22,6 @@ import MySQLdb.cursors
 
 vg_cursor_matched_re = re.compile(r'Rows matched: (\d+)')
 
-class ProgrammingError(Exception): pass # exception 
-
-
 class Database:
 
     """class to manage database connection"""
@@ -67,9 +64,10 @@ class Database:
         cursor = Database.connect().cursor()
         try:
             cursor.execute(SQL)
-        except: # report SQL be made
+        except Exception, e: # report SQL be made
             if cls.debug:
-                raise ProgrammingError, "SQL be made:"+SQL
+                print "SQL :", SQL
+                raise e
         cls.query_times = cls.query_times+1
         cls.SQL = SQL
         # add attribute 're' to cursor:store query matched rows number
