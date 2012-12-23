@@ -5,5 +5,3 @@ add Post.name = User.name+"str"+Post.name support. + operator for Field,+ operat
 add like, between for where
 
 nose tests
-
-pep8
