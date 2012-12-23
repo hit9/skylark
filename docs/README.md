@@ -15,8 +15,8 @@ gollum
 
 ```
 
-### Recommend documents:
+### Recommend :
 
-* [QuickStart](https://github.com/hit9/virgo/wiki/QuickStart) Learn about this young module quickly.
+* [QuickStart](https://github.com/hit9/virgo/wiki/QuickStart): Learn about this young module quickly.
 
-* [Tips](https://github.com/hit9/virgo/wiki/Tips) Some tips and tricks to use virgo.
+* [Tips](https://github.com/hit9/virgo/wiki/Tips) : Some tips and tricks to use virgo.
