@@ -1,6 +1,10 @@
-Read documents online:[https://github.com/hit9/virgo/wiki/](https://github.com/hit9/virgo/wiki/)
+### Read documents online:
 
-Clone documents down and read with [gollum](https://github.com/github/gollum)
+[https://github.com/hit9/virgo/wiki/](https://github.com/hit9/virgo/wiki/)
+
+### Clone documents 
+
+Clone the wiki down and read with [gollum](https://github.com/github/gollum):
 
 ```
 git clone https://github.com/hit9/virgo.wiki.git
@@ -11,7 +15,7 @@ gollum
 
 ```
 
-Recommend documents:
+### Recommend documents:
 
 * [QuickStart](https://github.com/hit9/virgo/wiki/QuickStart) Learn about this young module quickly.
 
