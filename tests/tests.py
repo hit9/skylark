@@ -1,5 +1,8 @@
 #
-# run tests with nose: nosetests runtests.py
+# run tests with nose:
+#
+# $ nosetests
+#
 # This tests are based on the API list in doc/API.md
 #
 # Test Case Class Names:
