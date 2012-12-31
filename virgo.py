@@ -219,6 +219,7 @@ class SelectResult(object):  # wrap select result
 
     def fetchone(self):  # fetchone a time
         dct = self.cursor.fetchone()
+        self.cursor.close()
 
         if self.model.single:
             return self.model(**dct) if dct else None
@@ -230,6 +231,7 @@ class SelectResult(object):  # wrap select result
     def fetchall(self):  # fetchall result
 
         data = self.cursor.fetchall()
+        self.cursor.close()
 
         if self.model.single:
             for dct in data:
@@ -347,6 +349,8 @@ class Query(object):  # Runtime Query
                 # reset select_result's cursor
                 self.select_result.cursor = cursor
                 re = self.select_result
+            if type is not 3:
+                cursor.close()
             self.reset_runtime()
             return re
         return func
