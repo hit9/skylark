@@ -119,7 +119,7 @@ class Field():
 
     expr                    instancemethod      field.__add__(arg) arg:field or value  # operator:field + arg
 
-class Expr():
+class Expr(left,right):
 
     str                     instanceattribute   expr.op
 
