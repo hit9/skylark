@@ -167,6 +167,11 @@ class TestMoel_:
         assert user_id.name == "id"
         assert post_id.name == "post_id"
 
+    def test_operator(self):
+        A = User & Post
+        assert isinstance(A, JoinModel)
+        assert A.models == [User, Post]
+
 
 class TestModel(Test):
 
@@ -238,3 +243,71 @@ class TestModel(Test):
         user = User.at(1).select().fetchone()
         assert user.destroy()
         assert User.at(1).select().fetchone() is None
+
+    def test_in(self):  # in operator
+        user = User.create(name="myname", email="myemail")
+        assert user in User
+        user1 = User(User.name == "myname")
+        assert user1 in User
+        user1.email = "email"
+        assert user1 not in User
+
+
+# JoinModel Tests
+
+class TestJoinModel_:
+
+    def test_table_name(self):
+        assert (User & Post).table_name == "user, post"
+
+    def test_primarykey(self):
+        assert (User & Post).primarykey == [User.id, Post.post_id]
+
+    def test_and(self):
+        A = User & Post & User
+        B = User & (Post & User)
+        assert A.models == [User, Post, User]
+        assert B.models == [User, Post, User]
+
+
+class TestJoinModel(Test):
+
+    def create_data(self, count=1):
+        for i in range(1, count+1):
+            User.create(name="name"+str(i), email="email"+str(i))
+            Post.create(name="name"+str(i), user_id=count+1-i)
+
+    def test_where(self):
+        self.create_data(4)
+        assert (User & Post).where(User.id == Post.user_id).select().count is 4
+        assert (User & Post).where(
+            User.id == Post.user_id, User.id == 1
+        ).select().count is 1
+
+    def test_select(self):
+        self.create_data(4)
+        User_Post = User & Post
+        for user, post in User_Post.where(
+            User.id == Post.user_id
+        ).select().fetchall():
+            assert user.id == post.user_id
+
+        user, post = (User & Post).where(
+            Post.post_id == User.id
+        ).select().fetchone()
+
+        assert user.id == post.post_id
+
+    def test_update(self):
+        self.create_data(4)
+        assert (User & Post).where(
+            User.id == Post.user_id
+        ).update(User.name == "new") is 4
+
+    def test_orderby(self):
+        self.create_data(3)
+        G = (User & Post).where(
+            Post.post_id == User.id
+        ).orderby(User.name, 1).select().fetchall()
+        d = tuple(G)
+        assert d == tuple(sorted(d, key=lambda x: x[0].name, reverse=True))
