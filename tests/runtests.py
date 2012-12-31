@@ -102,11 +102,46 @@ class TestMoel_:
         assert User.table_name == "user"
         assert Post.table_name == "post"
 
+    def test_primarykey(self):
+        user_id = User.primarykey
+        post_id = Post.primarykey
+        assert user_id.name == "id"
+        assert post_id.name == "post_id"
+
 
 class TestModel(Test):
+
+    def create_data(self, count=1):
+        for i in range(count):
+            User.create(name="name"+str(i), email="email"+str(i))
 
     def test_create(self):
         user1 = User.create(name="name1", email="email1")
         user2 = User.create(User.name == "name2", email="email2")
         user3 = User.create(User.name == "name3", email="email3")
         assert user1._id and user2._id and user3._id
+
+    def test_update(self):
+        self.create_data(2)
+        assert User.at(1).update(User.name == "newname") is 1
+        assert User.at(2).update(email="newemail") is 1
+
+    def test_select(self):
+        self.create_data(4)
+        user = User.at(1).select().fetchone()
+        assert user._id == 1L
+        for user in User.select(User.name).fetchall():
+            assert user._id and user.name
+
+    def test_delete(self):
+        self.create_data(4)
+        assert User.at(1).delete() is 1
+        assert User.where(
+            (User.name == "name2") | (User.name == "name3")
+        ).delete() is 2
+
+    def test_where(self):
+        self.create_data(3)
+        assert User.where(User.id == 1) is User
+        assert User.where(id=1) is User
+        assert User.where(User.name == "name1").select().count is 1

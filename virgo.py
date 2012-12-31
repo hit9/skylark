@@ -82,7 +82,7 @@ class Database:
         # add attribute 're' to cursor:store query matched rows number
         cursor.re = int(
             vg_cursor_matched_re.search(cursor._info).group(1)
-        ) if cursor._info else cursor.rowcount
+        ) if cursor._info else int(cursor.rowcount)
         return cursor
 
 
@@ -243,7 +243,7 @@ class SelectResult(object):  # wrap select result
 
     @property
     def count(self):
-        return self.cursor.rowcount
+        return int(self.cursor.rowcount)  # cast to int
 
 
 class Query(object):  # Runtime Query
