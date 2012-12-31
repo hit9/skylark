@@ -65,11 +65,15 @@ for user, post in (User & Post).where(Post.user_id == User.id).select().fetchall
 
 **Like virgo ? Star it On Github!**
 
+Tests
+-----
+
+See [tests/](https://github.com/hit9/virgo/tree/master/tests)
 
 Document
 --------
 
-For more information and codes, see [virgo's doc](https://github.com/hit9/virgo/wiki)
+See [doc/](https://github.com/hit9/virgo/tree/master/doc)
 
 License:BSD
 -----------
