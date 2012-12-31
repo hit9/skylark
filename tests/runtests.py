@@ -53,6 +53,11 @@ class Test:  # need database connection
         Database.query_times = 0
         Database.SQL = None
 
+    def create_data(self, count=1):
+        for i in range(1, count+1):
+            User.create(name="name"+str(i), email="email"+str(i))
+            Post.create(name="name"+str(i), user_id=count+1-i)
+
 
 # Database Tests
 
@@ -175,10 +180,6 @@ class TestMoel_:
 
 class TestModel(Test):
 
-    def create_data(self, count=1):
-        for i in range(1, count+1):
-            User.create(name="name"+str(i), email="email"+str(i))
-
     def test_create(self):
         user1 = User.create(name="name1", email="email1")
         user2 = User.create(User.name == "name2", email="email2")
@@ -272,11 +273,6 @@ class TestJoinModel_:
 
 class TestJoinModel(Test):
 
-    def create_data(self, count=1):
-        for i in range(1, count+1):
-            User.create(name="name"+str(i), email="email"+str(i))
-            Post.create(name="name"+str(i), user_id=count+1-i)
-
     def test_where(self):
         self.create_data(4)
         assert (User & Post).where(User.id == Post.user_id).select().count is 4
@@ -311,3 +307,22 @@ class TestJoinModel(Test):
         ).orderby(User.name, 1).select().fetchall()
         d = tuple(G)
         assert d == tuple(sorted(d, key=lambda x: x[0].name, reverse=True))
+
+
+# select_result Tests
+
+class Testselect_result(Test):
+
+    def test_count(self):
+        self.create_data(5)
+        assert User.select().count is 5
+
+    def test_fetchone(self):
+        self.create_data(4)
+        user = User.at(1).select().fetchone()
+        assert user.id == 1
+
+    def test_fetchall(self):
+        self.create_data(4)
+        for user in User.select().fetchall():
+            assert user._id
