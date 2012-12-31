@@ -37,9 +37,7 @@ class  Database:
 
     cursor                  classmethod         Database.execute(str)
 
-class Model:
-
-    modelObj                classmethod         Model.__init__(*fldAssign, **data)
+class Model(*fldAssign,**data)
 
     dict                    instanceattribute   modelObj._data
 
@@ -73,9 +71,7 @@ class Model:
 
     int                     instancemethod      ModelObj.destroy()
 
-class JoinModel:
-
-    joinmodel               classmethod         JoinModel(*model)
+class JoinModel(*model)
 
     str                     classattribute      JoinModel.table_name
 
