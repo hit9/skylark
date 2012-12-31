@@ -1,9 +1,7 @@
 transaction:decorator
 
-add Post.name = User.name+"str"+Post.name support. + operator for Field,+ operator for expr
-
 add like, between for where
 
-nose tests
+tests for select_result
 
-delete return cast to int, select_result.count cast to int
+example code
