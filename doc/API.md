@@ -27,7 +27,7 @@ API
 
     return                  function type       function
 
-class  Database:
+class  Database():
 
     str                     classattribute      Database.SQL
 
@@ -37,7 +37,7 @@ class  Database:
 
     cursor                  classmethod         Database.execute(str)
 
-class Model(*fldAssign,**data)
+class Model(*fldAssign,**data):
 
     dict                    instanceattribute   modelObj._data
 
@@ -71,7 +71,7 @@ class Model(*fldAssign,**data)
 
     int                     instancemethod      ModelObj.destroy()
 
-class JoinModel(*model)
+class JoinModel(*model):
 
     str                     classattribute      JoinModel.table_name
 
@@ -87,12 +87,46 @@ class JoinModel(*model)
 
     joinmodel               classmethod         JoinModel.__and__(arg) arg:model or joinmodel  # operator: JoinModel & arg
 
-class SelectResult:
+class SelectResult(model):
 
     int                     instanceattribute   select_result.count
 
     model/tuple of models   instancemethod      select_result.fetchone()
 
     iterator                instancemethod      select_result.fetchall()
+
+class Field():
+
+    str                     instanceattribute   field.name
+
+    str                     instanceattribute   field.fullname
+
+    bool                    instanceattribute   field.primarykey
+
+    model                   instanceattribute   field.model
+
+    expr                    instancemethod      field.__lt__(arg) arg:field or value  # operator:field < arg
+
+    expr                    instancemethod      field.__le__(arg) arg:field or value  # operator:field <= arg
+
+    expr                    instancemethod      field.__gt__(arg) arg:field or value  # operator:field > arg
+
+    expr                    instancemethod      field.__ge__(arg) arg:field or value  # operator:field >= arg
+
+    expr                    instancemethod      field.__ne__(arg) arg:field or value  # operator:field != arg
+
+    expr                    instancemethod      field.__eq__(arg) arg:field or value  # operator:field == arg
+
+    expr                    instancemethod      field.__add__(arg) arg:field or value  # operator:field + arg
+
+class Expr():
+
+    str                     instanceattribute   expr.op
+
+    str                     instanceattribute   expr._tostr
+
+    expr                    instancemethod      expr.__and__(arg) arg:expr  # operator:expr & expr
+
+    expr                    instancemethod      expr.__or__(arg) arg:expr  # operator:expr | expr
 
 ```
