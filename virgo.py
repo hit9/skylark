@@ -225,7 +225,7 @@ class SelectResult(object):  # wrap select result
         else:
             nfdct = self.nfdct
             b = self.mddct(dct, nfdct)
-            return (m(**b[m]) for m in self.model.models)
+            return tuple(m(**b[m]) for m in self.model.models)
 
     def fetchall(self):  # fetchall result
 
@@ -239,7 +239,7 @@ class SelectResult(object):  # wrap select result
 
             for dct in data:
                 b = self.mddct(dct, nfdct)
-                yield (m(**(b[m])) for m in self.model.models)
+                yield tuple(m(**(b[m])) for m in self.model.models)
 
     @property
     def count(self):
