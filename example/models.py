@@ -4,6 +4,8 @@
 
 from virgo import *
 
+Database.config(db="mydb", user="root", passwd="123456")
+
 
 # define models:
 
