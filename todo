@@ -10,4 +10,6 @@ field types:char,varchar,text,int,date
 
 SQL 字段约束(插入的结果)
 
-delete 后加表名字,delete method for JoinModle
+delete 后加表名字,delete method for JoinModle & wiki & API
+
+User.where(User.id==Post.user_id).delete()实现
