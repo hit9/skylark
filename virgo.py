@@ -24,13 +24,17 @@ import re
 import MySQLdb
 import MySQLdb.cursors
 
+# regular expression to get matched rows number from cursor's info
 RowsMatchedRE = re.compile(r'Rows matched: (\d+)')
 
+
 # type marks for CURD
+
 Q_INSERT = 1
 Q_UPDATE = 2
 Q_SELECT = 3
 Q_DELETE = 4
+
 
 # type marks for runtimes
 
@@ -38,6 +42,7 @@ QR_WHERE = 1
 QR_SET = 2
 QR_ORDERBY = 3
 QR_SELECT = 4
+QR_TABLES = 5
 
 
 class Database:
@@ -158,7 +163,7 @@ class Expr(Leaf):
 
     def _str(self, side):  # turn some side to str in SQL
         if isinstance(side, Field):
-            return side.fullname   # return fullname if Field instance
+            return side.fullname
         elif isinstance(side, Expr):
             return side._tostr
         else:
@@ -198,12 +203,12 @@ class Field(Leaf):  # Field Class
 
     def __init__(self):
 
-        self.primarykey = False  # as default, Field instance not a primarykey
+        self.primarykey = False  # default: Field instance not a primarykey
 
     def describe(self, name, model):  # describe attr by FieldDescriptor
         self.name = name
         self.model = model
-        self.fullname = self.model.table_name+"."+self.name  # for quick get
+        self.fullname = self.model.table_name+"."+self.name
         setattr(model, name, FieldDescriptor(self))  # add Descriptor
 
     def __eq__(self, r):  # overload Leaf __eq__.return  EqExpr instance
@@ -283,13 +288,19 @@ class Query(object):  # Runtime Query
             "_set",        # eqexpr list
             "_orderby",    # [field, desc(bool)]
             "_select",     # fields to select.type:list
-            "_models"      # models appear in where or orderby .type:list
+            "_tables"      # models appear in where or orderby .type:list
         )
         self.reset_runtime()  # reset, to init runtime as attrs
         self.select_result = SelectResult(model)  # store select result
 
     def reset_runtime(self):
         self.__dict__.update({}.fromkeys(self.runtime, []))
+
+    def set_tables(self, exprlst):
+        lst = []
+        for expr in exprlst:
+            lst.extend(expr.models())
+        self._tables = lst
 
     def set_orderby(self, t):  # t: (Field instance, True of False)
         self._orderby = list(t)
@@ -305,7 +316,7 @@ class Query(object):  # Runtime Query
             flst = list(set(flst))  # remove duplicates
         else:
             flst = self.model.get_field_lst()
-        self._select = self.select_result.flst = flst  # set select field list
+        self._select = self.select_result.flst = flst
 
     def set_where(self, lst, dct):
         lst = list(lst)  # cast to list
@@ -313,6 +324,7 @@ class Query(object):  # Runtime Query
             fields = self.model.fields
             lst.extend([fields[k] == v for k, v in dct.iteritems()])
         self._where = lst
+        self.set_tables(lst)
 
     def set_set(self, lst, dct):
         lst = list(lst)
@@ -329,26 +341,37 @@ class Query(object):  # Runtime Query
     def _G(type=None):
         @property
         def g(self):
+
             dct = {
-                QR_WHERE:self._where, 
-                QR_SELECT:self._select, 
-                QR_SET:self._set, 
-                QR_ORDERBY:self._orderby
+                QR_WHERE: self._where,
+                QR_SELECT: self._select,
+                QR_SET: self._set,
+                QR_ORDERBY: self._orderby,
+                QR_TABLES: self._tables
             }
+
             lst = dct[type]
+
             if not lst:
                 return ""
+
             if type is QR_WHERE:
                 return " where "+" and ".join([expr._tostr for expr in lst])
+
             elif type is QR_SELECT:
-                return ", ".join([f.fullname for f in lst])
+                return ", ".join([field.fullname for field in lst])
+
             elif type is QR_SET:
                 return " set " + ", ".join([expr._tostr for expr in lst])
+
             elif type is QR_ORDERBY:
-                s = " order by "+lst[0].fullname
+                orderby_str = " order by "+lst[0].fullname
                 if lst[1]:
-                    s = s+" desc "
-                return s
+                    orderby_str = orderby_str+" desc "
+                return orderby_str
+
+            elif type is QR_TABLES:
+                return ", ".join([model.table_name for model in lst])
         return g
 
     get_orderby = _G(QR_ORDERBY)
@@ -359,18 +382,25 @@ class Query(object):  # Runtime Query
 
     get_where = _G(QR_WHERE)
 
+    get_tables = _G(QR_TABLES)
+
     def makeSQL(self, type=None):
+
         table = self.model.table_name
 
-        if type is Q_INSERT:  # insert
-            SQL = "insert into "+table+" "+self.get_set
-        elif type is Q_UPDATE:  # update
-            SQL = "update "+table+" "+self.get_set+self.get_where
-        elif type is Q_SELECT:  # select
-            SQL = "select "+self.get_select+" from "+table
-            SQL += self.get_where+self.get_orderby
-        elif type is Q_DELETE:  # delete
-            SQL = "delete "+table+" from "+table+self.get_where
+        if type is Q_INSERT:
+            SQL = "insert into " + table + " " + self.get_set
+        elif type is Q_UPDATE:
+            SQL = "update " + table+" " + self.get_set + self.get_where
+        elif type is Q_SELECT:
+            SQL = (
+                "select " + self.get_select + " from " + table +
+                self.get_where + self.get_orderby
+            )
+        elif type is Q_DELETE:
+            SQL = (
+                "delete " + table + " from " + self.get_tables + self.get_where
+            )
         return SQL
 
     def _Q(type):   # function generator for CURD
