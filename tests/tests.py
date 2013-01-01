@@ -146,6 +146,22 @@ class TestExpr_:
         assert expr1._tostr == "user.name = 'name' and user.email = 'email'"
         assert expr2._tostr == "user.name = 'name' or user.email = 'email'"
 
+    def test_fields(self):
+        expr = (
+            (User.name == "name") &
+            (User.email == "email") |
+            (Post.name == "name")
+        )
+        assert set(expr.fields()) == set([User.name, User.email, Post.name])
+
+    def test_models(self):
+        expr = (
+            (User.name == "name") &
+            (User.email == "email") |
+            (Post.name == "name")
+        )
+        assert set(expr.models()) == set([User, Post])
+
 
 # Model, modelObj Tests
 
@@ -207,6 +223,7 @@ class TestModel(Test):
         assert User.where(
             (User.name == "name2") | (User.name == "name3")
         ).delete() is 2
+        assert User.where(User.id == Post.user_id).delete() is 7
 
     def test_where(self):
         self.create_data(3)
