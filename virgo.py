@@ -535,6 +535,9 @@ class JoinModel(object):
         self.query.set_set(lst, {})
         return self.query.update()
 
+    def delete(self):
+        return self.query.delete()
+
     def orderby(self, field, desc=False):
         self.query.set_orderby((field, desc))
         return self
