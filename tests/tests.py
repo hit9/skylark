@@ -202,7 +202,7 @@ class TestModel(Test):
             assert user._id and user.name
 
     def test_delete(self):
-        self.create_data(4)
+        self.create_data(10)
         assert User.at(1).delete() is 1
         assert User.where(
             (User.name == "name2") | (User.name == "name3")
@@ -302,6 +302,10 @@ class TestJoinModel(Test):
         assert (User & Post).where(
             User.id == Post.user_id
         ).update(User.name == "new") is 4
+
+    def test_delete(self):
+        self.create_data(4)
+        assert (User & Post).where(User.id == Post.user_id).delete() is 8
 
     def test_orderby(self):
         self.create_data(3)
