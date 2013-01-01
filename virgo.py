@@ -24,7 +24,20 @@ import re
 import MySQLdb
 import MySQLdb.cursors
 
-vg_cursor_matched_re = re.compile(r'Rows matched: (\d+)')
+RowsMatchedRE = re.compile(r'Rows matched: (\d+)')
+
+# type marks for CURD
+Q_INSERT = 1
+Q_UPDATE = 2
+Q_SELECT = 3
+Q_DELETE = 4
+
+# type marks for runtimes
+
+QR_WHERE = 1
+QR_SET = 2
+QR_ORDERBY = 3
+QR_SELECT = 4
 
 
 class Database:
@@ -81,7 +94,7 @@ class Database:
         cls.SQL = SQL
         # add attribute 're' to cursor:store query matched rows number
         cursor.re = int(
-            vg_cursor_matched_re.search(cursor._info).group(1)
+            RowsMatchedRE.search(cursor._info).group(1)
         ) if cursor._info else int(cursor.rowcount)
         return cursor
 
@@ -124,6 +137,18 @@ class Expr(Leaf):
         self.op = op  # the operator string
 
         self.exprstr = None  # record exprstr
+
+    def fields(self, lst=[]):  # get field list appeared in this expr
+        for side in self.left, self.right:
+            if isinstance(side, Field):
+                lst.append(side)
+            elif isinstance(side, Expr):
+                lst.extend(side.fields(lst=lst))
+        return list(set(lst))   # remove duplicates
+
+    def models(self):
+        fields = self.fields()
+        return list(set(f.model for f in fields))
 
     @property
     def _tostr(self):  # singleton get exprstr, set exprstr when needed
@@ -253,25 +278,23 @@ class Query(object):  # Runtime Query
     def __init__(self, model=None):
 
         self.model = model
-        self.runtime = (   # infomation in single query => type:string
-            "_where",
-            "_set",
-            "_orderby",
-            "_select"
+        self.runtime = (   # infomation in single query, each's type:list
+            "_where",      # expr list
+            "_set",        # eqexpr list
+            "_orderby",    # [field, desc(bool)]
+            "_select",     # fields to select.type:list
+            "_models"      # models appear in where or orderby .type:list
         )
         self.reset_runtime()  # reset, to init runtime as attrs
         self.select_result = SelectResult(model)  # store select result
 
     def reset_runtime(self):
-        self.__dict__.update({}.fromkeys(self.runtime, ""))
+        self.__dict__.update({}.fromkeys(self.runtime, []))
 
-    def set_orderby(self, t):  # t => (Field instance, True of False)
-        s = " order by "+t[0].fullname
-        if t[1]:
-            s = s+" desc "
-        self._orderby = s
+    def set_orderby(self, t):  # t: (Field instance, True of False)
+        self._orderby = list(t)
 
-    def set_select(self, flst):  # flst => Field instance list
+    def set_select(self, flst):  # flst:  Field instance list
         primarykey = self.model.primarykey
         flst = list(flst)
         if flst:  # if no field figured out, select all as default
@@ -282,16 +305,14 @@ class Query(object):  # Runtime Query
             flst = list(set(flst))  # remove duplicates
         else:
             flst = self.model.get_field_lst()
-        self.select_result.flst = flst  # set select field list
-        fstr = ", ".join([f.fullname for f in flst])
-        self._select = fstr
+        self._select = self.select_result.flst = flst  # set select field list
 
     def set_where(self, lst, dct):
         lst = list(lst)  # cast to list
         if self.model.single:  # single model
             fields = self.model.fields
             lst.extend([fields[k] == v for k, v in dct.iteritems()])
-        self._where = " where "+" and ".join([expr._tostr for expr in lst])
+        self._where = lst
 
     def set_set(self, lst, dct):
         lst = list(lst)
@@ -302,36 +323,53 @@ class Query(object):  # Runtime Query
                 [fields[k] == v
                     for k, v in dct.iteritems() if fields[k] is not primarykey]
             )
-        self._set = " set " + ", ".join([expr._tostr for expr in lst])
+        self._set = lst
 
-    def _G(name, default):
+    # generate function for get str of runtimes
+    def _G(type=None):
         @property
         def g(self):
-            if self.__dict__[name]:
-                return self.__dict__[name]
-            return default
+            dct = {
+                QR_WHERE:self._where, 
+                QR_SELECT:self._select, 
+                QR_SET:self._set, 
+                QR_ORDERBY:self._orderby
+            }
+            lst = dct[type]
+            if not lst:
+                return ""
+            if type is QR_WHERE:
+                return " where "+" and ".join([expr._tostr for expr in lst])
+            elif type is QR_SELECT:
+                return ", ".join([f.fullname for f in lst])
+            elif type is QR_SET:
+                return " set " + ", ".join([expr._tostr for expr in lst])
+            elif type is QR_ORDERBY:
+                s = " order by "+lst[0].fullname
+                if lst[1]:
+                    s = s+" desc "
+                return s
         return g
 
-    get_orderby = _G("_orderby", "")
+    get_orderby = _G(QR_ORDERBY)
 
-    get_select = _G("_select", "*")
+    get_select = _G(QR_SELECT)
 
-    get_set = _G("_set", "")
+    get_set = _G(QR_SET)
 
-    get_where = _G("_where", "")
+    get_where = _G(QR_WHERE)
 
     def makeSQL(self, type=None):
-
         table = self.model.table_name
 
-        if type == 1:  # insert
+        if type is Q_INSERT:  # insert
             SQL = "insert into "+table+" "+self.get_set
-        elif type == 2:  # update
+        elif type is Q_UPDATE:  # update
             SQL = "update "+table+" "+self.get_set+self.get_where
-        elif type == 3:  # select
+        elif type is Q_SELECT:  # select
             SQL = "select "+self.get_select+" from "+table
             SQL += self.get_where+self.get_orderby
-        elif type == 4:  # delete
+        elif type is Q_DELETE:  # delete
             SQL = "delete "+table+" from "+table+self.get_where
         return SQL
 
@@ -341,15 +379,15 @@ class Query(object):  # Runtime Query
             SQL = self.makeSQL(type=type)
             cursor = Database.execute(SQL)
 
-            if type in (2, 4):  # update or delete, return 0/1
+            if type in (Q_UPDATE, Q_DELETE):  # return 0 or 1
                 re = cursor.re
-            elif type is 1:  # insert , return lastrowid
+            elif type is Q_INSERT:  # return lastrowid
                 re = cursor.lastrowid if cursor.re else None
-            elif type is 3:
+            elif type is Q_SELECT:
                 # reset select_result's cursor
                 self.select_result.cursor = cursor
                 re = self.select_result
-            if type is not 3:
+            if type is not Q_SELECT:
                 cursor.close()
             self.reset_runtime()
             return re
@@ -357,13 +395,13 @@ class Query(object):  # Runtime Query
 
     #generate CURD Functions
 
-    insert = _Q(1)
+    insert = _Q(Q_INSERT)
 
-    update = _Q(2)
+    update = _Q(Q_UPDATE)
 
-    select = _Q(3)
+    select = _Q(Q_SELECT)
 
-    delete = _Q(4)
+    delete = _Q(Q_DELETE)
 
 
 class MetaModel(type):  # metaclass for 'single Model' Class
