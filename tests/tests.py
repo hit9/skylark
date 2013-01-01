@@ -306,6 +306,7 @@ class TestJoinModel(Test):
     def test_delete(self):
         self.create_data(4)
         assert (User & Post).where(User.id == Post.user_id).delete() is 8
+        assert (User & Post).where(User.id == Post.user_id).select().count is 0
 
     def test_orderby(self):
         self.create_data(3)
