@@ -25,7 +25,7 @@ API
 
 ```python
 
-    return                  function type       function
+    return                  level or type       method
 
 class  Database():
 
@@ -73,19 +73,21 @@ class Model(*fldAssign,**data):
 
 class JoinModel(*model):
 
-    str                     classattribute      JoinModel.table_name
+    str                     instanceattribute   joinmodel.table_name
 
-    list of primarykey      classattribute      JoinModel.primarykey
+    list of primarykey      instanceattribute   joinmodel.primarykey
 
-    joinmodel               classmethod         JoinModel.where(*expr)
+    joinmodel               instancemethod      joinmodel.where(*expr)
 
-    joinmodel               classmethod         JoinModel.orderby(field,desc=bool)
+    joinmodel               instancemethod      joinmodel.orderby(field,desc=bool)
 
-    select_result           classmethod         JoinModel.select(*field)
+    select_result           instancemethod      joinmodel.select(*field)
 
-    int                     classmethod         JoinModel.update(*field)
+    int                     instancemethod      joinmodel.update(*field)
 
-    joinmodel               classmethod         JoinModel.__and__(arg) arg:model or joinmodel  # operator: JoinModel & arg
+    int                     instancemethod      joinmodel.delete(*field)
+
+    joinmodel               instancemethod      joinmodel.__and__(arg) arg:model or joinmodel  # operator: joinmodel & arg
 
 class SelectResult(model):
 
@@ -129,4 +131,7 @@ class Expr(left,right):
 
     expr                    instancemethod      expr.__or__(arg) arg:expr  # operator:expr | expr
 
+    list of field           instancemethod      expr.fields()
+
+    list of model           instancemethod      expr.models()
 ```
