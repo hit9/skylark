@@ -1,7 +1,13 @@
 transaction:decorator
 
-add like, between for where
+add like, between for where,in 
 
 tests for select_result
 
 example code
+
+field types:char,varchar,text,int,date
+
+SQL 字段约束(插入的结果)
+
+delete 后加表名字,delete method for JoinModle

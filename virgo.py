@@ -332,7 +332,7 @@ class Query(object):  # Runtime Query
             SQL = "select "+self.get_select+" from "+table
             SQL += self.get_where+self.get_orderby
         elif type == 4:  # delete
-            SQL = "delete from "+table+self.get_where
+            SQL = "delete "+table+" from "+table+self.get_where
         return SQL
 
     def _Q(type):   # function generator for CURD
