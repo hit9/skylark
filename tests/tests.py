@@ -146,22 +146,6 @@ class TestExpr_:
         assert expr1._tostr == "user.name = 'name' and user.email = 'email'"
         assert expr2._tostr == "user.name = 'name' or user.email = 'email'"
 
-    def test_fields(self):
-        expr = (
-            (User.name == "name") &
-            (User.email == "email") |
-            (Post.name == "name")
-        )
-        assert set(expr.fields()) == set([User.name, User.email, Post.name])
-
-    def test_models(self):
-        expr = (
-            (User.name == "name") &
-            (User.email == "email") |
-            (Post.name == "name")
-        )
-        assert set(expr.models()) == set([User, Post])
-
 
 # Model, modelObj Tests
 
@@ -218,12 +202,11 @@ class TestModel(Test):
             assert user._id and user.name
 
     def test_delete(self):
-        self.create_data(10)
+        self.create_data(4)
         assert User.at(1).delete() is 1
         assert User.where(
             (User.name == "name2") | (User.name == "name3")
         ).delete() is 2
-        assert User.where(User.id == Post.user_id).delete() is 7
 
     def test_where(self):
         self.create_data(3)
@@ -324,6 +307,12 @@ class TestJoinModel(Test):
         self.create_data(4)
         assert (User & Post).where(User.id == Post.user_id).delete() is 8
         assert (User & Post).where(User.id == Post.user_id).select().count is 0
+
+    def test_delete2(self):
+        self.create_data(5)
+        assert (User & Post).where(User.id == Post.user_id).delete(User) is 5
+        assert User.select().count is 0
+        assert Post.select().count is 5
 
     def test_orderby(self):
         self.create_data(3)
