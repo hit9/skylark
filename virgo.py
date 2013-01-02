@@ -443,11 +443,7 @@ class MetaModel(type):  # metaclass for 'single Model' Class
         cls.query = Query(cls)  # instance a Query for Model cls
 
     def __and__(self, m):
-        if m.single:
-            return JoinModel(self, m)
-        else:
-            m.models.insert(0, self)
-            return m
+        return JoinModel(self, m)
 
     def __contains__(self, obj):
         if isinstance(obj, self) and self.where(**obj.data).select().count:
@@ -547,19 +543,12 @@ class Model(object):
         return cls
 
 
-class JoinModel(object):
+class Models(object):
 
     def __init__(self, *models):
         self.models = list(models)  # cast to list
         self.single = False
         self.query = Query(self)
-
-    def __and__(self, m):
-        if m.single:  # if single, append to models
-            self.models.append(m)
-        else:
-            self.models.extend(m.models)
-        return self
 
     @property
     def table_name(self):
@@ -594,3 +583,10 @@ class JoinModel(object):
     def orderby(self, field, desc=False):
         self.query.set_orderby((field, desc))
         return self
+
+
+class JoinModel(Models):
+
+    def __init__(self, left, right):
+        super(JoinModel, self).__init__(left, right)
+        
