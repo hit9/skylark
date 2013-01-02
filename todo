@@ -9,3 +9,5 @@ field types:char,varchar,text,int,date
 SQL 字段约束(插入,update的结果)
 
 foreignkey
+
+models,JoinModel两个分开
