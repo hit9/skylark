@@ -45,7 +45,6 @@ QR_WHERE = 1
 QR_SET = 2
 QR_ORDERBY = 3
 QR_SELECT = 4
-QR_TABLES = 5
 
 
 class Database:
