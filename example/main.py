@@ -39,6 +39,8 @@ for user, post in (User & Post).where(
 ).select().fetchall():
     print user, post
 
+print (User&Post).where(User.id == Post.user_id).delete(User)  # delete from table user
+
 # user defined method for Model
 
 user = User.get(3)
