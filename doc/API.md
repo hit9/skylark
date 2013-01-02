@@ -15,6 +15,7 @@ fieldname       field.name (str)
 primarykey      instance of PrimaryKey
 model           model class,inherited from Model
 modelObj        instance of model
+models          instance of Models
 joinmodel       instance of JoinModel
 select_results  instance of SelectResult
 cursor          instance of MySQLdb.cursors.Dictcursor
@@ -63,7 +64,7 @@ class Model(*fldAssign,**data):
 
     model                   classmethod         Model.orderby(field,desc=bool)
 
-    joinmodel               classmethod         Model.__and__(arg) arg:model or joinmodel  # operator: Model & arg
+    joinmodel               classmethod         Model.__and__(model)  # operator: model & model
 
     bool                    classmethod         Model.__contains__(modelObj)  # operator: modelObj in model
 
@@ -71,23 +72,21 @@ class Model(*fldAssign,**data):
 
     int                     instancemethod      ModelObj.destroy()
 
-class JoinModel(*model):
+class Models(*model):
 
-    str                     instanceattribute   joinmodel.table_name
+    str                     instanceattribute   models.table_name
 
-    list of primarykey      instanceattribute   joinmodel.primarykey
+    list of primarykey      instanceattribute   models.primarykey
 
-    joinmodel               instancemethod      joinmodel.where(*expr)
+    models                  instancemethod      models.where(*expr)
 
-    joinmodel               instancemethod      joinmodel.orderby(field,desc=bool)
+    models                  instancemethod      models.orderby(field,desc=bool)
 
-    select_result           instancemethod      joinmodel.select(*field)
+    select_result           instancemethod      models.select(*field)
 
-    int                     instancemethod      joinmodel.update(*field)
+    int                     instancemethod      models.update(*field)
 
-    int                     instancemethod      joinmodel.delete(*field, model=None)
-
-    joinmodel               instancemethod      joinmodel.__and__(arg) arg:model or joinmodel  # operator: joinmodel & arg
+    int                     instancemethod      models.delete(*field, model=None)
 
 class SelectResult(model):
 
