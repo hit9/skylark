@@ -85,7 +85,7 @@ class JoinModel(*model):
 
     int                     instancemethod      joinmodel.update(*field)
 
-    int                     instancemethod      joinmodel.delete(*field)
+    int                     instancemethod      joinmodel.delete(*field, model=None)
 
     joinmodel               instancemethod      joinmodel.__and__(arg) arg:model or joinmodel  # operator: joinmodel & arg
 
@@ -131,7 +131,4 @@ class Expr(left,right):
 
     expr                    instancemethod      expr.__or__(arg) arg:expr  # operator:expr | expr
 
-    list of field           instancemethod      expr.fields()
-
-    list of model           instancemethod      expr.models()
 ```
