@@ -11,7 +11,10 @@
 #   E-mail : nz2324@126.com
 #
 #   URL : http://hit9.org
+#
 #   Licence : BSD
+#
+#   API : doc/API.md
 #
 # Permission to use, copy, modify,
 # and distribute this software for any purpose with
@@ -132,28 +135,12 @@ class Leaf(object):
 
 class Expr(Leaf):
 
-    # api
-    # return func
-    # str expr._tostr
-
     def __init__(self, left, right, op):
-        self.left = left  # the left
-        self.right = right  # the right
-        self.op = op  # the operator string
+        self.left = left
+        self.right = right
+        self.op = op
 
         self.exprstr = None  # record exprstr
-
-    def fields(self, lst=[]):  # get field list appeared in this expr
-        for side in self.left, self.right:
-            if isinstance(side, Field):
-                lst.append(side)
-            elif isinstance(side, Expr):
-                lst.extend(side.fields(lst=lst))
-        return list(set(lst))   # remove duplicates
-
-    def models(self):
-        fields = self.fields()
-        return list(set(f.model for f in fields))
 
     @property
     def _tostr(self):  # singleton get exprstr, set exprstr when needed
@@ -287,20 +274,13 @@ class Query(object):  # Runtime Query
             "_where",      # expr list
             "_set",        # eqexpr list
             "_orderby",    # [field, desc(bool)]
-            "_select",     # fields to select.type:list
-            "_tables"      # models appear in where or orderby .type:list
+            "_select"     # fields to select.type:list
         )
         self.reset_runtime()  # reset, to init runtime as attrs
         self.select_result = SelectResult(model)  # store select result
 
     def reset_runtime(self):
         self.__dict__.update({}.fromkeys(self.runtime, []))
-
-    def set_tables(self, exprlst):
-        lst = []
-        for expr in exprlst:
-            lst.extend(expr.models())
-        self._tables = lst
 
     def set_orderby(self, t):  # t: (Field instance, True of False)
         self._orderby = list(t)
@@ -324,7 +304,6 @@ class Query(object):  # Runtime Query
             fields = self.model.fields
             lst.extend([fields[k] == v for k, v in dct.iteritems()])
         self._where = lst
-        self.set_tables(lst)
 
     def set_set(self, lst, dct):
         lst = list(lst)
@@ -347,7 +326,6 @@ class Query(object):  # Runtime Query
                 QR_SELECT: self._select,
                 QR_SET: self._set,
                 QR_ORDERBY: self._orderby,
-                QR_TABLES: self._tables
             }
 
             lst = dct[type]
@@ -369,9 +347,6 @@ class Query(object):  # Runtime Query
                 if lst[1]:
                     orderby_str = orderby_str+" desc "
                 return orderby_str
-
-            elif type is QR_TABLES:
-                return ", ".join([model.table_name for model in lst])
         return g
 
     get_orderby = _G(QR_ORDERBY)
@@ -382,11 +357,14 @@ class Query(object):  # Runtime Query
 
     get_where = _G(QR_WHERE)
 
-    get_tables = _G(QR_TABLES)
-
-    def makeSQL(self, type=None):
+    def makeSQL(self, type, model=None):
 
         table = self.model.table_name
+
+        if model is None:
+            model = self.model
+
+        _table = model.table_name
 
         if type is Q_INSERT:
             SQL = "insert into " + table + " " + self.get_set
@@ -399,15 +377,21 @@ class Query(object):  # Runtime Query
             )
         elif type is Q_DELETE:
             SQL = (
-                "delete " + table + " from " + self.get_tables + self.get_where
+                "delete " + _table + " from " + table + self.get_where
             )
         return SQL
 
     def _Q(type):   # function generator for CURD
-        def func(self):
-            re = None
-            SQL = self.makeSQL(type=type)
+        def func(self, model=None):
+
+            if type is Q_DELETE and model:
+                SQL = self.makeSQL(Q_DELETE, model)
+            else:
+                SQL = self.makeSQL(type)
+
             cursor = Database.execute(SQL)
+
+            re = None
 
             if type in (Q_UPDATE, Q_DELETE):  # return 0 or 1
                 re = cursor.re
@@ -603,8 +587,10 @@ class JoinModel(object):
         self.query.set_set(lst, {})
         return self.query.update()
 
-    def delete(self):
-        return self.query.delete()
+    def delete(self, model=None):  # model or joinmodel
+        if not model:
+            model = self
+        return self.query.delete(model)
 
     def orderby(self, field, desc=False):
         self.query.set_orderby((field, desc))
