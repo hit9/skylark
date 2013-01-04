@@ -17,7 +17,7 @@ class User(Model):
 class Post(Model):
     post_id = PrimaryKey()
     name = Field()
-    user_id = Field()
+    user_id = ForeignKey(User.id)
 
 
 # user defined methods..
