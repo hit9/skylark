@@ -109,6 +109,12 @@ class TestField_:
         assert User.id.is_primarykey is True
         assert Post.post_id.is_primarykey is True
 
+    def test_foreignkey(self):
+        assert User.name.is_foreignkey is False
+        assert User.email.is_foreignkey is False
+        assert Post.user_id.is_foreignkey is True
+        assert Post.user_id.point_to is User.id
+
     def test_operator(self):
         expr1 = User.id < 4
         expr2 = User.id <= 4
