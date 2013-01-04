@@ -182,7 +182,7 @@ class TestModel_:
         assert post_id.name == "post_id"
 
     def test_operator(self):
-        A = Post&User
+        A = Post & User
         assert isinstance(A, JoinModel)
         assert A.models == [Post, User]
 
@@ -276,6 +276,7 @@ class TestModels_:
     def test_primarykey(self):
         assert self.models.primarykey == [User.id, Post.post_id]
 
+
 class TestModels(Test):
 
     def setUp(self):
@@ -322,10 +323,37 @@ class TestModels(Test):
         d = tuple(G)
         assert d == tuple(sorted(d, key=lambda x: x[0].name, reverse=True))
 
+
 class TestJoinModel_:
 
     def test_bridge(self):
         assert (Post & User).bridge is Post.user_id
+
+
+class TestJoinModel(Test):
+
+    def setUp(self):
+        super(TestJoinModel, self).setUp()
+        self.create_data(10)
+
+    def test_select(self):
+        assert (Post & User).select().count is 10
+        assert (Post & User).where(User.name == "name2").select().count is 1
+        for post, user in (Post & User).select().fetchall():
+            assert post.post_id
+            assert user.id
+            assert post.user_id == user.id
+
+    def test_delete(self):
+        assert (Post & User).delete() is 20
+        assert (Post & User).select().count is 0
+
+    def test_delete2(self):
+        assert (Post & User).delete(Post) is 10
+
+    def test_update(self):
+        assert (Post & User).where(User.name <= "name4").update(User.name == "hello") is 5
+        assert (Post & User).where(User.name == "hello").update(Post.name == "good") is 5
 
 
 # select_result Tests
