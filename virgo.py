@@ -279,7 +279,8 @@ class Query(object):  # Runtime Query
         self.select_result = SelectResult(model)  # store select result
 
     def reset_runtime(self):
-        self.__dict__.update({}.fromkeys(self.runtime, []))
+        dct = dict((i, []) for i in self.runtime)
+        self.__dict__.update(dct)
 
     def set_orderby(self, field_desc_tuple):
         self._orderby = list(field_desc_tuple)
@@ -296,6 +297,7 @@ class Query(object):  # Runtime Query
                 flst.extend(primarykey)
         else:
             flst = self.model.get_field_lst()
+
         # remove duplicates
         self._select = self.select_result.flst = list(set(flst))
 
@@ -593,14 +595,17 @@ class JoinModel(Models):
         super(JoinModel, self).__init__(main, join)
 
         self.bridge = None  # the foreignkey point to join
-    
+
         # find the foreignkey
         for field in main.get_field_lst():
             if field.is_foreignkey and field.point_to is join.primarykey:
-               self.bridge = field
+                self.bridge = field
 
         if not self.bridge:
-            raise Exception, "foreignkey references to "+join.__name__+ " not found in "+main.__name__
+            raise Exception(
+                "foreignkey references to " +
+                join.__name__ + " not found in " + main.__name__
+            )
 
     def build_brigde(self):
         self.query._where.append(self.bridge == self.bridge.point_to)
