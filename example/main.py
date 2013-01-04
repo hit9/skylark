@@ -34,12 +34,10 @@ User.at(2).delete()
 
 # join query
 
-for user, post in (User & Post).where(
-    User.id == Post.user_id
-).select().fetchall():
-    print user, post
+for post, user in (Post & User).select().fetchall():
+    print post, post
 
-print (User&Post).where(User.id == Post.user_id).delete(User)  # delete from table user
+print (Post & User).where(User.id > 4).delete(User)  # delete from table user
 
 # user defined method for Model
 
