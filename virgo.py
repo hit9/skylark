@@ -177,10 +177,10 @@ class FieldDescriptor(object):  # descriptor for Field objs
 
 class Field(Leaf):
 
-    def __init__(self, primarykey=False, foreignkey=None):
+    def __init__(self, is_primarykey=False, is_foreignkey=False):
 
-        self.primarykey = primarykey
-        self.foreignkey = foreignkey
+        self.is_primarykey = is_primarykey
+        self.is_foreignkey = is_foreignkey
 
     def describe(self, name, model):  # describe attr by FieldDescriptor
         self.name = name
@@ -195,13 +195,14 @@ class Field(Leaf):
 class PrimaryKey(Field):
 
     def __init__(self):
-        super(PrimaryKey, self).__init__(primarykey=True)
+        super(PrimaryKey, self).__init__(is_primarykey=True)
 
 
 class ForeignKey(Field):
 
-    def __init__(self, foreignkey):
-        super(ForeignKey, self).__init__(foreignkey=foreignkey)
+    def __init__(self, point_to):
+        super(ForeignKey, self).__init__(is_foreignkey=True)
+        self.point_to = point_to
 
 
 class SelectResult(object):  # wrap select result
@@ -432,7 +433,7 @@ class MetaModel(type):  # metaclass for 'single Model' Class
             if isinstance(attr, Field):
                 attr.describe(name, cls)  # describe attr
                 fields[name] = attr
-                if attr.primarykey:
+                if attr.is_primarykey:
                     primarykey = attr
 
         if primarykey is None:  # default primarykey:'id'
@@ -444,8 +445,8 @@ class MetaModel(type):  # metaclass for 'single Model' Class
         cls.primarykey = primarykey
         cls.query = Query(cls)  # instance a Query for Model cls
 
-    def __and__(self, m):
-        return JoinModel(self, m)
+    def __and__(self, join):
+        return JoinModel(self, join)
 
     def __contains__(self, obj):
         if isinstance(obj, self) and self.where(**obj.data).select().count:
@@ -590,3 +591,32 @@ class JoinModel(Models):
 
     def __init__(self, main, join):  # main's foreignkey is join's primarykey
         super(JoinModel, self).__init__(main, join)
+
+        self.bridge = None  # the foreignkey point to join
+    
+        # find the foreignkey
+        for field in main.get_field_lst():
+            if field.is_foreignkey and field.point_to is join.primarykey:
+               self.bridge = field
+
+        if not self.bridge:
+            raise Exception, "foreignkey references to "+join.__name__+ " not found in "+main.__name__
+
+    def build_brigde(self):
+        self.query._where.append(self.bridge == self.bridge.point_to)
+
+    def select(self, *lst):
+        self.build_brigde()
+        self.query.set_select(lst)
+        return self.query.select()
+
+    def update(self, *lst):
+        self.build_brigde()
+        self.query.set_set(lst, {})
+        return self.query.update()
+
+    def delete(self, model=None):  # model or joinmodel
+        self.build_brigde()
+        if not model:
+            model = self
+        return self.query.delete(model)
