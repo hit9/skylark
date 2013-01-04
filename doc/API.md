@@ -89,6 +89,12 @@ class Models(*model):
 
     int                     instancemethod      models.delete(*field, model=None)
 
+class JoinModel(Models):
+
+    foreignkey              instanceattribute   joinmodel.bridge
+    
+    # and methods,attributes from class Models
+
 class SelectResult(model):
 
     int                     instanceattribute   select_result.count
