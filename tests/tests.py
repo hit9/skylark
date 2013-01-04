@@ -105,9 +105,9 @@ class TestField_:
         assert Post.user_id.fullname == "post.user_id"
 
     def test_primarykey(self):
-        assert User.name.primarykey is False
-        assert User.id.primarykey is True
-        assert Post.post_id.primarykey is True
+        assert User.name.is_primarykey is False
+        assert User.id.is_primarykey is True
+        assert Post.post_id.is_primarykey is True
 
     def test_operator(self):
         expr1 = User.id < 4
@@ -176,9 +176,9 @@ class TestModel_:
         assert post_id.name == "post_id"
 
     def test_operator(self):
-        A = User & Post
+        A = Post&User
         assert isinstance(A, JoinModel)
-        assert A.models == [User, Post]
+        assert A.models == [Post, User]
 
 
 class TestModel(Test):
@@ -315,6 +315,11 @@ class TestModels(Test):
         ).orderby(User.name, 1).select().fetchall()
         d = tuple(G)
         assert d == tuple(sorted(d, key=lambda x: x[0].name, reverse=True))
+
+class TestJoinModel_:
+
+    def test_bridge(self):
+        assert (Post & User).bridge is Post.user_id
 
 
 # select_result Tests
