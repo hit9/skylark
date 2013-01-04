@@ -187,9 +187,10 @@ class FieldDescriptor(object):  # descriptor for Field objs
 
 class Field(Leaf):  # Field Class
 
-    def __init__(self):
+    def __init__(self, primarykey=False, foreignkey=False):
 
-        self.primarykey = False  # default: Field instance not a primarykey
+        self.primarykey = primarykey
+        self.foreignkey = foreignkey
 
     def describe(self, name, model):  # describe attr by FieldDescriptor
         self.name = name
@@ -204,7 +205,13 @@ class Field(Leaf):  # Field Class
 class PrimaryKey(Field):
 
     def __init__(self):
-        self.primarykey = True
+        super(PrimaryKey, self).__init__(primarykey=True)
+
+class ForeignKey(Field):
+
+    def __init__(self, refkey):
+        super(ForeignKey, self).__init__(foreignkey=True)
+        self.reference = refkey
 
 
 class SelectResult(object):  # wrap select result
@@ -559,7 +566,6 @@ class Models(object):
         return [m.primarykey for m in self.models]
 
     def get_field_lst(self):
-        fls = []
         lst = [m.get_field_lst() for m in self.models]
         return sum(lst, [])
 
@@ -587,6 +593,5 @@ class Models(object):
 
 class JoinModel(Models):
 
-    def __init__(self, left, right):
-        super(JoinModel, self).__init__(left, right)
-        
+    def __init__(self, main, join):  # main model's foreignkey is 
+        super(JoinModel, self).__init__(main, join)
