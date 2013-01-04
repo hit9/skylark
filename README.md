@@ -62,9 +62,9 @@ class User(Model):
 class Post(Model):
     post_id = PrimaryKey() # default primary key is id
     name = Field()
-    user_id = Field()
+    user_id = ForeignKey(User.id)
 
-for user, post in (User & Post).where(Post.user_id == User.id).select().fetchall():
+for post,user in (Post & Post).where(Post.user_id == User.id).select().fetchall():
     print "user:%s post's name:%s" %(user.name, post.name)
 ```
 
