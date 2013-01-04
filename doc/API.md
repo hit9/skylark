@@ -13,6 +13,7 @@ expr            instance of Expr
 fldAssign       assignment like "field=value"
 fieldname       field.name (str)
 primarykey      instance of PrimaryKey
+foreignkey      instance of ForeignKey
 model           model class,inherited from Model
 modelObj        instance of model
 models          instance of Models
@@ -88,6 +89,12 @@ class Models(*model):
 
     int                     instancemethod      models.delete(*field, model=None)
 
+class JoinModel(Models):
+
+    foreignkey              instanceattribute   joinmodel.bridge
+    
+    # and methods,attributes from class Models
+
 class SelectResult(model):
 
     int                     instanceattribute   select_result.count
@@ -102,7 +109,9 @@ class Field():
 
     str                     instanceattribute   field.fullname
 
-    bool                    instanceattribute   field.primarykey
+    bool                    instanceattribute   field.is_primarykey
+
+    bool                    instanceattribute   field.is_foreignkey
 
     model                   instanceattribute   field.model
 
@@ -119,6 +128,16 @@ class Field():
     expr                    instancemethod      field.__eq__(arg) arg:field or value  # operator:field == arg
 
     expr                    instancemethod      field.__add__(arg) arg:field or value  # operator:field + arg
+
+class PrimaryKey(Field):
+
+    bool                    instanceattribute   primarykey.is_primarykey (True)
+
+class ForeignKey(Field):
+
+    bool                    instanceattribute   foreignkey.is_foreignkey (True)
+
+    primarykey              instanceattribute   foreignkey.point_to 
 
 class Expr(left,right):
 

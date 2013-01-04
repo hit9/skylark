@@ -31,16 +31,13 @@ import MySQLdb.cursors
 RowsMatchedRE = re.compile(r'Rows matched: (\d+)')
 
 
-# type marks for CURD
-
+# marks for CURD
 Q_INSERT = 1
 Q_UPDATE = 2
 Q_SELECT = 3
 Q_DELETE = 4
 
-
-# type marks for runtimes
-
+# marks for runtimes
 QR_WHERE = 1
 QR_SET = 2
 QR_ORDERBY = 3
@@ -49,29 +46,22 @@ QR_SELECT = 4
 
 class Database:
 
-    """class to manage database connection"""
-
-    # api:
-    # return func
-    # None Database.config(**configs)
-    # cursor Database.execute(SQLstring)
-    # int Database.query_times
-
     configs = {  # default configs
         "host": "localhost",
         "port": 3306,  # int
-        "db": "",  # required
-        "user": "",  # required
-        "passwd": "",  # required
+        "db": "",
+        "user": "",
+        "passwd": "",
         "charset": "utf8"
     }
-    conn = None  # connection object for MySQLdb
 
-    debug = True  # debug as default
+    conn = None
+
+    debug = True
 
     query_times = 0
 
-    SQL = None  # SQL last time executed
+    SQL = None
 
     @classmethod
     def config(cls, debug=True, **configs):
@@ -80,7 +70,7 @@ class Database:
 
     @classmethod
     def connect(cls):
-        # if not connected, new one, else use the exist
+        # singleton
         if not cls.conn or not cls.conn.open:
             cls.conn = MySQLdb.connect(
                 cursorclass=MySQLdb.cursors.DictCursor,
@@ -90,27 +80,32 @@ class Database:
 
     @classmethod
     def execute(cls, SQL):
+
         cursor = Database.connect().cursor()
+
         try:
             cursor.execute(SQL)
         except Exception, e:
             if cls.debug:
-                print "SQL :", SQL  # print SQL
-                raise e
+                print "SQL :", SQL
+            raise e
+
         cls.query_times = cls.query_times+1
         cls.SQL = SQL
+
         # add attribute 're' to cursor:store query matched rows number
         cursor.re = int(
             RowsMatchedRE.search(cursor._info).group(1)
         ) if cursor._info else int(cursor.rowcount)
+
         return cursor
 
 
 class Leaf(object):
 
     def _expr(op):
-        def _e(self, r):
-            return Expr(left=self, right=r, op=op)
+        def _e(self, right):
+            return Expr(left=self, right=right, op=op)
         return _e
 
     __lt__ = _expr(" < ")
@@ -138,11 +133,10 @@ class Expr(Leaf):
         self.left = left
         self.right = right
         self.op = op
-
         self.exprstr = None  # record exprstr
 
     @property
-    def _tostr(self):  # singleton get exprstr, set exprstr when needed
+    def _tostr(self):  # singleton
         if not self.exprstr:
             self.exprstr = self._str(self.left)+self.op+self._str(self.right)
         return self.exprstr
@@ -156,17 +150,13 @@ class Expr(Leaf):
             return "'"+MySQLdb.escape_string(str(side))+"'"   # escape_string
 
 
-class EqExpr(Expr):  # eq expr
-    #
-    # api:
-    # (fieldname, valuestring) eqexpr._toitem
-    #
+class EqExpr(Expr):
 
     def __init__(self, left, right):
         super(EqExpr, self).__init__(left, right, " = ")
 
     @property
-    def _toitem(self):   # User.name == "name" => ("name", "name")
+    def _toitem(self):   # User.name == "hit9" => ("name", "hit9")
         return (self.left.name, str(self.right))
 
 
@@ -177,7 +167,7 @@ class FieldDescriptor(object):  # descriptor for Field objs
         self.field = field
 
     def __get__(self, instance, type=None):
-        if instance:  # return data
+        if instance:
             return instance._data[self.name]
         return self.field  # Model.field_name will return Field instance
 
@@ -185,12 +175,12 @@ class FieldDescriptor(object):  # descriptor for Field objs
         instance._data[self.name] = value
 
 
-class Field(Leaf):  # Field Class
+class Field(Leaf):
 
-    def __init__(self, primarykey=False, foreignkey=False):
+    def __init__(self, is_primarykey=False, is_foreignkey=False):
 
-        self.primarykey = primarykey
-        self.foreignkey = foreignkey
+        self.is_primarykey = is_primarykey
+        self.is_foreignkey = is_foreignkey
 
     def describe(self, name, model):  # describe attr by FieldDescriptor
         self.name = name
@@ -198,20 +188,21 @@ class Field(Leaf):  # Field Class
         self.fullname = self.model.table_name+"."+self.name
         setattr(model, name, FieldDescriptor(self))  # add Descriptor
 
-    def __eq__(self, r):  # overload Leaf __eq__.return  EqExpr instance
+    def __eq__(self, r):
         return EqExpr(left=self, right=r)
 
 
 class PrimaryKey(Field):
 
     def __init__(self):
-        super(PrimaryKey, self).__init__(primarykey=True)
+        super(PrimaryKey, self).__init__(is_primarykey=True)
+
 
 class ForeignKey(Field):
 
-    def __init__(self, refkey):
-        super(ForeignKey, self).__init__(foreignkey=True)
-        self.reference = refkey
+    def __init__(self, point_to):
+        super(ForeignKey, self).__init__(is_foreignkey=True)
+        self.point_to = point_to
 
 
 class SelectResult(object):  # wrap select result
@@ -222,7 +213,7 @@ class SelectResult(object):  # wrap select result
         self.flst = None
 
     @property
-    def nfdct(self):  # result data dict key <=> field instance pairs dict
+    def nfdct(self):  # {field's name:field}
         dct = {}
         for f in self.flst:
             if f.name not in dct:
@@ -231,7 +222,7 @@ class SelectResult(object):  # wrap select result
                 dct[f.fullname] = f
         return dct
 
-    def mddct(self, dct, nfdct):  # model data_dict pasirs dict
+    def mddct(self, dct, nfdct):  # {model: data dict}
         mlst = self.model.models
         b = dict((m, {}) for m in mlst)
         for k, v in dct.iteritems():
@@ -276,43 +267,51 @@ class Query(object):  # Runtime Query
     def __init__(self, model=None):
 
         self.model = model
+
         self.runtime = (   # infomation in single query, each's type:list
             "_where",      # expr list
             "_set",        # eqexpr list
             "_orderby",    # [field, desc(bool)]
-            "_select"     # fields to select.type:list
+            "_select"      # fields to select
         )
-        self.reset_runtime()  # reset, to init runtime as attrs
+
+        self.reset_runtime()
         self.select_result = SelectResult(model)  # store select result
 
     def reset_runtime(self):
-        self.__dict__.update({}.fromkeys(self.runtime, []))
+        dct = dict((i, []) for i in self.runtime)
+        self.__dict__.update(dct)
 
-    def set_orderby(self, t):  # t: (Field instance, True of False)
-        self._orderby = list(t)
+    def set_orderby(self, field_desc_tuple):
+        self._orderby = list(field_desc_tuple)
 
-    def set_select(self, flst):  # flst:  Field instance list
+    def set_select(self, fields):
+
+        flst = list(fields)
         primarykey = self.model.primarykey
-        flst = list(flst)
-        if flst:  # if no field figured out, select all as default
+
+        if flst:
             if self.model.single:
                 flst.append(primarykey)  # add primarykey to select
             else:
                 flst.extend(primarykey)
-            flst = list(set(flst))  # remove duplicates
         else:
             flst = self.model.get_field_lst()
-        self._select = self.select_result.flst = flst
+
+        # remove duplicates
+        self._select = self.select_result.flst = list(set(flst))
 
     def set_where(self, lst, dct):
-        lst = list(lst)  # cast to list
-        if self.model.single:  # single model
+        lst = list(lst)
+
+        if self.model.single:
             fields = self.model.fields
             lst.extend([fields[k] == v for k, v in dct.iteritems()])
         self._where = lst
 
     def set_set(self, lst, dct):
         lst = list(lst)
+
         if self.model.single:
             fields = self.model.fields
             primarykey = self.model.primarykey
@@ -323,7 +322,7 @@ class Query(object):  # Runtime Query
         self._set = lst
 
     # generate function for get str of runtimes
-    def _G(type=None):
+    def _G(type):
         @property
         def g(self):
 
@@ -336,18 +335,15 @@ class Query(object):  # Runtime Query
 
             lst = dct[type]
 
-            if not lst:
+            if not lst:  # default
                 return ""
 
             if type is QR_WHERE:
                 return " where "+" and ".join([expr._tostr for expr in lst])
-
             elif type is QR_SELECT:
                 return ", ".join([field.fullname for field in lst])
-
             elif type is QR_SET:
                 return " set " + ", ".join([expr._tostr for expr in lst])
-
             elif type is QR_ORDERBY:
                 orderby_str = " order by "+lst[0].fullname
                 if lst[1]:
@@ -388,6 +384,7 @@ class Query(object):  # Runtime Query
         return SQL
 
     def _Q(type):   # function generator for CURD
+
         def func(self, model=None):
 
             if type is Q_DELETE and model:
@@ -399,9 +396,9 @@ class Query(object):  # Runtime Query
 
             re = None
 
-            if type in (Q_UPDATE, Q_DELETE):  # return 0 or 1
-                re = cursor.re
-            elif type is Q_INSERT:  # return lastrowid
+            if type in (Q_UPDATE, Q_DELETE):
+                re = cursor.re  # affected rows
+            elif type is Q_INSERT:
                 re = cursor.lastrowid if cursor.re else None
             elif type is Q_SELECT:
                 # reset select_result's cursor
@@ -430,17 +427,18 @@ class MetaModel(type):  # metaclass for 'single Model' Class
 
         cls.table_name = cls.__name__.lower()
 
-        fields = {}  # name <=> fields pairs
+        fields = {}  # {field.name:field}
+
         primarykey = None
 
         for name, attr in cls.__dict__.iteritems():
             if isinstance(attr, Field):
                 attr.describe(name, cls)  # describe attr
                 fields[name] = attr
-                if attr.primarykey:
+                if attr.is_primarykey:
                     primarykey = attr
 
-        if primarykey is None:  # default primarykey => 'id'
+        if primarykey is None:  # default primarykey:'id'
             primarykey = PrimaryKey()
             primarykey.describe('id', cls)
             fields['id'] = primarykey
@@ -449,8 +447,8 @@ class MetaModel(type):  # metaclass for 'single Model' Class
         cls.primarykey = primarykey
         cls.query = Query(cls)  # instance a Query for Model cls
 
-    def __and__(self, m):
-        return JoinModel(self, m)
+    def __and__(self, join):
+        return JoinModel(self, join)
 
     def __contains__(self, obj):
         if isinstance(obj, self) and self.where(**obj.data).select().count:
@@ -593,5 +591,37 @@ class Models(object):
 
 class JoinModel(Models):
 
-    def __init__(self, main, join):  # main model's foreignkey is 
+    def __init__(self, main, join):  # main's foreignkey is join's primarykey
         super(JoinModel, self).__init__(main, join)
+
+        self.bridge = None  # the foreignkey point to join
+
+        # find the foreignkey
+        for field in main.get_field_lst():
+            if field.is_foreignkey and field.point_to is join.primarykey:
+                self.bridge = field
+
+        if not self.bridge:
+            raise Exception(
+                "foreignkey references to " +
+                join.__name__ + " not found in " + main.__name__
+            )
+
+    def build_brigde(self):
+        self.query._where.append(self.bridge == self.bridge.point_to)
+
+    def select(self, *lst):
+        self.build_brigde()
+        self.query.set_select(lst)
+        return self.query.select()
+
+    def update(self, *lst):
+        self.build_brigde()
+        self.query.set_set(lst, {})
+        return self.query.update()
+
+    def delete(self, model=None):  # model or joinmodel
+        self.build_brigde()
+        if not model:
+            model = self
+        return self.query.delete(model)
