@@ -76,12 +76,13 @@ class Database:
                 cursorclass=MySQLdb.cursors.DictCursor,
                 **cls.configs
             )
+        cls.con.ping()  # ping, test if the connection is working
         return cls.conn
 
     @classmethod
     def execute(cls, SQL):
 
-        cursor = Database.connect().cursor()
+        cursor = cls.connect().cursor()
 
         try:
             cursor.execute(SQL)
