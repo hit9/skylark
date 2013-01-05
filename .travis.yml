@@ -5,11 +5,14 @@ python:
   - 2.6
   - 2.7
 
-before_install: pip install MySQL-python
+before_install: 
+  - pip install MySQL-python
+  - python setup.py install
 
 branches:
   only:
     - dev
+    - master
 
 services: mysql
 
