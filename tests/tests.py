@@ -73,7 +73,7 @@ class TestDatabase_:
 class TestDatabase(Test):
 
     def test_execute(self):
-        SQL = "insert user set name = 'hello'"
+        SQL = "insert into user set name = 'hello'"
         cursor = Database.execute(SQL)
         return SQL
 
