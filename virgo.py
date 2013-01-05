@@ -76,7 +76,7 @@ class Database:
                 cursorclass=MySQLdb.cursors.DictCursor,
                 **cls.configs
             )
-        cls.con.ping()  # ping, test if the connection is working
+        cls.conn.ping()  # ping, test if the connection is working
         return cls.conn
 
     @classmethod
