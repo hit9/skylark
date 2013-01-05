@@ -1,13 +1,9 @@
 transaction:decorator
 
-add like, between for where,in 
+add like, between for where,in ,limit
 
 example code
 
 field types:char,varchar,text,int,date
 
 SQL 字段约束(插入,update的结果)
-
-foreignkey
-
-models,JoinModel两个分开
