@@ -352,8 +352,12 @@ class TestJoinModel(Test):
         assert (Post & User).delete(Post) is 10
 
     def test_update(self):
-        assert (Post & User).where(User.name <= "name4").update(User.name == "hello") is 5
-        assert (Post & User).where(User.name == "hello").update(Post.name == "good") is 5
+        assert (Post & User).where(
+            User.name <= "name4"
+        ).update(User.name == "hello") is 5
+        assert (Post & User).where(
+            User.name == "hello"
+        ).update(Post.name == "good") is 5
 
 
 # select_result Tests

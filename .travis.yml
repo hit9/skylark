@@ -16,6 +16,7 @@ branches:
 services: mysql
 
 before_script:
+  - cd tests
   - mysql -e 'create database virgotest;'
 
-script: cd tests & nosetests
+script: nosetests
