@@ -24,12 +24,8 @@ create table user(
     name varchar(33), 
     email varchar(33)
 ); 
-
 create table post(
     post_id int primary key auto_increment,
     name varchar(100), 
     user_id int
 ); 
-
-ALTER TABLE user TYPE = innodb ;
-ALTER TABLE post TYPE = innodb ;
