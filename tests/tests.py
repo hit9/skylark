@@ -34,7 +34,7 @@ create_tbl_SQL = open("tables.sql").read()
 
 def create_tables():
     conn.cursor().execute(create_tbl_SQL)
-
+    conn.cursor().execute("begin")
 
 def drop_tables():
     conn.cursor().execute("commit")

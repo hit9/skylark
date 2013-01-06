@@ -23,9 +23,9 @@ create table user(
     id int primary key auto_increment, 
     name varchar(33), 
     email varchar(33)
-) engine=InnoDB; 
+) engine=innodb; 
 create table post(
     post_id int primary key auto_increment,
     name varchar(100), 
     user_id int
-) engine=InnoDB; 
+) engine=innodb; 
