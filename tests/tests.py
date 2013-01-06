@@ -55,7 +55,6 @@ class Test(object):  # need database connection
         drop_tables()
         Database.query_times = 0
         Database.SQL = None
-        Database.conn.close()
 
     def create_data(self, count=1):
         for i in range(1, count+1):
