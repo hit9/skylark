@@ -30,3 +30,6 @@ create table post(
     name varchar(100), 
     user_id int
 ); 
+
+ALTER TABLE user TYPE = innodb ;
+ALTER TABLE post TYPE = innodb ;
