@@ -69,15 +69,22 @@ class Database:
         cls.debug = debug
 
     @classmethod
+    def new_conn(cls):
+        cls.conn = MySQLdb.connect(
+            cursorclass=MySQLdb.cursors.DictCursor,
+            **cls.configs
+        )
+
+    @classmethod
     def connect(cls):
         # singleton
         if not cls.conn or not cls.conn.open:
-            cls.conn = MySQLdb.connect(
-                cursorclass=MySQLdb.cursors.DictCursor,
-                **cls.configs
-            )
+            cls.new_conn()
+        try:
+            cls.conn.ping()  # ping to test if the connection is working
+        except MySQLdb.OperationalError:
+            cls.new_conn()
 
-        cls.conn.ping()  # ping to test if the connection is working
         return cls.conn
 
     @classmethod
