@@ -16,5 +16,6 @@ branches:
 before_script:
   - cd tests
   - mysql -e 'create database virgotest;'
+  - mysql -e 'set autocommit=0'
 
 script: nosetests -v
