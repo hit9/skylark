@@ -55,6 +55,7 @@ class Test(object):  # need database connection
         drop_tables()
         Database.query_times = 0
         Database.SQL = None
+        Database.conn.close()
 
     def create_data(self, count=1):
         for i in range(1, count+1):
@@ -75,15 +76,16 @@ class TestDatabase(Test):
     def test_execute(self):
         SQL = "insert into user set name = 'hello'"
         cursor = Database.execute(SQL)
-        return SQL
 
     def test_SQL(self):
-        SQL = self.test_execute()
+        SQL = "insert into user set name = 'hello'"
+        Database.execute(SQL)
         assert Database.SQL == SQL
 
     def test_query_times(self):
+        SQL = "insert into user set name = 'hello'"
         assert Database.query_times is 0
-        self.test_execute()
+        Database.execute(SQL)
         print Database.query_times
         assert Database.query_times is 1
 

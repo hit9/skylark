@@ -13,8 +13,6 @@ branches:
     - dev
     - master
 
-services: mysql
-
 before_script:
   - cd tests
   - mysql -e 'create database virgotest;'
