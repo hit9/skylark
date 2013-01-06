@@ -37,6 +37,7 @@ def create_tables():
 
 
 def drop_tables():
+    conn.cursor().execute("commit")
     conn.cursor().execute("drop table user, post")
 
 
