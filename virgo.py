@@ -74,27 +74,24 @@ class Database:
             cursorclass=MySQLdb.cursors.DictCursor,
             **cls.configs
         )
+        return cls.conn
 
     @classmethod
     def connect(cls):
         # singleton
         if not cls.conn or not cls.conn.open:
-            cls.new_conn()
-        try:
-            cls.conn.ping()  # ping to test if the connection is working
-        except MySQLdb.OperationalError:
-            cls.new_conn()
-
-        return cls.conn
+            return cls.new_conn()
 
     @classmethod
     def execute(cls, SQL):
 
-        cursor = cls.connect().cursor()
-
         try:
+            cursor = cls.connect().cursor()
             cursor.execute(SQL)
-        except Exception, e:
+        except (AttributeError, MySQLdb.OperationalError):
+            cls.new_conn()
+            cursor = cls.connect().cursor()
+        except MySQLdb.ProgrammingError, e:
             if cls.debug:
                 print "SQL :", SQL
             raise e
