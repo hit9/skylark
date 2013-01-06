@@ -81,6 +81,7 @@ class Database:
         # singleton
         if not cls.conn or not cls.conn.open:
             return cls.new_conn()
+        return cls.conn
 
     @classmethod
     def execute(cls, SQL):
