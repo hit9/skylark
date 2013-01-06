@@ -8,7 +8,7 @@ virgo
 
 Simple and easy to use ORM module for MySQL Database and Python 2
 
-Yes,She is young ,so I call her 'virgo'.
+Yes,She is young ,so I call her 'virgo'. ![](https://api.travis-ci.org/hit9/virgo.png)
 
 Install
 -------
