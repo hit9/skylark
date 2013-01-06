@@ -107,6 +107,7 @@ class Database:
         cursor.re = int(
             RowsMatchedRE.search(cursor._info).group(1)
         ) if cursor._info else int(cursor.rowcount)
+
         return cursor
 
 
