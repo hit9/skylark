@@ -14,8 +14,7 @@ branches:
     - master
 
 before_script:
-  - cd tests
   - mysql -e 'create database virgotest;'
-  - mysql -e 'set autocommit=1'
+  - cd tests
 
 script: nosetests -v -x --process-timeout=10
