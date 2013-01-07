@@ -5,8 +5,8 @@ Simple and easy to use ORM module for MySQL Database and Python 2
 
 Overview_ // QuickStart_ // Github_ // Issues_  
 
-.. _Overview: index.html
-.. _QuickStart: QuickStart.html
+.. _Overview: https://virgo.readthedocs.org/
+.. _QuickStart: https://virgo.readthedocs.org/en/latest/QuickStart.html
 .. _Github: http://github.com/hit9/virgo
 .. _Issues: https://github.com/hit9/virgo/issues
 
@@ -40,14 +40,16 @@ models.py ::
 
 main.py ::
 
-    user = User(name = "Liming", email = "Liming@github.com")
+    from models import *
+
+    user = User(nam="Liming", email="Liming@github.com")
     user.save()
 
-    user = User.where(name = "Liming").select().fetchone() 
+    user = User.where(name="Liming").select().fetchone() 
     print user.email
 
-    for post,user in (Post & Post).select().fetchall():
-        print "user:%s post's name:%s" %(user.name, post.name)
+    for post,user in (Post & User).select().fetchall():
+        print "user %s post's name is %s" %(user.name, post.name)
 
 Run Tests
 ---------
@@ -69,3 +71,10 @@ Clone virgo from Github_ ,and then::
 
     cd docs/
     make html
+
+License
+-------
+
+The BSD license:
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
