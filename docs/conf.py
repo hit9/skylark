@@ -95,7 +95,9 @@ sys.path.append(os.path.abspath('_themes'))
 html_theme = 'flask_small'
 html_theme_path = ['_themes']
 html_theme_options = {
-        'github_fork': 'hit9/virgo'
+        'github_fork': 'hit9/virgo', 
+        'index_logo':'virgo.png', 
+        'index_logo_height':'165px'
 }
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
