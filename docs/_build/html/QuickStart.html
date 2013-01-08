@@ -26,36 +26,41 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="top" title="Virgo|Tiny Python ORM for MySQL" href="index.html" />
    
-  
-  <link media="only screen and (max-device-width: 480px)" href="_static/small_flask.css" type= "text/css" rel="stylesheet" />
   <link rel="stylesheet" href="_static/style.css" type="text/css" media="screen" charset="utf-8">
-    
+  
+  <link rel="stylesheet" href="_static/style_quickstart.css" type="text/css" media="screen" charset="utf-8">
+  
+ 
   </head>
   <body>
-    
-  <div class=indexwrapper>
 
-    <div class="related">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li><a href="index.html">Virgo|Tiny Python ORM for MySQL</a> &raquo;</li> 
-      </ul>
-    </div>  
+
+<div class=indexwrapper>
+    
+
+    
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body">
             
-  <p class="logo">Virgo Logo</p>
+  <p class="logo">Virgo&#8217;s Logo</p>
 <p><em>Simple and easy to use ORM module for MySQL Database and Python 2</em></p>
- <iframe src="http://ghbtns.com/github-btn.html?user=hit9&repo=virgo&type=watch&count=true&size=large" allowtransparency="true" frameborder="0" scrolling="0" width="190px" height="35px" style="float: right">
-</iframe><p class="nav"><a class="reference external" href="index.html">Overview</a> // <a class="reference external" href="QuickStart.html">QuickStart</a> // <a class="reference external" href="http://github.com/hit9/virgo">Github</a> // <a class="reference external" href="https://github.com/hit9/virgo/issues">Issues</a></p>
+ <iframe src="http://ghbtns.com/github-btn.html?user=hit9&repo=virgo&type=watch&count=true&size=large" allowtransparency="true" frameborder="0" scrolling="0" width="160px" height="30px" style="float: right">
+</iframe><p class="nav"><a class="reference external" href="index.html">Overview</a> // <a class="reference external" href="QuickStart.html">QuickStart</a> // <a class="reference external" href="http://github.com/hit9/virgo">Github</a> // <a class="reference external" href="https://github.com/hit9/virgo/issues">Issues</a> // <a class="reference external" href="Sitemap.html">Sitemap</a></p>
 <div class="section" id="quick-start">
 <h1>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="">Quick Start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#simple-example">Simple Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#database-configuration">Database Configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#define-model">Define Model</a></li>
+</ul>
+</li>
+</ul>
+</div>
 <div class="section" id="simple-example">
 <h2>Simple Example<a class="headerlink" href="#simple-example" title="Permalink to this headline">¶</a></h2>
 <p>Codes works with virgo looks like</p>
@@ -73,11 +78,34 @@
 <span class="n">user</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>In this code, first we imported the virgo module.</p>
-<p>Next we define a model:<tt class="docutils literal"><span class="pre">User</span></tt>, <tt class="docutils literal"><span class="pre">User</span></tt> has 3 fields:name, email and id.</p>
-<p>(<em>Note:id is the default primary key</em>)</p>
-<p>Then, we create an instance if model User.</p>
-<p>Finally we insert one record into database by calling function <tt class="docutils literal"><span class="pre">save</span></tt></p>
+<ol class="arabic simple">
+<li>In this code, first we imported the virgo module and configure the Database.</li>
+<li>Next we define a model:<tt class="docutils literal"><span class="pre">User</span></tt>, which has 3 fields:<tt class="docutils literal"><span class="pre">name</span></tt>, <tt class="docutils literal"><span class="pre">email</span></tt> and <tt class="docutils literal"><span class="pre">id</span></tt> (<em>Note:id is the default primary key</em>)</li>
+<li>Then, we create an instance if model <tt class="docutils literal"><span class="pre">User</span></tt>.</li>
+<li>Finally we insert one record into database by calling function <tt class="docutils literal"><span class="pre">save</span></tt></li>
+</ol>
+<p><strong>Ensure that Your MySQL server has been started before running this example.</strong></p>
+</div>
+<div class="section" id="database-configuration">
+<h2>Database Configuration<a class="headerlink" href="#database-configuration" title="Permalink to this headline">¶</a></h2>
+<p><tt class="docutils literal"><span class="pre">db</span></tt>, <tt class="docutils literal"><span class="pre">user</span></tt>, <tt class="docutils literal"><span class="pre">passwd</span></tt> are required:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">Database</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">db</span><span class="o">=</span><span class="s">&quot;mydb&quot;</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s">&quot;root&quot;</span><span class="p">,</span> <span class="n">passwd</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For more options, see <a class="reference external" href="Database.html#config">Database.config</a></p>
+</div>
+<div class="section" id="define-model">
+<h2>Define Model<a class="headerlink" href="#define-model" title="Permalink to this headline">¶</a></h2>
+<p>example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">User</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+    <span class="c"># default primarykey is id, to figure out primarykey :</span>
+    <span class="c"># myid = PrimaryKey()</span>
+</pre></div>
+</div>
+<p>All models are inherited from Model.
+virgo regards the lower case of model&#8217;s classname as its table&#8217;s name</p>
 </div>
 </div>
 
@@ -85,51 +113,20 @@
           </div>
         </div>
       </div>
-      <div class="sphinxsidebar">
-        <div class="sphinxsidebarwrapper">
-  <h3><a href="index.html">Table Of Contents</a></h3>
-  <ul>
-<li><a class="reference internal" href="#">Quick Start</a><ul>
-<li><a class="reference internal" href="#simple-example">Simple Example</a></li>
-</ul>
-</li>
-</ul>
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="index.html">Documentation overview</a><ul>
-  </ul></li>
-</ul>
-  <h3>This Page</h3>
-  <ul class="this-page-menu">
-    <li><a href="_sources/QuickStart.txt"
-           rel="nofollow">Show Source</a></li>
-  </ul>
-<div id="searchbox" style="display: none">
-  <h3>Quick search</h3>
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
-    </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
-</div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
-        </div>
-      </div>
       <div class="clearer"></div>
     </div>
-    
-    <a href="http://github.com/hit9/virgo"><img style="position: fixed; top: 0; right: 0; border: 0;"
-        src="_static/forkme.png" alt="Fork me on GitHub" /></a>
-    
-    
-  <div class="footer">
+
+<a href="http://github.com/hit9/virgo"><img style="position: fixed; top: 0; right: 0; border: 0;"
+    src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+
+
+<div class="footer">
     &copy; Copyright 2013, hit9.
-    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.Build data:None
-  </div>
-  </div>
+    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+</div>
+    
+</div>
+
+
   </body>
 </html>

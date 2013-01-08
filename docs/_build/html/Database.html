@@ -7,7 +7,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>license &mdash; Virgo|Tiny Python ORM for MySQL</title>
+    <title>Database &mdash; Virgo|Tiny Python ORM for MySQL</title>
     
     <link rel="stylesheet" href="_static/flasky.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -47,10 +47,41 @@
 <p><em>Simple and easy to use ORM module for MySQL Database and Python 2</em></p>
  <iframe src="http://ghbtns.com/github-btn.html?user=hit9&repo=virgo&type=watch&count=true&size=large" allowtransparency="true" frameborder="0" scrolling="0" width="160px" height="30px" style="float: right">
 </iframe><p class="nav"><a class="reference external" href="index.html">Overview</a> // <a class="reference external" href="QuickStart.html">QuickStart</a> // <a class="reference external" href="http://github.com/hit9/virgo">Github</a> // <a class="reference external" href="https://github.com/hit9/virgo/issues">Issues</a> // <a class="reference external" href="Sitemap.html">Sitemap</a></p>
-<div class="section" id="license">
-<h1>license<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h1>
-<p>virgo is licensed under BSD license:</p>
-<p>THIS SOFTWARE AND DOCUMENTATION IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &#8220;AS IS&#8221; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE AND DOCUMENTATION, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+<div class="section" id="database">
+<h1>Database<a class="headerlink" href="#database" title="Permalink to this headline">¶</a></h1>
+<p>virgo only support MySQL Database.</p>
+<div class="highlight-python"><pre>class Database</pre>
+</div>
+<ul class="simple">
+<li>classmethod of Database:<tt class="docutils literal"><span class="pre">Database.execute(SQL)</span></tt>, <tt class="docutils literal"><span class="pre">Database.config(**configs)</span></tt></li>
+<li>attributes of class Database:<tt class="docutils literal"><span class="pre">Database.conn</span></tt> , <tt class="docutils literal"><span class="pre">Database.query_times</span></tt> , <tt class="docutils literal"><span class="pre">Database.SQL</span></tt></li>
+<li><tt class="docutils literal"><span class="pre">Database.query_times</span></tt>: record the times number totally queried</li>
+<li><tt class="docutils literal"><span class="pre">Database.SQL</span></tt>:record the SQL string last time executed</li>
+</ul>
+<div class="section" id="config">
+<h2>config<a class="headerlink" href="#config" title="Permalink to this headline">¶</a></h2>
+<p>Method:</p>
+<div class="highlight-python"><pre>classmethod Database.config(**configs)</pre>
+</div>
+<p>Parameters:</p>
+<div class="highlight-python"><pre>-------+-----+------------
+keyword|type |  default value
+-------+-----+-------------
+db     |str  |  ""
+-------+-----+----------
+user   |str  |  ""
+-------+-----+--------
+passwd |str  |  ""
+-------+-----+---------
+debug  |bool |  True
+-------+-----+-------------
+charset|str  | "utf8"
+-------+-----+------------
+port   |int  |  3306
+-------+-----+-------------
+host   |str  | "localhost</pre>
+</div>
+</div>
 </div>
 
 

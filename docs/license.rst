@@ -1,4 +1,6 @@
-.. include:: header.rst
+
+license
+======== 
 
 virgo is licensed under BSD license:
 
