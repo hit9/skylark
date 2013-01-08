@@ -39,6 +39,7 @@ Database Configuration
 ----------------------
 
 ``db``, ``user``, ``passwd`` are required:
+
 ::
     Database.config(db="mydb", user="root", passwd="")
 
@@ -50,6 +51,7 @@ Define Model
 ------------
 
 example:
+
 ::
     class User(Model):
         name = Field()

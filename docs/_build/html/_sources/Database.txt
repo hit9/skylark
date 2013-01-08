@@ -1,6 +1,8 @@
 Database
 ========
+
 virgo only support MySQL Database.
+
 ::
     class Database
 
@@ -16,10 +18,12 @@ config
 ------
 
 Method:
+
 :: 
     classmethod Database.config(**configs)
 
 Parameters:
+
 ::
     -------+-----+------------
     keyword|type |  default value

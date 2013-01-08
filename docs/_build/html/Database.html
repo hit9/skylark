@@ -50,8 +50,10 @@
 <div class="section" id="database">
 <h1>Database<a class="headerlink" href="#database" title="Permalink to this headline">¶</a></h1>
 <p>virgo only support MySQL Database.</p>
-<div class="highlight-python"><pre>class Database</pre>
-</div>
+<dl class="docutils">
+<dt>::</dt>
+<dd>class Database</dd>
+</dl>
 <ul class="simple">
 <li>classmethod of Database:<tt class="docutils literal"><span class="pre">Database.execute(SQL)</span></tt>, <tt class="docutils literal"><span class="pre">Database.config(**configs)</span></tt></li>
 <li>attributes of class Database:<tt class="docutils literal"><span class="pre">Database.conn</span></tt> , <tt class="docutils literal"><span class="pre">Database.query_times</span></tt> , <tt class="docutils literal"><span class="pre">Database.SQL</span></tt></li>
@@ -61,26 +63,30 @@
 <div class="section" id="config">
 <h2>config<a class="headerlink" href="#config" title="Permalink to this headline">¶</a></h2>
 <p>Method:</p>
-<div class="highlight-python"><pre>classmethod Database.config(**configs)</pre>
-</div>
+<dl class="docutils">
+<dt>::</dt>
+<dd>classmethod Database.config(<a href="#id1"><span class="problematic" id="id2">**</span></a>configs)</dd>
+</dl>
 <p>Parameters:</p>
-<div class="highlight-python"><pre>-------+-----+------------
+<dl class="docutils">
+<dt>::</dt>
+<dd>&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;&#8212;
 keyword|type |  default value
--------+-----+-------------
-db     |str  |  ""
--------+-----+----------
-user   |str  |  ""
--------+-----+--------
-passwd |str  |  ""
--------+-----+---------
-debug  |bool |  True
--------+-----+-------------
-charset|str  | "utf8"
--------+-----+------------
-port   |int  |  3306
--------+-----+-------------
-host   |str  | "localhost</pre>
-</div>
+&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;&#8212;-
+db     <a href="#id3"><span class="problematic" id="id4">|</span></a>str  |  &#8220;&#8221;
+&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;-
+user   <a href="#id5"><span class="problematic" id="id6">|</span></a>str  |  &#8220;&#8221;
+&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8211;
+passwd <a href="#id7"><span class="problematic" id="id8">|</span></a>str  |  &#8220;&#8221;
+&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;
+debug  <a href="#id9"><span class="problematic" id="id10">|</span></a>bool |  True
+&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;&#8212;-
+charset|str  | &#8220;utf8&#8221;
+&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;&#8212;
+port   <a href="#id11"><span class="problematic" id="id12">|</span></a>int  |  3306
+&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;&#8212;-
+host   <a href="#id13"><span class="problematic" id="id14">|</span></a>str  | &#8220;localhost</dd>
+</dl>
 </div>
 </div>
 
