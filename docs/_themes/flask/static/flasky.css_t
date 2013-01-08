@@ -163,9 +163,10 @@ div.body h6 {
 }
 
 {% if theme_index_logo %}
-div.indexwrapper h1 {
+div.indexwrapper .logo {
     text-indent: -999999px;
     background: url({{ theme_index_logo }}) no-repeat center center;
+    background-size: auto {{ theme_index_logo_height }}; 
     height: {{ theme_index_logo_height }};
 }
 {% endif %}
@@ -343,10 +344,10 @@ ul, ol {
 }
  
 pre {
-    background: #eee;
     padding: 7px 30px;
     margin: 15px -30px;
     line-height: 1.3em;
+    background: #eee url('noise.png?1350420938') top left;
 }
 
 dl pre, blockquote pre, li pre {

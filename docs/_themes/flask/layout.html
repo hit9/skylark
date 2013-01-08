@@ -5,21 +5,23 @@
   <link rel="apple-touch-icon" href="{{ pathto('_static/' ~ theme_touch_icon, 1) }}" />
   {% endif %}
   <link media="only screen and (max-device-width: 480px)" href="{{
-    pathto('_static/small_flask.css', 1) }}" type= "text/css" rel="stylesheet" />
-{% endblock %}
-{%- block relbar2 %}{% endblock %}
-{% block header %}
-  {{ super() }}
-  {% if pagename == 'index' %}
+  pathto('_static/small_flask.css', 1) }}" type= "text/css" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ pathto('_static/style.css', 1) }}" type="text/css" media="screen" charset="utf-8">
+    {% endblock %}
+    {%- block relbar2 %}
+    {% if theme_github_fork %}
+    <a href="http://github.com/{{ theme_github_fork }}"><img style="position: fixed; top: 0; right: 0; border: 0;"
+        src="{{ pathto('_static/forkme.png', 1) }}" alt="Fork me on GitHub" /></a>
+    {% endif %}
+    {% endblock %}
+    {% block header %}
+    {{ super() }}
   <div class=indexwrapper>
-  {% endif %}
 {% endblock %}
 {%- block footer %}
   <div class="footer">
     &copy; Copyright {{ copyright }}.
-    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.Build data:{{ last_updated }}
   </div>
-  {% if pagename == 'index' %}
   </div>
-  {% endif %}
 {%- endblock %}

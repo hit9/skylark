@@ -262,10 +262,13 @@ pre {
     padding: 8px;
     line-height: 1.3em;
     padding: 7px 30px;
-    background: #eee;
-    border-radius: 2px;
-    -moz-border-radius: 2px;
-    -webkit-border-radius: 2px;
+    font-family: Inconsolata-g,Consolas,Liberation Mono,"Courier New", Courier,monospace;
+    background: #eee url('noise.png?1350420938') top left;
+    -webkit-border-radius: 0.4em;
+    -moz-border-radius: 0.4em;
+    -ms-border-radius: 0.4em;
+    -o-border-radius: 0.4em;
+    border-radius: 0.4em ;
 }
 
 dl pre {

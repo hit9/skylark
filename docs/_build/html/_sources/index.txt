@@ -1,14 +1,4 @@
-Welcome to virgo's world !
-==========================
-
-*Simple and easy to use ORM module for MySQL Database and Python 2*
-
-Overview_ // QuickStart_ // Github_ // Issues_  
-
-.. _Overview: index.html
-.. _QuickStart: QuickStart.html
-.. _Github: http://github.com/hit9/virgo
-.. _Issues: https://github.com/hit9/virgo/issues
+.. include:: header.rst
 
 Overview
 ********
@@ -75,6 +65,6 @@ Clone virgo from Github_ ,and then::
 License
 -------
 
-The BSD license:
+BSD_. Short and sweet.
 
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.. _BSD: license.html
