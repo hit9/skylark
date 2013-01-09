@@ -47,3 +47,34 @@ example:
 
 All models are inherited from Model.
 virgo regards the lower case of model's classname as its table's name
+
+Put all models in single script `models.py`:
+
+.. literalinclude:: code/QuickStart/models.py
+
+Create
+------
+
+::
+
+    >>> from models import User
+    >>> User.create(name="jack",email="jack@gmail.com")
+    <models.User object at 0x8942acc>
+
+or this way:to save an instance of User
+
+::
+
+    >>> user = User()
+    >>> user.name = "jack"
+    >>> user.email = "jack@gmail.com"
+    >>> user.save()  # return primary key's value
+    3L
+
+or this way :)
+:: 
+
+    >>> user=User(name="jack",email="jack@gmail.com")
+    >>> user.save()
+    4L
+
