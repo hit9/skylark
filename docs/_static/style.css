@@ -1,3 +1,12 @@
 .nav{
     text-align:center;
 }
+.quickstart_toc{
+    width:auto; 
+    height: auto;
+    z-index: 10;
+    position: fixed;
+    top: 150px;
+    left: 3%;
+    border: solid 1px #eee;
+}

@@ -20,7 +20,7 @@ virgo only support MySQL Database.
 .. _Database.config:
 
 Database.config
---------------
+---------------
 
 Method:
 

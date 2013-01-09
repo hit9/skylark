@@ -2,9 +2,6 @@
 {%- block extrahead %}
 {{ super() }}
 <link rel="stylesheet" href="{{ pathto('_static/style.css', 1) }}" type="text/css" media="screen" charset="utf-8">
-{% if  pagename == "QuickStart" %}
-<link rel="stylesheet" href="{{ pathto('_static/style_quickstart.css', 1) }}" type="text/css" media="screen" charset="utf-8">
-{% endif  %}
 {% endblock %}
 {% block header %}
 {{ super() }}
