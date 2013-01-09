@@ -37,7 +37,7 @@ def create_tables():
 
 
 def drop_tables():
-    conn.cursor().execute("drop table user, post")
+    conn.cursor().execute("drop table post, user")
 
 
 # Tests begin
@@ -56,10 +56,18 @@ class Test(object):  # need database connection
         Database.query_times = 0
         Database.SQL = None
 
-    def create_data(self, count=1):
-        for i in range(1, count+1):
-            User.create(name="name"+str(i), email="email"+str(i))
-            Post.create(name="name"+str(i), user_id=count+1-i)
+    def create_data(self, count, table=None):
+        if table is 1:
+            for i in range(1, count+1):
+                User.create(name="name"+str(i), email="email"+str(i))
+        elif table is 2:
+            for i in range(1, count+1):
+                Post.create(name="name"+str(i), user_id=count+1-i)
+        else:
+            for i in range(1, count+1):
+                User.create(name="name"+str(i), email="email"+str(i))
+            for i in range(1, count+1):
+                Post.create(name="name"+str(i), user_id=count+1-i)
 
 
 # Database Tests
@@ -197,26 +205,26 @@ class TestModel(Test):
         assert user1._id and user2._id and user3._id
 
     def test_update(self):
-        self.create_data(2)
+        self.create_data(2, table=1)
         assert User.at(1).update(User.name == "newname") is 1
         assert User.at(2).update(email="newemail") is 1
 
     def test_select(self):
-        self.create_data(4)
+        self.create_data(4, table=1)
         user = User.at(1).select().fetchone()
         assert user._id == 1L
         for user in User.select(User.name).fetchall():
             assert user._id and user.name
 
     def test_delete(self):
-        self.create_data(4)
+        self.create_data(4, table=1)
         assert User.at(1).delete() is 1
         assert User.where(
             (User.name == "name2") | (User.name == "name3")
         ).delete() is 2
 
     def test_where(self):
-        self.create_data(3)
+        self.create_data(3, table=1)
         assert User.where(User.id == 1) is User
         assert User.where(id=1) is User
         assert User.where(User.name == "name1").select().count is 1
@@ -229,14 +237,14 @@ class TestModel(Test):
         assert User.where(name="name1", email="email1").select().count is 1
 
     def test_at(self):
-        self.create_data(3)
+        self.create_data(3, table=1)
         assert User.at(1).select().count is 1
         assert User.at(-1).select().count is 0
         assert User.at(1).select().fetchone().name == "name1"
         assert User.at(1).delete()
 
     def test_orderby(self):
-        self.create_data(3)
+        self.create_data(3, table=1)
         users = User.orderby(User.id, desc=True).select(User.name).fetchall()
         user1, user2, user3 = tuple(users)
         assert user1.id > user2.id > user3.id
@@ -250,7 +258,7 @@ class TestModel(Test):
         assert User.at(1).select().fetchone().name == "li"
 
     def test_modelobj_destroy(self):
-        self.create_data(3)
+        self.create_data(3, table=1)
         user = User.at(1).select().fetchone()
         assert user.destroy()
         assert User.at(1).select().fetchone() is None
@@ -283,7 +291,7 @@ class TestModels(Test):
     def setUp(self):
         super(TestModels, self).setUp()
         self.create_data(4)
-        self.models = Models(User, Post)
+        self.models = Models(Post, User)
 
     def test_where(self):
         assert self.models.where(User.id == Post.user_id).select().count is 4
@@ -292,12 +300,12 @@ class TestModels(Test):
         ).select().count is 1
 
     def test_select(self):
-        for user, post in self.models.where(
+        for post, user in self.models.where(
             User.id == Post.user_id
         ).select().fetchall():
             assert user.id == post.user_id
 
-        user, post = self.models.where(
+        post, user = self.models.where(
             Post.post_id == User.id
         ).select().fetchone()
 
@@ -313,9 +321,9 @@ class TestModels(Test):
         assert self.models.where(User.id == Post.user_id).select().count is 0
 
     def test_delete2(self):
-        assert self.models.where(User.id == Post.user_id).delete(User) is 4
-        assert User.select().count is 0
-        assert Post.select().count is 4
+        assert self.models.where(User.id == Post.user_id).delete(Post) is 4
+        assert User.select().count is 4
+        assert Post.select().count is 0
 
     def test_orderby(self):
         G = self.models.where(

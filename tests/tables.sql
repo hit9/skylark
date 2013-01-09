@@ -26,6 +26,7 @@ create table user(
 ) engine=innodb; 
 create table post(
     post_id int primary key auto_increment,
-    name varchar(100), 
-    user_id int
+    name varchar(100),
+    user_id int,
+    foreign key(user_id) references user(id)
 ) engine=innodb; 
