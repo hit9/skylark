@@ -1,7 +1,5 @@
 .. _quickstart:
 
-.. include:: header.rst
-
 Quick Start
 ===========
 

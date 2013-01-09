@@ -1,7 +1,5 @@
 .. _Database:
 
-.. include:: header.rst
-
 Database
 ========
 

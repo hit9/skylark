@@ -1,23 +1,37 @@
 {% extends "basic/layout.html" %}
 {%- block extrahead %}
-  {{ super() }}
-  <link rel="stylesheet" href="{{ pathto('_static/style.css', 1) }}" type="text/css" media="screen" charset="utf-8">
-  {% if  pagename == "QuickStart" %}
-  <link rel="stylesheet" href="{{ pathto('_static/style_quickstart.css', 1) }}" type="text/css" media="screen" charset="utf-8">
-  {% endif  %}
- {% endblock %}
+{{ super() }}
+<link rel="stylesheet" href="{{ pathto('_static/style.css', 1) }}" type="text/css" media="screen" charset="utf-8">
+{% if  pagename == "QuickStart" %}
+<link rel="stylesheet" href="{{ pathto('_static/style_quickstart.css', 1) }}" type="text/css" media="screen" charset="utf-8">
+{% endif  %}
+{% endblock %}
 {% block header %}
 {{ super() }}
 {#if pagename == 'index' #}
-<div class=indexwrapper>
+<div class="indexwrapper" >
+    <div class = "header" style = "text-algin:center", align = center>
+        <p class="logo" id="quickstart">Virgo Logo</p>
+        <p><em>Simple and easy to use ORM module for MySQL Database and Python 2</em></p>
+
+        <p class="nav">
+        <a  href="index.html">Overview</a> // 
+        <a href="QuickStart.html">QuickStart</a> // 
+        <a class="reference external" href="http://github.com/hit9/virgo">Github</a> //
+        <a href="https://github.com/hit9/virgo/issues">Issues</a> // 
+        <a href="Sitemap.html">Sitemap</a> &nbsp; 
+        <iframe src="http://ghbtns.com/github-btn.html?user=hit9&repo=virgo&type=watch&count=true&size=large" allowtransparency="true" frameborder="0" scrolling="0" width="160px" height="30px" >
+        </iframe>
+        </p>
+    </div>
     {# endif #}
 
     {% endblock %}
     {% block footer %}
-<div class="footer">
-    &copy; Copyright {{ copyright }}.
-    Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
-</div>
+    <div class="footer">
+        &copy; Copyright {{ copyright }}.
+        Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    </div>
     {# if pagename == 'index' #}
 </div>
 {# endif #}

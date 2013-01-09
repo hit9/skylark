@@ -1,5 +1,3 @@
-.. include:: header.rst
-
 Overview
 ********
 
@@ -45,6 +43,6 @@ Clone virgo from Github_ ,and then::
 License
 -------
 
-BSD_. Short and sweet.
+The :ref:`license` :BSD.Short and sweet.
 
-.. _BSD: license.html
+.. _Github: https://github.com/hit9/virgo

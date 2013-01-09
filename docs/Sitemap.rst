@@ -1,4 +1,4 @@
-.. include:: header.rst
+.. _sitemap:
 
 Sitemap
 =======
