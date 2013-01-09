@@ -1,3 +1,5 @@
+.. include:: header.rst
+
 Sitemap
 =======
 
@@ -7,3 +9,8 @@ Sitemap
     index
     QuickStart
     license
+
+API:
+
+.. toctree::
+    Database

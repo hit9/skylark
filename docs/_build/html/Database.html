@@ -49,44 +49,38 @@
 </iframe><p class="nav"><a class="reference external" href="index.html">Overview</a> // <a class="reference external" href="QuickStart.html">QuickStart</a> // <a class="reference external" href="http://github.com/hit9/virgo">Github</a> // <a class="reference external" href="https://github.com/hit9/virgo/issues">Issues</a> // <a class="reference external" href="Sitemap.html">Sitemap</a></p>
 <div class="section" id="database">
 <h1>Database<a class="headerlink" href="#database" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-python"><pre>class Database</pre>
+</div>
 <p>virgo only support MySQL Database.</p>
-<dl class="docutils">
-<dt>::</dt>
-<dd>class Database</dd>
-</dl>
 <ul class="simple">
 <li>classmethod of Database:<tt class="docutils literal"><span class="pre">Database.execute(SQL)</span></tt>, <tt class="docutils literal"><span class="pre">Database.config(**configs)</span></tt></li>
 <li>attributes of class Database:<tt class="docutils literal"><span class="pre">Database.conn</span></tt> , <tt class="docutils literal"><span class="pre">Database.query_times</span></tt> , <tt class="docutils literal"><span class="pre">Database.SQL</span></tt></li>
-<li><tt class="docutils literal"><span class="pre">Database.query_times</span></tt>: record the times number totally queried</li>
-<li><tt class="docutils literal"><span class="pre">Database.SQL</span></tt>:record the SQL string last time executed</li>
+<li><tt class="docutils literal"><span class="pre">Database.query_times</span></tt> : record the times number totally queried</li>
+<li><tt class="docutils literal"><span class="pre">Database.SQL</span></tt> :record the SQL string last time executed</li>
 </ul>
 <div class="section" id="config">
 <h2>config<a class="headerlink" href="#config" title="Permalink to this headline">¶</a></h2>
 <p>Method:</p>
-<dl class="docutils">
-<dt>::</dt>
-<dd>classmethod Database.config(<a href="#id1"><span class="problematic" id="id2">**</span></a>configs)</dd>
-</dl>
+<div class="highlight-python"><pre>classmethod Database.config(**configs)</pre>
+</div>
 <p>Parameters:</p>
-<dl class="docutils">
-<dt>::</dt>
-<dd>&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;&#8212;
+<div class="highlight-python"><pre>-------+-----+------------
 keyword|type |  default value
-&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;&#8212;-
-db     <a href="#id3"><span class="problematic" id="id4">|</span></a>str  |  &#8220;&#8221;
-&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;-
-user   <a href="#id5"><span class="problematic" id="id6">|</span></a>str  |  &#8220;&#8221;
-&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8211;
-passwd <a href="#id7"><span class="problematic" id="id8">|</span></a>str  |  &#8220;&#8221;
-&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;
-debug  <a href="#id9"><span class="problematic" id="id10">|</span></a>bool |  True
-&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;&#8212;-
-charset|str  | &#8220;utf8&#8221;
-&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;&#8212;
-port   <a href="#id11"><span class="problematic" id="id12">|</span></a>int  |  3306
-&#8212;&#8212;-+&#8212;&#8211;+&#8212;&#8212;&#8212;&#8212;-
-host   <a href="#id13"><span class="problematic" id="id14">|</span></a>str  | &#8220;localhost</dd>
-</dl>
+-------+-----+-------------
+db     |str  |  ""
+-------+-----+----------
+user   |str  |  ""
+-------+-----+--------
+passwd |str  |  ""
+-------+-----+---------
+debug  |bool |  True
+-------+-----+-------------
+charset|str  | "utf8"
+-------+-----+------------
+port   |int  |  3306
+-------+-----+-------------
+host   |str  | "localhost</pre>
+</div>
 </div>
 </div>
 

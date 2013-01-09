@@ -1,3 +1,5 @@
+.. include:: header.rst
+
 Overview
 ********
 
@@ -11,33 +13,13 @@ Install from pypi::
 Sample Code
 -----------
 
-models.py ::
+models.py:
 
-    from virgo import *
+.. literalinclude:: code/index/models.py
 
-    Database.config(db="mydb", user="root", passwd="123456")
+main.py:
 
-    class User(Model):
-        name = Field()
-        email = Field()
-
-    class Post(Model):
-        post_id = PrimaryKey()
-        name = Field()
-        user_id = ForeignKey(User.id)
-
-main.py ::
-
-    from models import *
-
-    user = User(nam="Liming", email="Liming@github.com")
-    user.save()
-
-    user = User.where(name="Liming").select().fetchone() 
-    print user.email
-
-    for post,user in (Post & User).select().fetchall():
-        print "user %s post's name is %s" %(user.name, post.name)
+.. literalinclude:: code/index/main.py
 
 Run Tests
 ---------

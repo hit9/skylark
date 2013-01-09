@@ -74,7 +74,6 @@
     <span class="n">email</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
 
 <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;Jack&quot;</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="s">&quot;Jack@github.com&quot;</span><span class="p">)</span>
-
 <span class="n">user</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -84,15 +83,13 @@
 <li>Then, we create an instance if model <tt class="docutils literal"><span class="pre">User</span></tt>.</li>
 <li>Finally we insert one record into database by calling function <tt class="docutils literal"><span class="pre">save</span></tt></li>
 </ol>
-<p><strong>Ensure that Your MySQL server has been started before running this example.</strong></p>
 </div>
 <div class="section" id="database-configuration">
 <h2>Database Configuration<a class="headerlink" href="#database-configuration" title="Permalink to this headline">¶</a></h2>
 <p><tt class="docutils literal"><span class="pre">db</span></tt>, <tt class="docutils literal"><span class="pre">user</span></tt>, <tt class="docutils literal"><span class="pre">passwd</span></tt> are required:</p>
-<dl class="docutils">
-<dt>::</dt>
-<dd>Database.config(db=&#8221;mydb&#8221;, user=&#8221;root&#8221;, passwd=&#8221;&#8221;)</dd>
-</dl>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">Database</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">db</span><span class="o">=</span><span class="s">&quot;mydb&quot;</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s">&quot;root&quot;</span><span class="p">,</span> <span class="n">passwd</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>For more options, see <a class="reference external" href="Database.html#config">Database.config</a></p>
 </div>
 <div class="section" id="define-model">
