@@ -62,7 +62,7 @@ Clone virgo from Github_ ,and then::
 Build Status
 ------------
 
-.. Image:: https://api.travis-ci.org/hit9/virgo.png
+.. Image:: https://api.travis-ci.org/hit9/virgo.png?branch=master
 
 Read Document
 -------------
