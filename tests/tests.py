@@ -57,13 +57,13 @@ class Test(object):  # need database connection
         Database.SQL = None
 
     def create_data(self, count, table=None):
-        if table is 1:
+        if table is 1:  # only create data in user
             for i in range(1, count+1):
                 User.create(name="name"+str(i), email="email"+str(i))
-        elif table is 2:
+        elif table is 2:  # in table
             for i in range(1, count+1):
                 Post.create(name="name"+str(i), user_id=count+1-i)
-        else:
+        else:  # in both, default
             for i in range(1, count+1):
                 User.create(name="name"+str(i), email="email"+str(i))
             for i in range(1, count+1):
