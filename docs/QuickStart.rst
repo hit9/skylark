@@ -4,7 +4,7 @@ Quick Start
 ===========
 
 .. rst-class:: quickstart-toc
-    
+
     * :ref:`SimpleExample`
     * :ref:`DatabaseConfig`
     * :ref:`DefineModel`
@@ -12,7 +12,7 @@ Quick Start
     * :ref:`Update`
     * :ref:`Read`
     * :ref:`Delete`
-    * :ref:`Join`
+    * :ref:`JoinModel`
 
 .. _SimpleExample:
 
@@ -193,10 +193,10 @@ or :
 
 Both the two methods return affected rows number.
 
-.. _Join:
+.. _JoinModel:
 
-Join
-----
+JoinModel
+---------
 
 We defined two models in models.py , ``User,Post``
 
