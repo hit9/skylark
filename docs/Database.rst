@@ -1,7 +1,10 @@
+.. _Database:
+
 .. include:: header.rst
 
 Database
 ========
+
 ::
 
     class Database
@@ -16,11 +19,15 @@ virgo only support MySQL Database.
 
 * ``Database.SQL`` :record the SQL string last time executed
 
-config
-------
+.. _Database.config:
+
+Database.config
+--------------
 
 Method:
+
 :: 
+
     classmethod Database.config(**configs)
 
 
@@ -44,4 +51,3 @@ Parameters:
     port   |int  |  3306
     -------+-----+-------------
     host   |str  | "localhost
-

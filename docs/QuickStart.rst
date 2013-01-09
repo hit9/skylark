@@ -1,11 +1,9 @@
+.. _quickstart:
+
 .. include:: header.rst
 
 Quick Start
 ===========
-
-.. toctree::
-    
-    QuickStart
 
 Simple Example
 --------------
@@ -32,9 +30,8 @@ Database Configuration
     Database.config(db="mydb", user="root", passwd="")
 
 
-For more options, see Database.config_
+For more options, see :ref:`Database.config`
 
-.. _Database.config: Database.html#config
 
 Define Model
 ------------
