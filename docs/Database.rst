@@ -49,3 +49,20 @@ Parameters:
     port   |int  |  3306
     -------+-----+-------------
     host   |str  | "localhost
+
+
+Database.execute
+----------------
+
+::
+
+    cursor Database.execute(SQLstring)
+
+
+Parameter: SQL string
+
+Return: mysqldb's cursor object
+
+For more about cursor, go to MySQLdb_ for help.
+
+.. _MySQLdb: http://mysql-python.sourceforge.net/MySQLdb.html

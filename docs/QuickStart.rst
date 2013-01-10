@@ -68,6 +68,8 @@ Put all models in single script `models.py`:
 
 .. literalinclude:: code/QuickStart/models.py
 
+For more.see :ref:`Model`
+
 .. _Create:
 
 Create
@@ -97,6 +99,8 @@ or this way :)
     >>> user=User(name="jack",email="jack@gmail.com")
     >>> user.save()
     4L
+
+For more about create,see :ref:`Model.create`
 
 .. _Update:
 
@@ -191,7 +195,9 @@ or :
     >>> User.where(name="Any").delete()
     2
 
-Both the two methods return affected rows number.
+Both the two methods return affected rows number. 
+
+For more,see :ref:`Model.Delete`
 
 .. _JoinModel:
 
@@ -232,4 +238,5 @@ Delete Jack's posts:
 
     >>> (Post & User).where(User.name=="Jack").delete(Post)
     1
+
 

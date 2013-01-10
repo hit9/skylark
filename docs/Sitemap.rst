@@ -14,3 +14,4 @@ API:
 
 .. toctree::
     Database
+    Model
