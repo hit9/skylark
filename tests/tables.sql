@@ -1,6 +1,5 @@
 /*
-
-desc user:
+mysql> desc user;
 +-------+-------------+------+-----+---------+----------------+
 | Field | Type        | Null | Key | Default | Extra          |
 +-------+-------------+------+-----+---------+----------------+
@@ -8,15 +7,17 @@ desc user:
 | name  | varchar(33) | YES  |     | NULL    |                |
 | email | varchar(33) | YES  |     | NULL    |                |
 +-------+-------------+------+-----+---------+----------------+
+3 rows in set (0.04 sec)
 
-desc post:
+mysql> desc post;                                                                                                                       
 +---------+--------------+------+-----+---------+----------------+
 | Field   | Type         | Null | Key | Default | Extra          |
 +---------+--------------+------+-----+---------+----------------+
 | post_id | int(11)      | NO   | PRI | NULL    | auto_increment |
 | name    | varchar(100) | YES  |     | NULL    |                |
-| user_id | int(11)      | YES  |     | NULL    |                |
+| user_id | int(11)      | YES  | MUL | NULL    |                |
 +---------+--------------+------+-----+---------+----------------+
+3 rows in set (0.00 sec)
 
 */
 create table user(
