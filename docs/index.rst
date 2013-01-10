@@ -11,13 +11,20 @@ Install from pypi::
 Sample Code
 -----------
 
-models.py:
+::
 
-.. literalinclude:: code/index/models.py
-
-main.py:
-
-.. literalinclude:: code/index/main.py
+    >>> user = User(name="Jack", email = "Jack@gmail.com") 
+    >>> user.save() 
+    1L
+    >>> user = User.at(1).select().fetchone() 
+    >>> user.name, user.email 
+    (u'Jack', u'Jack@gmail.com')
+    >>> Post.create(name="Hello World!",user_id=1) 
+    <models.Post object at 0x8ec492c>
+    >>> for post, user in (Post & User).select().fetchall(): 
+    ...     print user.name, post.name
+    ...  
+    Jack Hello World!
 
 Run Tests
 ---------
