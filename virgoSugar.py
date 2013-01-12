@@ -1,11 +1,11 @@
 #
 #
-# __     ___       ____       
-# \ \   / (_)_ __ / ___| ___  
-#  \ \ / /| | '__| |  _ / _ \ 
+# __     ___       ____
+# \ \   / (_)_ __ / ___| ___
+#  \ \ / /| | '__| |  _ / _ \
 #   \ V / | | |  | |_| | (_) |
-#    \_/  |_|_|   \____|\___/ 
-#                            
+#    \_/  |_|_|   \____|\___/
+#
 # Some syntax sugar for virgo
 #
 
@@ -16,7 +16,9 @@ from virgo import *
 # Model[index]
 # e.g. user = User[2]
 
-MetaModel.__getitem__ = lambda model, index: model.at(index).select().fetchone()
+MetaModel.__getitem__ = (
+    lambda model, index: model.at(index).select().fetchone()
+)
 
 
 # Model[start, end]
@@ -24,7 +26,7 @@ MetaModel.__getitem__ = lambda model, index: model.at(index).select().fetchone()
 # note:change this after between implement
 
 def getslice(model, start, end):
-    """Model[start, end] 
+    """Model[start, end]
     e.g. users = User[1:3]
     Produce: select * from user where user.id >= start and user.id  <= end
     """
