@@ -5,3 +5,4 @@ test.py
 build/
 dist/
 virgo.egg-info/
+docs/_build/

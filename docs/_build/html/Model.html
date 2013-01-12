@@ -1,0 +1,218 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Model &mdash; Virgo|Tiny Python ORM for MySQL</title>
+    
+    <link rel="stylesheet" href="_static/flasky.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Virgo|Tiny Python ORM for MySQL" href="index.html" />
+ 
+<link rel="stylesheet" href="_static/style.css" type="text/css" media="screen" charset="utf-8">
+
+  </head>
+  <body>
+
+
+<div class="indexwrapper" >
+    <div class = "header" style = "text-algin:center", align = center>
+        <p class="logo" id="quickstart">Virgo Logo</p>
+        <p><em>Simple and easy to use ORM module for MySQL Database and Python 2</em></p>
+
+        <p class="nav">
+        <a  href="index.html">Overview</a> // 
+        <a href="QuickStart.html">QuickStart</a> // 
+        <a href="Tips.html">Tips</a> // 
+        <a class="reference external" href="http://github.com/hit9/virgo">Github</a> //
+        <a href="https://github.com/hit9/virgo/issues">Issues</a> // 
+        <a href="Sitemap.html">Sitemap</a> &nbsp; 
+        <iframe src="http://ghbtns.com/github-btn.html?user=hit9&repo=virgo&type=watch&count=true&size=large" allowtransparency="true" frameborder="0" scrolling="0" width="160px" height="30px" >
+        </iframe>
+        </p>
+    </div>
+    
+
+    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="model">
+<span id="id1"></span><h1>Model<a class="headerlink" href="#model" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-python"><pre>class Model(*fldAssign, **data):</pre>
+</div>
+<p>Models are mapped to tables in database. Each model should inherit from class <tt class="docutils literal"><span class="pre">Model</span></tt>.</p>
+<p>example of making an instance of model <cite>User</cite></p>
+<p><strong>Parameters</strong>:</p>
+<ul class="simple">
+<li><strong>data</strong> : key:value pairs of model attributes</li>
+<li><strong>fldAssign</strong> : <tt class="docutils literal"><span class="pre">Field</span> <span class="pre">instance</span> <span class="pre">==</span> <span class="pre">value</span></tt> expressions</li>
+</ul>
+<p>example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">User</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">myid</span><span class="o">=</span><span class="n">PrimaryKey</span><span class="p">()</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+
+<span class="n">user</span><span class="o">=</span><span class="n">User</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;mark&quot;</span><span class="p">,</span><span class="n">email</span><span class="o">=</span><span class="s">&quot;mark@gmail.com&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="section" id="model-table-name">
+<span id="model-tablename"></span><h2>Model.table_name<a class="headerlink" href="#model-table-name" title="Permalink to this headline">¶</a></h2>
+<p>return model&#8217;s tablename.(lowercase of model&#8217;s classname)</p>
+<p>Example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">User</span><span class="o">.</span><span class="n">table_name</span>
+<span class="go">&#39;user&#39;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="model-primarykey">
+<span id="id2"></span><h2>Model.primarykey<a class="headerlink" href="#model-primarykey" title="Permalink to this headline">¶</a></h2>
+<p>return model&#8217;s primary key</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">User</span><span class="o">.</span><span class="n">primarykey</span>
+<span class="go">&lt;virgo.PrimaryKey object at 0x9e9558c&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="model-create">
+<span id="id3"></span><h2>Model.create<a class="headerlink" href="#model-create" title="Permalink to this headline">¶</a></h2>
+<p>create one record.</p>
+<div class="highlight-python"><pre>classmethod Model.create(*fldAssign,**data)</pre>
+</div>
+<p><strong>Parameters</strong>:</p>
+<ul class="simple">
+<li><strong>data</strong> : key:value pairs of model attributes</li>
+<li><strong>fldAssign</strong> : <tt class="docutils literal"><span class="pre">Field</span> <span class="pre">instance</span> <span class="pre">==</span> <span class="pre">value</span></tt> expressions</li>
+</ul>
+<p><strong>Return</strong>: An instance of the model class.</p>
+<p>example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">User</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;Jack&quot;</span><span class="p">,</span><span class="n">email</span><span class="o">=</span><span class="s">&quot;Jack@abc.com&quot;</span><span class="p">)</span>
+<span class="go">&lt;models.User object at 0x9e98b0c&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">User</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s">&quot;Jack&quot;</span><span class="p">,</span> <span class="n">User</span><span class="o">.</span><span class="n">email</span> <span class="o">==</span> <span class="s">&quot;Jack@abc.com&quot;</span><span class="p">)</span>
+<span class="go">&lt;models.User object at 0x9fbf04c&gt;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="model-update">
+<span id="id4"></span><h2>Model.update<a class="headerlink" href="#model-update" title="Permalink to this headline">¶</a></h2>
+<p>update record(s)</p>
+<div class="highlight-python"><pre>classmethod Model.update(*fldAssign,**data)</pre>
+</div>
+<p><strong>Parameters</strong>:</p>
+<ul class="simple">
+<li><strong>data</strong> : key:value pairs of model attributes</li>
+<li><strong>fldAssign</strong> : <tt class="docutils literal"><span class="pre">Field</span> <span class="pre">instance</span> <span class="pre">==</span> <span class="pre">value</span></tt> expressions</li>
+</ul>
+<p><strong>Return</strong>: affected rows number.</p>
+<p>example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">User</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">name</span><span class="o">==</span><span class="s">&quot;Jack&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">name</span><span class="o">==</span><span class="s">&quot;Mick&quot;</span><span class="p">)</span>
+<span class="go">3</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="model-select">
+<span id="id5"></span><h2>Model.select<a class="headerlink" href="#model-select" title="Permalink to this headline">¶</a></h2>
+<p>select record(s)</p>
+<div class="highlight-python"><pre>classmethod select(*fields)</pre>
+</div>
+<p><strong>Parameters</strong>:</p>
+<ul class="simple">
+<li><strong>fields</strong>:Field instances to select</li>
+<li><strong>Return</strong>: SelectResult instance</li>
+</ul>
+<p>About SelectResult, simply to say, there are 2 methods for its instance:</p>
+<ul class="simple">
+<li>fetchall(): return a generator of model instances</li>
+<li>fetchone(): return only one model instance.</li>
+</ul>
+<p>example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">selects</span><span class="o">=</span><span class="n">User</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">name</span><span class="o">==</span><span class="s">&quot;Mick&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">selects</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="k">print</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">email</span>
+<span class="gp">...</span>
+<span class="go">1 Jack@github.com</span>
+<span class="go">5 Jack@abc.com</span>
+<span class="go">6 Jack@abc.com</span>
+</pre></div>
+</div>
+<p>If no fields given, virgo selects all fields:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">user</span><span class="o">=</span><span class="n">User</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">()</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">user</span><span class="o">.</span><span class="n">data</span>
+<span class="go">{&#39;id&#39;: 1L, &#39;email&#39;: u&#39;Jack@github.com&#39;, &#39;name&#39;: u&#39;Mick&#39;}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="model-delete">
+<span id="id6"></span><h2>Model.delete<a class="headerlink" href="#model-delete" title="Permalink to this headline">¶</a></h2>
+<p>delete record(s)</p>
+<div class="highlight-python"><pre>classmethod delete()</pre>
+</div>
+<p><strong>Return</strong>:deleted rows number.</p>
+<p>example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">User</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">id</span> <span class="o">&gt;</span> <span class="mi">6</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+<span class="go">1</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="model-where">
+<span id="id7"></span><h2>Model.where<a class="headerlink" href="#model-where" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><pre>classmethod where(*expressions, **data)</pre>
+</div>
+<p><strong>Parameters</strong>:</p>
+<ul class="simple">
+<li><strong>expressions</strong>: expressions like <tt class="docutils literal"><span class="pre">User.id</span> <span class="pre">&gt;</span> <span class="pre">10</span></tt>, instance of class Expr</li>
+<li><strong>data</strong>: attributes - key:value pairs of model attributes</li>
+</ul>
+<p><strong>Return</strong>: model</p>
+<p>example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">User</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">name</span><span class="o">==</span><span class="s">&quot;Mick&quot;</span><span class="p">)</span>
+<span class="go">&lt;class &#39;models.User&#39;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">User</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">name</span><span class="o">==</span><span class="s">&quot;Mick&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">()</span>
+<span class="go">&lt;virgo.SelectResult object at 0x9e9560c&gt;</span>
+</pre></div>
+</div>
+<p>Expessions will be joined with &#8220;and&#8221; in SQL.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+
+<a href="http://github.com/hit9/virgo"><img style="position: fixed; top: 0; right: 0; border: 0;z-index:999"
+    src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+
+
+    <div class="footer">
+        &copy; Copyright 2013, hit9.
+        Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    </div>
+    
+</div>
+
+
+  </body>
+</html>

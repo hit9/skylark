@@ -1,0 +1,298 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Quick Start &mdash; Virgo|Tiny Python ORM for MySQL</title>
+    
+    <link rel="stylesheet" href="_static/flasky.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Virgo|Tiny Python ORM for MySQL" href="index.html" />
+ 
+<link rel="stylesheet" href="_static/style.css" type="text/css" media="screen" charset="utf-8">
+
+  </head>
+  <body>
+
+
+<div class="indexwrapper" >
+    <div class = "header" style = "text-algin:center", align = center>
+        <p class="logo" id="quickstart">Virgo Logo</p>
+        <p><em>Simple and easy to use ORM module for MySQL Database and Python 2</em></p>
+
+        <p class="nav">
+        <a  href="index.html">Overview</a> // 
+        <a href="QuickStart.html">QuickStart</a> // 
+        <a href="Tips.html">Tips</a> // 
+        <a class="reference external" href="http://github.com/hit9/virgo">Github</a> //
+        <a href="https://github.com/hit9/virgo/issues">Issues</a> // 
+        <a href="Sitemap.html">Sitemap</a> &nbsp; 
+        <iframe src="http://ghbtns.com/github-btn.html?user=hit9&repo=virgo&type=watch&count=true&size=large" allowtransparency="true" frameborder="0" scrolling="0" width="160px" height="30px" >
+        </iframe>
+        </p>
+    </div>
+    
+
+    
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="quick-start">
+<span id="quickstart"></span><h1>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h1>
+<ul class="quickstart-toc simple">
+<li><a class="reference internal" href="#simpleexample"><em>Simple Example</em></a></li>
+<li><a class="reference internal" href="#databaseconfig"><em>Database Configuration</em></a></li>
+<li><a class="reference internal" href="#definemodel"><em>Define Model</em></a></li>
+<li><a class="reference internal" href="#create"><em>Create</em></a></li>
+<li><a class="reference internal" href="#update"><em>Update</em></a></li>
+<li><a class="reference internal" href="#read"><em>Read</em></a></li>
+<li><a class="reference internal" href="#delete"><em>Delete</em></a></li>
+<li><a class="reference internal" href="#joinmodel"><em>JoinModel</em></a></li>
+</ul>
+<div class="section" id="simple-example">
+<span id="simpleexample"></span><h2>Simple Example<a class="headerlink" href="#simple-example" title="Permalink to this headline">¶</a></h2>
+<p>Codes works with virgo looks like</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">virgo</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">Database</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">db</span><span class="o">=</span><span class="s">&quot;mydb&quot;</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s">&quot;root&quot;</span><span class="p">,</span> <span class="n">passwd</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">User</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+
+<span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;Jack&quot;</span><span class="p">,</span> <span class="n">email</span><span class="o">=</span><span class="s">&quot;Jack@github.com&quot;</span><span class="p">)</span>
+<span class="n">user</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+</pre></div>
+</div>
+<ol class="arabic simple">
+<li>In this code, first we imported the virgo module and configure the Database class.</li>
+<li>Next we define a model: <tt class="docutils literal"><span class="pre">User</span></tt>, which has 3 fields:<tt class="docutils literal"><span class="pre">name</span></tt>, <tt class="docutils literal"><span class="pre">email</span></tt> and <tt class="docutils literal"><span class="pre">id</span></tt> (<em>Note:id is the default primary key</em>)</li>
+<li>Then, we create an instance of <tt class="docutils literal"><span class="pre">User</span></tt>.</li>
+<li>Finally we insert one record into database by calling function <tt class="docutils literal"><span class="pre">save</span></tt></li>
+</ol>
+</div>
+<div class="section" id="database-configuration">
+<span id="databaseconfig"></span><h2>Database Configuration<a class="headerlink" href="#database-configuration" title="Permalink to this headline">¶</a></h2>
+<p><tt class="docutils literal"><span class="pre">db</span></tt>, <tt class="docutils literal"><span class="pre">user</span></tt>, <tt class="docutils literal"><span class="pre">passwd</span></tt> are required:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">Database</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">db</span><span class="o">=</span><span class="s">&quot;mydb&quot;</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s">&quot;root&quot;</span><span class="p">,</span> <span class="n">passwd</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For more, see <a class="reference internal" href="Database.html#database-config"><em>Database.config</em></a></p>
+</div>
+<div class="section" id="define-model">
+<span id="definemodel"></span><h2>Define Model<a class="headerlink" href="#define-model" title="Permalink to this headline">¶</a></h2>
+<p>example:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">User</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+    <span class="c"># default primarykey is id, to figure out primarykey :</span>
+    <span class="c"># myid = PrimaryKey()</span>
+</pre></div>
+</div>
+<p>All models are inherited from Model.
+virgo regards the lower case of model&#8217;s classname as its table&#8217;s name</p>
+<p>Put all models in single script <cite>models.py</cite>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">virgo</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">Database</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">db</span><span class="o">=</span><span class="s">&quot;mydb&quot;</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s">&quot;root&quot;</span><span class="p">,</span> <span class="n">passwd</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">User</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">Post</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">post_id</span> <span class="o">=</span> <span class="n">PrimaryKey</span><span class="p">()</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+    <span class="n">user_id</span> <span class="o">=</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For more.see <a class="reference internal" href="Model.html#model"><em>Model</em></a></p>
+</div>
+<div class="section" id="create">
+<span id="id1"></span><h2>Create<a class="headerlink" href="#create" title="Permalink to this headline">¶</a></h2>
+<p>Record &#8220;Jack&#8221; to datatable:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">models</span> <span class="kn">import</span> <span class="n">User</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">User</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;jack&quot;</span><span class="p">,</span><span class="n">email</span><span class="o">=</span><span class="s">&quot;jack@gmail.com&quot;</span><span class="p">)</span>
+<span class="go">&lt;models.User object at 0x8942acc&gt;</span>
+</pre></div>
+</div>
+<p>or to use <tt class="docutils literal"><span class="pre">save</span></tt></p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">user</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;jack&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">user</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="s">&quot;jack@gmail.com&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">user</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>  <span class="c"># return primary key&#39;s value</span>
+<span class="go">3L</span>
+</pre></div>
+</div>
+<p>or this way :)</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">user</span><span class="o">=</span><span class="n">User</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;jack&quot;</span><span class="p">,</span><span class="n">email</span><span class="o">=</span><span class="s">&quot;jack@gmail.com&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">user</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+<span class="go">4L</span>
+</pre></div>
+</div>
+<p>For more about create,see <a class="reference internal" href="Model.html#model-create"><em>Model.create</em></a></p>
+</div>
+<div class="section" id="update">
+<span id="id2"></span><h2>Update<a class="headerlink" href="#update" title="Permalink to this headline">¶</a></h2>
+<p>Simply,just <cite>save</cite></p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">user</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;Any&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">user</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>  <span class="c"># return 0 for failure,else success</span>
+<span class="go">1</span>
+</pre></div>
+</div>
+<p>or</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">User</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;Any&quot;</span><span class="p">)</span>
+<span class="go">1</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">User.at(id_value)</span></tt> is equivalent to <tt class="docutils literal"><span class="pre">User.where(User.id</span> <span class="pre">==</span> <span class="pre">id_value)</span></tt>,both return class <tt class="docutils literal"><span class="pre">User</span></tt></p>
+</div>
+<div class="section" id="read">
+<span id="id3"></span><h2>Read<a class="headerlink" href="#read" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">select_result</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;Any&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">user</span> <span class="ow">in</span> <span class="n">select_result</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="k">print</span> <span class="n">user</span><span class="o">.</span><span class="n">name</span><span class="p">,</span><span class="n">user</span><span class="o">.</span><span class="n">email</span>
+<span class="gp">...</span>
+<span class="go">Any jack@gmail.com</span>
+<span class="go">Any jack@gmail.com</span>
+</pre></div>
+</div>
+<p>The <tt class="docutils literal"><span class="pre">name=&quot;Any&quot;</span></tt> can be replaced by <tt class="docutils literal"><span class="pre">User.name</span> <span class="pre">==</span> <span class="pre">&quot;Any&quot;</span></tt></p>
+<p>If we select data by primarykey, we can use <tt class="docutils literal"><span class="pre">Model.at(int_var)</span></tt> :</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">user</span><span class="o">=</span><span class="n">User</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">()</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">user</span><span class="o">.</span><span class="n">name</span>
+<span class="go">u&#39;Jack&#39;</span>
+</pre></div>
+</div>
+<p>We want all users:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">User</span><span class="o">.</span><span class="n">select</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>We only care about their names:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">User</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">id</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Is there someone in the table called &#8216;James&#8217;?</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">user</span><span class="o">=</span><span class="n">User</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;James&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">user</span> <span class="ow">in</span> <span class="n">User</span>
+<span class="go">False</span>
+</pre></div>
+</div>
+<p>We record &#8216;new users&#8217; only:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;Mark&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="n">user</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">User</span><span class="p">:</span>
+    <span class="n">user</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">exit</span><span class="p">(</span><span class="s">&quot;Already in database!&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="delete">
+<span id="id4"></span><h2>Delete<a class="headerlink" href="#delete" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">user</span><span class="o">.</span><span class="n">destroy</span><span class="p">()</span>
+<span class="go">1</span>
+</pre></div>
+</div>
+<p>or :</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">User</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s">&quot;Any&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+<span class="go">2</span>
+</pre></div>
+</div>
+<p>Both the two methods return affected rows number.</p>
+<p>For more,see <a class="reference internal" href="Model.html#model-delete"><em>Model.delete</em></a></p>
+</div>
+<div class="section" id="joinmodel">
+<span id="id5"></span><h2>JoinModel<a class="headerlink" href="#joinmodel" title="Permalink to this headline">¶</a></h2>
+<p>We defined two models in models.py , <tt class="docutils literal"><span class="pre">User,Post</span></tt></p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">virgo</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">Database</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">db</span><span class="o">=</span><span class="s">&quot;mydb&quot;</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="s">&quot;root&quot;</span><span class="p">,</span> <span class="n">passwd</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">User</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+    <span class="n">email</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">Post</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+    <span class="n">post_id</span> <span class="o">=</span> <span class="n">PrimaryKey</span><span class="p">()</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">Field</span><span class="p">()</span>
+    <span class="n">user_id</span> <span class="o">=</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now,join them:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">Post</span> <span class="o">&amp;</span> <span class="n">User</span>
+<span class="go">&lt;virgo.JoinModel object at 0x8a6c26c&gt;</span>
+</pre></div>
+</div>
+<p>Why not <tt class="docutils literal"><span class="pre">User</span> <span class="pre">&amp;</span> <span class="pre">Post</span></tt> ? try it yourself.</p>
+<p>Who has wrote posts ?</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">post</span><span class="p">,</span><span class="n">user</span> <span class="ow">in</span> <span class="p">(</span><span class="n">Post</span> <span class="o">&amp;</span> <span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">()</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="k">print</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s"> write this post: &#39;</span><span class="si">%s</span><span class="s">&#39;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">post</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="go">Jack write this post: &#39;Hello World!&#39;</span>
+<span class="go">Any write this post: &#39;Like Github?&#39;</span>
+<span class="go">James write this post: &#39;You should try travis!&#39;</span>
+<span class="go">Rose write this post: &#39;Star virgo!&#39;</span>
+</pre></div>
+</div>
+<p>Of course,there are <tt class="docutils literal"><span class="pre">where,orderby,delete,update</span></tt> for joinmodel.</p>
+<p>Delete Jack&#8217;s posts:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">Post</span> <span class="o">&amp;</span> <span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">name</span><span class="o">==</span><span class="s">&quot;Jack&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">Post</span><span class="p">)</span>
+<span class="go">1</span>
+</pre></div>
+</div>
+<table class="docutils footnote" frame="void" id="fsql" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[1]</td><td>Tables <tt class="docutils literal"><span class="pre">user</span></tt>, <tt class="docutils literal"><span class="pre">post</span></tt> used in these codes are here <a class="reference internal" href="tables.html#tables"><em>Tables</em></a></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+
+<a href="http://github.com/hit9/virgo"><img style="position: fixed; top: 0; right: 0; border: 0;z-index:999"
+    src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+
+
+    <div class="footer">
+        &copy; Copyright 2013, hit9.
+        Created using <a href="http://sphinx.pocoo.org/">Sphinx</a>.
+    </div>
+    
+</div>
+
+
+  </body>
+</html>
