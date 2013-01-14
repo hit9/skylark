@@ -5,4 +5,8 @@ test.py
 build/
 dist/
 virgo.egg-info/
+<<<<<<< HEAD
+docs/_build/*
+=======
 docs/_build/
+>>>>>>> dev

@@ -8,6 +8,7 @@ Sitemap
 
     index
     QuickStart
+    tables
     license
 
 API:

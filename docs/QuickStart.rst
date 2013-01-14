@@ -240,3 +240,4 @@ Delete Jack's posts:
     1
 
 
+.. [#fsql] Tables ``user``, ``post`` used in these codes are here :ref:`tables`
