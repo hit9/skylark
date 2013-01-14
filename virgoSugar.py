@@ -34,8 +34,10 @@ def getslice(model, start, end):
 
     if start:
         exprs.append(model.primarykey >= start)
-    if end:
+
+    if end < 0x7fffffff:  # extremely big..
         exprs.append(model.primarykey <= end)
+
     return model.where(*exprs).select().fetchall()
 
 MetaModel.__getslice__ = getslice
