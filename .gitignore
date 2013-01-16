@@ -6,3 +6,4 @@ build/
 dist/
 virgo.egg-info/
 docs/_build/
+Makefile
