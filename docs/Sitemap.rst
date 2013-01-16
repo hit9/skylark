@@ -8,6 +8,8 @@ Sitemap
 
     index
     QuickStart
+    Tips
+    virgoSugar
     tables
     license
 

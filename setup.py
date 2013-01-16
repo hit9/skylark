@@ -1,14 +1,14 @@
 from setuptools import setup
 
 setup(
-    name = "virgo",
-    version = "0.1.2",
-    author = "hit9",
-    author_email = "nz2324@126.com",
-    description = ("Simple & Easy to use ORM for Python & MySQL"),
-    license = "BSD",
-    keywords = "ORM MySQL Python database virgo",
-    url = "https://github.com/hit9/virgo",
-    py_modules=['virgo'],
+    name="virgo",
+    version="0.1.2",
+    author="hit9",
+    author_email="nz2324@126.com",
+    description=("Tiny Python ORM for MySQL"),
+    license="BSD",
+    keywords="ORM MySQL Python tiny database virgo",
+    url="https://virgo.readthedocs.org/",
+    py_modules=['virgo', 'virgoSugar'],
     install_requires = ['MySQL-python'],
 )
