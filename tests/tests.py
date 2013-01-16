@@ -386,3 +386,23 @@ class Testselect_result(Test):
         self.create_data(4)
         for user in User.select().fetchall():
             assert user._id
+
+
+class TestSugar(Test):
+
+    def setUp(self):
+        super(TestSugar, self).setUp()
+        from virgoSugar import *
+
+    def test_Model_getitem(self):
+        self.create_data(4)
+        user1 = User[1]
+        user2 = User[2]
+        assert user1.name == "name1"
+        assert user2.name == "name2"
+
+    def test_Model_getslice(self):
+        self.create_data(4)
+        users = User[1:3]
+        for user in users:
+            assert user.id
