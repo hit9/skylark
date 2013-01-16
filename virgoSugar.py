@@ -25,7 +25,7 @@ MetaModel.__getitem__ = (
 # e.g. users = User[1:3]
 # note:change this after between implement
 
-def getslice(model, start, end):
+def vg_getslice(model, start, end):
     """Model[start, end]
     e.g. users = User[1:3]
     Produce: select * from user where user.id >= start and user.id  <= end
@@ -40,4 +40,4 @@ def getslice(model, start, end):
 
     return model.where(*exprs).select().fetchall()
 
-MetaModel.__getslice__ = getslice
+MetaModel.__getslice__ = vg_getslice
