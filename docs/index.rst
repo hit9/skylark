@@ -7,6 +7,7 @@ Install
 ::
     pip install virgo
 
+
 Note:virgo works with Python 2.x(tested: 2.5, 2.6, 2.7)
 
 Sample Code
