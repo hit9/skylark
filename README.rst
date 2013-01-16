@@ -1,15 +1,3 @@
-Welcome to virgo's world !
-==========================
-
-Simple and easy to use ORM module for MySQL Database and Python 2 
-
-Overview_ // QuickStart_ // Github_ // Issues_  
-
-.. _Overview: https://virgo.readthedocs.org/
-.. _QuickStart: https://virgo.readthedocs.org/en/latest/QuickStart.html
-.. _Github: http://github.com/hit9/virgo
-.. _Issues: https://github.com/hit9/virgo/issues
-
 Overview
 ********
 
@@ -23,33 +11,20 @@ Install from pypi::
 Sample Code
 -----------
 
-models.py ::
+::
 
-    from virgo import *
-
-    Database.config(db="mydb", user="root", passwd="123456")
-
-    class User(Model):
-        name = Field()
-        email = Field()
-
-    class Post(Model):
-        post_id = PrimaryKey()
-        name = Field()
-        user_id = ForeignKey(User.id)
-
-main.py ::
-
-    from models import *
-
-    user = User(nam="Liming", email="Liming@github.com")
-    user.save()
-
-    user = User.where(name="Liming").select().fetchone() 
-    print user.email
-
-    for post,user in (Post & User).select().fetchall():
-        print "user %s post's name is %s" %(user.name, post.name)
+    >>> user = User(name="Jack", email = "Jack@gmail.com") 
+    >>> user.save() 
+    1L
+    >>> user = User.at(1).select().fetchone() 
+    >>> user.name, user.email 
+    (u'Jack', u'Jack@gmail.com')
+    >>> Post.create(name="Hello World!",user_id=1) 
+    <models.Post object at 0x8ec492c>
+    >>> for post, user in (Post & User).select().fetchall(): 
+    ...     print user.name, post.name
+    ...  
+    Jack Hello World!
 
 Run Tests
 ---------
@@ -75,6 +50,6 @@ Clone virgo from Github_ ,and then::
 License
 -------
 
-The BSD license:
+The :ref:`license` :BSD.Short and sweet.
 
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.. _Github: https://github.com/hit9/virgo
