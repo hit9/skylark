@@ -99,7 +99,7 @@ class Database:
                 print "SQL :", SQL
             raise e
 
-        cls.query_times = cls.query_times+1
+        cls.query_times = cls.query_times + 1
         cls.SQL = SQL
 
         # add attribute 're' to cursor:store query matched rows number
@@ -147,7 +147,8 @@ class Expr(Leaf):
     @property
     def _tostr(self):  # singleton
         if not self.exprstr:
-            self.exprstr = self._str(self.left)+self.op+self._str(self.right)
+            self.exprstr = self._str(
+                self.left) + self.op + self._str(self.right)
         return self.exprstr
 
     def _str(self, side):  # turn some side to str in SQL
@@ -156,7 +157,7 @@ class Expr(Leaf):
         elif isinstance(side, Expr):
             return side._tostr
         else:
-            return "'"+MySQLdb.escape_string(str(side))+"'"   # escape_string
+            return "'" + MySQLdb.escape_string(str(side)) + "'"   # escape_string
 
 
 class EqExpr(Expr):
@@ -194,7 +195,7 @@ class Field(Leaf):
     def describe(self, name, model):  # describe attr by FieldDescriptor
         self.name = name
         self.model = model
-        self.fullname = self.model.table_name+"."+self.name
+        self.fullname = self.model.table_name + "." + self.name
         setattr(model, name, FieldDescriptor(self))  # add Descriptor
 
     def __eq__(self, r):
@@ -348,15 +349,15 @@ class Query(object):  # Runtime Query
                 return ""
 
             if type is QR_WHERE:
-                return " where "+" and ".join([expr._tostr for expr in lst])
+                return " where " + " and ".join([expr._tostr for expr in lst])
             elif type is QR_SELECT:
                 return ", ".join([field.fullname for field in lst])
             elif type is QR_SET:
                 return " set " + ", ".join([expr._tostr for expr in lst])
             elif type is QR_ORDERBY:
-                orderby_str = " order by "+lst[0].fullname
+                orderby_str = " order by " + lst[0].fullname
                 if lst[1]:
-                    orderby_str = orderby_str+" desc "
+                    orderby_str = orderby_str + " desc "
                 return orderby_str
         return g
 
@@ -380,7 +381,7 @@ class Query(object):  # Runtime Query
         if type is Q_INSERT:
             SQL = "insert into " + table + " " + self.get_set
         elif type is Q_UPDATE:
-            SQL = "update " + table+" " + self.get_set + self.get_where
+            SQL = "update " + table + " " + self.get_set + self.get_where
         elif type is Q_SELECT:
             SQL = (
                 "select " + self.get_select + " from " + table +
@@ -419,7 +420,7 @@ class Query(object):  # Runtime Query
             return re
         return func
 
-    #generate CURD Functions
+    # generate CURD Functions
 
     insert = _Q(Q_INSERT)
 
