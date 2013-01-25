@@ -6,7 +6,7 @@
 #   \ V / | | |  | |_| | (_) |
 #    \_/  |_|_|   \____|\___/
 #
-# Some syntax sugar for virgo
+# Some syntatic sugar for virgo
 #
 
 
