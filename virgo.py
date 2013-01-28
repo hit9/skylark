@@ -157,7 +157,8 @@ class Expr(Leaf):
         elif isinstance(side, Expr):
             return side._tostr
         else:
-            return "'" + MySQLdb.escape_string(str(side)) + "'"   # escape_string
+            # escape_string
+            return "'" + MySQLdb.escape_string(str(side)) + "'"
 
 
 class EqExpr(Expr):
