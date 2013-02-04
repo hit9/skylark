@@ -144,8 +144,8 @@ class Database(object):
         cls.query_times += 1
         cls.SQL = SQL
 
-        # add attribute 're' to cursor.store query matched rows number
-        cursor.re = int(
+        # add attribute 'matchedRows' to cursor.store query matched rows number
+        cursor.matchedRows = int(
             VG_RowsMatchedRe.search(cursor._info).group(1)
         ) if cursor._info else int(cursor.rowcount)
 
