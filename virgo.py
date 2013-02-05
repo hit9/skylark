@@ -26,10 +26,20 @@ import MySQLdb
 import MySQLdb.cursors
 
 
-# some global var
-
 # regular expression to get matched rows number from cursor's info
 VG_RowsMatchedRe = re.compile(r'Rows matched: (\d+)')
+
+
+# marks for operators
+OP_LT = 1
+OP_LE = 2
+OP_GT = 3
+OP_GE = 4
+OP_EQ = 5
+OP_NE = 6
+OP_ADD = 7
+OP_AND = 8
+OP_OR = 9
 
 
 class Database(object):
@@ -150,3 +160,70 @@ class Database(object):
         ) if cursor._info else int(cursor.rowcount)
 
         return cursor
+
+
+class Leaf(object):
+
+    def _e(op):
+        def e(self, right):
+            return Expr(self, right, op)
+        return e
+
+    __lt__ = _e(OP_LT)
+
+    __le__ = _e(OP_LE)
+
+    __gt__ = _e(OP_GT)
+
+    __ge__ = _e(OP_GE)
+
+    __eq__ = _e(OP_EQ)
+
+    __ne__ = _e(OP_NE)
+
+    __add__ = _e(OP_ADD)
+
+    __and__ = _e(OP_AND)
+
+    __or__ = _e(OP_OR)
+
+
+class Expr(object):
+    """
+    Expression object.
+
+    You need't new an expression in this way: myexpr = Expr(left, right, op)
+
+    Use expression like this:
+      User.id == 4
+      User.name == "Amy"
+
+    API here:
+      tostr()  turn this expression to string
+    """
+
+    def __init__(self, left, right, op):
+        self.left = left
+        self.right = right
+        self.op = op
+        self.__str = None  # private var, store expression-string once tostr called
+
+    def __tostr(self, side):  # private method to turn one side to string
+        if isinstance(side, Field):
+            return side.fullname
+        elif isinstance(side, Expr):
+            return side.tostr()
+        else:  # string or number
+            return "'" + MySQLdb.escape_string(str(side)) + "'"   # escape_string
+
+    def tostr(self):
+        """
+        Turn expression object into string.
+          eg.
+            User.id < 6   =>  "user.id < 6"
+        """
+        pass
+
+
+class Field(object):
+    pass
