@@ -373,10 +373,10 @@ class Runtime(object):
         ), None)
 
         # reset runtime data
-        self.data.reset()
+        self.reset_data()
 
     # reset runtime data
-    def reset(self):
+    def reset_data(self):
         dct = dict((i, []) for i in self.data.keys())
         self.data.update(dct)
 
@@ -397,7 +397,7 @@ class Runtime(object):
             flst = self.model.get_fields()
 
         # remove duplicates
-        self.data.select = list(set(flst))
+        self.data['select'] = list(set(flst))
 
     def set_where(self, lst, dct):
         lst = list(lst)
@@ -451,6 +451,7 @@ class MetaModel(type):  # metaclass for 'single Model'
 
         cls.fields = fields
         cls.primarykey = primarykey
+        cls.runtime = Runtime(cls)
 
 
 class Model(object):
@@ -485,3 +486,31 @@ class Model(object):
         return list of this model's fields
         """
         return cls.fields.values()
+
+    @classmethod
+    def select(cls, *flst):
+        """
+        select from table.
+
+        Parameters:
+          flst, fields
+        e.g.
+          User.select(User.name, User.email)
+        """
+        cls.runtime.set_select(flst)
+        # TODO: return query result
+        return cls
+
+    @classmethod
+    def where(cls, *lst, **dct):
+        """
+        figure where to select.
+
+        Parameters:
+          lst, expressions, e.g.: User.id > 3
+          dct, datas, e.g.: name = "Join"
+        e.g.
+          User.where(User.name == "Join", id=4).select()
+        """
+        cls.runtime.set_where(lst, dct)
+        return cls
