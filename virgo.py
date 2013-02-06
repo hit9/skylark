@@ -265,15 +265,15 @@ class Field(Leaf):
         """
         return Expr(self, pattern, OP_LIKE)
 
-    def Between(self, value1, value2):
+    def between(self, value1, value2):
         """
-        eg. User.id.Bettwen(3, 7)
+        eg. User.id.bettwen(3, 7)
         """
         return Expr(self, (value1, value2), OP_BETWEEN)
 
-    def In(self, *values):
+    def _in(self, *values):
         """
-        eg. User.id.In(1, 2, 3, 4, 5)
+        eg. User.id._in(1, 2, 3, 4, 5)
         """
         return Expr(self, values, OP_IN)
 
@@ -410,3 +410,6 @@ class Model(object):
     """
 
     __metaclass__ = MetaModel
+
+    def __init__(self, *lst, **dct):
+        pass
