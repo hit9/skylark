@@ -417,10 +417,10 @@ class Runtime(object):
         if self.model.single:
             fields = self.model.fields
             primarykey = self.model.primarykey
-            lst.append([
-                fields[k] == v
-                for k, v in dct.iteritems() if fields[k] is not primarykey
-            ])
+
+            for k, v in dct.iteritems():
+                if fields[k] is not primarykey:
+                    lst.append(fields[k] == v)
 
         self.data['set'] = lst
 
@@ -490,8 +490,6 @@ class Model(object):
     @classmethod
     def select(cls, *flst):
         """
-        select from table.
-
         Parameters:
           flst, fields
         e.g.
@@ -504,8 +502,6 @@ class Model(object):
     @classmethod
     def where(cls, *lst, **dct):
         """
-        figure where to select.
-
         Parameters:
           lst, expressions, e.g.: User.id > 3
           dct, datas, e.g.: name = "Join"
@@ -514,3 +510,8 @@ class Model(object):
         """
         cls.runtime.set_where(lst, dct)
         return cls
+
+    @classmethod
+    def update(cls, *lst, **dct):
+        cls.runtime.set_set(lst, dct)
+        # TODO: return update result
