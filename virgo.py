@@ -359,6 +359,25 @@ class Compiler(object):
         cache[expr] = string
         return string
 
+    # ------------------ parser for runtime -------------
+
+    # parse orderby tuple to string
+    @staticmethod
+    def parse_orderby(lst):
+        orderby_str = " order by " + lst[0].fullname
+        if lst[1]:
+            orderby_str = orderby_str + " desc "
+        return orderby_str
+
+    # parse where expr list to string
+    @staticmethod
+    def parse_where(lst):
+        if not lst:  # if lst is empty
+            return ""
+        return " where "+" and ".join([
+            Compiler.parse_expr(expr) for expr in lst
+        ])
+
 
 class Runtime(object):
     """
@@ -393,7 +412,7 @@ class Runtime(object):
                 flst.append(primarykey)  # add primarykey to select fields
             else:
                 flst.extend(primarykey)  # extend primarykeys
-        else:
+        else:  # select all
             flst = self.model.get_fields()
 
         # remove duplicates
@@ -504,7 +523,7 @@ class Model(object):
         """
         Parameters:
           lst, expressions, e.g.: User.id > 3
-          dct, datas, e.g.: name = "Join"
+          dct, datas, e.g.: name="Join"
         e.g.
           User.where(User.name == "Join", id=4).select()
         """
@@ -513,5 +532,17 @@ class Model(object):
 
     @classmethod
     def update(cls, *lst, **dct):
+        """
+        Parameter:
+            lst, expressions, e.g.: User.name == "Join"
+            dct, datas, e.g.: name="Join"
+        e.g.
+          User.where(User.id <=5 ).update(name="Join", User.email="i@u.com")
+        """
         cls.runtime.set_set(lst, dct)
         # TODO: return update result
+
+    @classmethod
+    def orderby(cls, field, desc=False):
+        cls.runtime.set_orderby((field, desc))
+        return cls
