@@ -378,6 +378,18 @@ class Compiler(object):
             Compiler.parse_expr(expr) for expr in lst
         ])
 
+    # parse select field list to string
+    @staticmethod
+    def parse_select(lst):
+        return ", ".join([field.fullname for field in lst])
+
+    # parse set expr list to string
+    @staticmethod
+    def parse_set(lst):
+        return " set " + ", ".join([
+            Compiler.parse_expr(expr) for expr in lst
+        ])
+
 
 class Runtime(object):
     """
