@@ -1,3 +1,4 @@
+# coding=utf-8
 #
 # __     ___       ____
 # \ \   / (_)_ __ / ___| ___
@@ -240,26 +241,26 @@ class Field(Leaf):
     def describe(self, name, model):
         self.name = name
         self.model = model
-        # fullname eg. : User.id 's fullname is "user.id"
+        # fullname e.g. : User.id 's fullname is "user.id"
         self.fullname = self.model.table_name + "." + self.name
         # describe the attribute, reload its access control of writing, reading
         setattr(model, name, FieldDescriptor(self))
 
     def like(self, pattern):
         """
-        eg. User.name.like("Amy%")
+        e.g. User.name.like("Amy%")
         """
         return Expr(self, pattern, OP_LIKE)
 
     def between(self, value1, value2):
         """
-        eg. User.id.bettwen(3, 7)
+        e.g. User.id.bettwen(3, 7)
         """
         return Expr(self, (value1, value2), OP_BETWEEN)
 
     def _in(self, *values):
         """
-        eg. User.id._in(1, 2, 3, 4, 5)
+        e.g. User.id._in(1, 2, 3, 4, 5)
         """
         return Expr(self, values, OP_IN)
 
@@ -389,9 +390,15 @@ class MetaModel(type):  # metaclass for 'single Model'
 
 class Model(object):
     """
-    Model object.
+    Model object. Tables are mapped to models.
 
-    Tables are mapped to models.
+    Parameters:
+
+      expressions
+        Expr objects, e.g. User(User.name == "Join")
+
+      datas
+        e.g. User(name="Join")
 
     """
 
