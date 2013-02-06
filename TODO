@@ -3,3 +3,7 @@ add like,bettween
 return type of each query
 
 all use one query
+
+##########################################################
+
+change parser for runtime method name to private format
