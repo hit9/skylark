@@ -40,6 +40,7 @@ OP_NE = 6
 OP_ADD = 7
 OP_AND = 8
 OP_OR = 9
+OP_LIKE = 10
 
 
 class Database(object):
@@ -210,7 +211,8 @@ class EqExpr(Expr):
     """
     Equal exception.
 
-      eg. User.id == 1
+    eg.
+      User.id == 1
     """
     def __init__(self, left, right):
         super(EqExpr, self).__init__(left, right, OP_EQ)
@@ -251,6 +253,12 @@ class Field(Leaf):
         self.fullname = self.model.table_name + "." + self.name
         # describe the attribute, reload its access control of writing, reading
         setattr(model, name, FieldDescriptor(self))
+
+    def __eq__(self, right):  # produce equal expressions
+        return EqExpr(self, right)
+
+    def like(self, right):
+        return Expr(self, right, OP_LIKE)
 
 
 class PrimaryKey(Field):
@@ -294,10 +302,11 @@ class Compiler(object):
         OP_NE: " <> ",
         OP_ADD: " + ",
         OP_AND: " and ",
-        OP_OR: " or "
+        OP_OR: " or ",
+        OP_LIKE: "like"
     }
 
-    expr_cache = {}  # dict to store parse expressions {expr: string}
+    expr_cache = {}  # dict to store parsed expressions {expr: string}
 
     # parse expressions to string
     @staticmethod
