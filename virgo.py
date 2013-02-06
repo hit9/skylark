@@ -138,6 +138,7 @@ class Database(object):
     def execute(cls, SQL):
         """
         Execute one SQL command.
+
         Parameter:
           SQL
             string, SQL command to run.
@@ -198,7 +199,7 @@ class Expr(Leaf):
       User.id == 4
       User.name == "Amy"
 
-    API here:
+    methods:
       tostr()  turn this expression to string
     """
 
@@ -206,21 +207,41 @@ class Expr(Leaf):
         self.left = left
         self.right = right
         self.op = op
-        self.__str = None  # private var, store expression-string once tostr called
+
+        # private var, store expression-string once tostr called
+        self.__str = None
 
 
 class EqExpr(Expr):
     """
     Equal exception.
+
       eg. User.id == 1
     """
     def __init__(self, left, right):
         super(EqExpr, self).__init__(left, right, OP_EQ)
 
 
+# descriptor for Field objects
+class FieldDescriptor(object):
+
+    def __init__(self, field):
+        self.name = field.name
+        self.field = field
+
+    def __get__(self, instance, type=None):
+        if instance:
+            return instance.data[self.name]
+        return self.field
+
+    def __set__(self, instance, value):
+        instance.data[self.name] = value
+
+
 class Field(Leaf):
     """
     Field object.
+
     Field examples: User.name, User.age ..
     """
 
@@ -228,10 +249,20 @@ class Field(Leaf):
         self.is_primarykey = is_primarykey
         self.is_foreignkey = is_foreignkey
 
+    # describe model's attr
+    def describe(self, name, model):
+        self.name = name
+        self.model = model
+        # fullname eg. : User.id 's fullname is "user.id"
+        self.fullname = self.model.table_name + "." + self.name
+        # describe the attribute, reload its access control of writing, reading
+        setattr(model, name, FieldDescriptor(self))
+
 
 class PrimaryKey(Field):
     """
     PrimaryKey object.
+
     PrimaryKey example: User.id
     """
 
@@ -252,3 +283,66 @@ class ForeignKey(Field):
     def __init__(self, point_to):
         super(ForeignKey, self).__init__(is_foreignkey=True)
         self.point_to = point_to
+
+
+class Compiler(object):
+    """
+    Compile expressions and sequence of methods to SQL string(s).
+    """
+
+    # operator mapping
+    OP_MAPPING = {
+        OP_LT: " < ",
+        OP_LE: " <= ",
+        OP_GT: " > ",
+        OP_GE: " >= ",
+        OP_EQ: " = ",
+        OP_NE: " <> ",
+        OP_ADD: " + ",
+        OP_AND: " and ",
+        OP_OR: " or "
+    }
+
+    # parse expressions to string
+    @staticmethod
+    def __parseExpr(expr):
+        pass
+
+
+class MetaModel(type):  # metaclass for 'single Model'
+
+    def __init__(cls, name, bases, attrs):
+
+        # use lowercase of clsname as table name
+        cls.table_name = cls.__name__.lower()
+        # {field name: filed}
+        fields = {}
+        # PrimaryKey object
+        primarykey = None
+
+        # foreach filed, describe it and find the primarykey
+        for name, attr in cls.__dict__.iteritems():
+            if isinstance(attr, Field):
+                attr.describe(name, cls)
+                fields[name] = attr
+                if attr.is_primarykey:
+                    primarykey = attr
+
+        if primarykey is None:  # if primarykey not found
+            primarykey = PrimaryKey()  # then we new one primarykey: 'id'
+            primarykey.describe("id", cls)
+            fields['id'] = primarykey
+
+        cls.fields = fields
+        cls.primarykey = primarykey
+
+
+class Model(object):
+    """
+    Model object.
+
+    Tables are mapped as models.
+
+    """
+
+    __metaclass__ = MetaModel
