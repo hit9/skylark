@@ -188,7 +188,7 @@ class Leaf(object):
     __or__ = _e(OP_OR)
 
 
-class Expr(object):
+class Expr(Leaf):
     """
     Expression object.
 
@@ -208,22 +208,47 @@ class Expr(object):
         self.op = op
         self.__str = None  # private var, store expression-string once tostr called
 
-    def __tostr(self, side):  # private method to turn one side to string
-        if isinstance(side, Field):
-            return side.fullname
-        elif isinstance(side, Expr):
-            return side.tostr()
-        else:  # string or number
-            return "'" + MySQLdb.escape_string(str(side)) + "'"   # escape_string
 
-    def tostr(self):
-        """
-        Turn expression object into string.
-          eg.
-            User.id < 6   =>  "user.id < 6"
-        """
-        pass
+class EqExpr(Expr):
+    """
+    Equal exception.
+      eg. User.id == 1
+    """
+    def __init__(self, left, right):
+        super(EqExpr, self).__init__(left, right, OP_EQ)
 
 
-class Field(object):
-    pass
+class Field(Leaf):
+    """
+    Field object.
+    Field examples: User.name, User.age ..
+    """
+
+    def __init__(self, is_primarykey=False, is_foreignkey=False):
+        self.is_primarykey = is_primarykey
+        self.is_foreignkey = is_foreignkey
+
+
+class PrimaryKey(Field):
+    """
+    PrimaryKey object.
+    PrimaryKey example: User.id
+    """
+
+    def __init__(self):
+        super(PrimaryKey, self).__init__(is_primarykey=True)
+
+
+class ForeignKey(Field):
+    """
+    ForeignKey object.
+    ForeignKey example: Post.user_id = ForeignKey(point_to=User.id)
+
+    Parameter:
+      point_to
+        PrimaryKey object   the primary key this foreignkey referenced to.
+    """
+
+    def __init__(self, point_to):
+        super(ForeignKey, self).__init__(is_foreignkey=True)
+        self.point_to = point_to
