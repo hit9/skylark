@@ -198,18 +198,12 @@ class Expr(Leaf):
     Use expression like this:
       User.id == 4
       User.name == "Amy"
-
-    methods:
-      tostr()  turn this expression to string
     """
 
     def __init__(self, left, right, op):
         self.left = left
         self.right = right
         self.op = op
-
-        # private var, store expression-string once tostr called
-        self.__str = None
 
 
 class EqExpr(Expr):
@@ -277,7 +271,7 @@ class ForeignKey(Field):
 
     Parameter:
       point_to
-        PrimaryKey object   the primary key this foreignkey referenced to.
+        PrimaryKey object, the primary key this foreignkey referenced to.
     """
 
     def __init__(self, point_to):
@@ -303,10 +297,34 @@ class Compiler(object):
         OP_OR: " or "
     }
 
+    expr_cache = {}  # dict to store parse expressions {expr: string}
+
     # parse expressions to string
     @staticmethod
-    def __parseExpr(expr):
-        pass
+    def parse_expr(expr):
+
+        # first check cache
+        cache = Compiler.expr_cache
+        if expr in cache:
+            return cache[expr]
+
+        l, op, r = expr.left, expr.op, expr.right
+
+        dct = {l: None, r: None}
+
+        for side in dct.keys():
+
+            if isinstance(side, Field):
+                dct[side] = side.fullname
+            elif isinstance(side, Expr):
+                dct[side] = Compiler.parse_expr(side)
+            else:  # string or numbers
+                # cast to string and escape this string
+                dct[side] = "'" + MySQLdb.escape_string(str(side)) + "'"
+
+        # dont forget to set cache
+        cache[expr] = string = dct[l] + Compiler.OP_MAPPING[op] + dct[r]
+        return string
 
 
 class MetaModel(type):  # metaclass for 'single Model'
@@ -341,7 +359,7 @@ class Model(object):
     """
     Model object.
 
-    Tables are mapped as models.
+    Tables are mapped to models.
 
     """
 
