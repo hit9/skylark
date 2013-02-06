@@ -41,6 +41,8 @@ OP_ADD = 7
 OP_AND = 8
 OP_OR = 9
 OP_LIKE = 10
+OP_BETWEEN = 11
+OP_IN = 12
 
 
 class Database(object):
@@ -257,8 +259,23 @@ class Field(Leaf):
     def __eq__(self, right):  # produce equal expressions
         return EqExpr(self, right)
 
-    def like(self, right):
-        return Expr(self, right, OP_LIKE)
+    def like(self, pattern):
+        """
+        eg. User.name.like("Amy%")
+        """
+        return Expr(self, pattern, OP_LIKE)
+
+    def Between(self, value1, value2):
+        """
+        eg. User.id.Bettwen(3, 7)
+        """
+        return Expr(self, (value1, value2), OP_BETWEEN)
+
+    def In(self, *values):
+        """
+        eg. User.id.In(1, 2, 3, 4, 5)
+        """
+        return Expr(self, values, OP_IN)
 
 
 class PrimaryKey(Field):
@@ -308,6 +325,20 @@ class Compiler(object):
 
     expr_cache = {}  # dict to store parsed expressions {expr: string}
 
+    # parse one side of expression to string
+    @staticmethod
+    def __parse_expr_one_side(side):
+
+        if isinstance(side, Field):
+            return side.fullname
+        elif isinstance(side, Expr):
+            return Compiler.parse_expr(side)
+        else:  # string or numbers
+            escapestr = MySQLdb.escape_string(str(side))
+            return (
+                "'" + escapestr + "'" if isinstance(side, str) else escapestr
+            )
+
     # parse expressions to string
     @staticmethod
     def parse_expr(expr):
@@ -319,20 +350,26 @@ class Compiler(object):
 
         l, op, r = expr.left, expr.op, expr.right
 
-        dct = {l: None, r: None}
+        OP_MAPPING = Compiler.OP_MAPPING
 
-        for side in dct.keys():
+        string = None
 
-            if isinstance(side, Field):
-                dct[side] = side.fullname
-            elif isinstance(side, Expr):
-                dct[side] = Compiler.parse_expr(side)
-            else:  # string or numbers
-                # cast to string and escape this string
-                dct[side] = "'" + MySQLdb.escape_string(str(side)) + "'"
+        tostr = Compiler.__parse_expr_one_side
+
+        if op in OP_MAPPING:
+            string = tostr(l) + OP_MAPPING[op] + tostr(r)
+        elif op is OP_BETWEEN:
+            string = (
+                tostr(l) + " between " + tostr(r[0]) + " and " + tostr(r[1])
+            )
+        elif op is OP_IN:
+            valuestr = ", ".join(tostr(value) for value in r)
+            string = (
+                tostr(l) + " in " + "(" + valuestr +")"
+            )
 
         # dont forget to set cache
-        cache[expr] = string = dct[l] + Compiler.OP_MAPPING[op] + dct[r]
+        cache[expr] = string
         return string
 
 
