@@ -209,17 +209,6 @@ class Expr(Leaf):
         self.op = op
 
 
-class EqExpr(Expr):
-    """
-    Equal exception.
-
-    eg.
-      User.id == 1
-    """
-    def __init__(self, left, right):
-        super(EqExpr, self).__init__(left, right, OP_EQ)
-
-
 # descriptor for Field objects
 class FieldDescriptor(object):
 
@@ -255,9 +244,6 @@ class Field(Leaf):
         self.fullname = self.model.table_name + "." + self.name
         # describe the attribute, reload its access control of writing, reading
         setattr(model, name, FieldDescriptor(self))
-
-    def __eq__(self, right):  # produce equal expressions
-        return EqExpr(self, right)
 
     def like(self, pattern):
         """
@@ -365,7 +351,7 @@ class Compiler(object):
         elif op is OP_IN:
             valuestr = ", ".join(tostr(value) for value in r)
             string = (
-                tostr(l) + " in " + "(" + valuestr +")"
+                tostr(l) + " in " + "(" + valuestr + ")"
             )
 
         # dont forget to set cache
@@ -412,4 +398,10 @@ class Model(object):
     __metaclass__ = MetaModel
 
     def __init__(self, *lst, **dct):
-        pass
+        self.data = {}
+        # update data dict from expressions
+        for expr in lst:
+            field, value = expr.left, expr.right
+            self.data[field.name] = value
+        # update data dict from data parameter
+        self.data.update(dct)
