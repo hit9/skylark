@@ -360,6 +360,71 @@ class Compiler(object):
         return string
 
 
+class Runtime(object):
+    """
+    Runtime infomation manager
+    """
+
+    def __init__(self, model=None):
+        self.model = model
+
+        self.data = {}.fromkeys((
+            "where", "set", "orderby", "select"
+        ), None)
+
+        # reset runtime data
+        self.data.reset()
+
+    # reset runtime data
+    def reset(self):
+        dct = dict((i, []) for i in self.data.keys())
+        self.data.update(dct)
+
+    def set_orderby(self, field_desc_tuple):
+        # field_desc_tuple, (field, bool)
+        self.data['orderby'] = list(field_desc_tuple)
+
+    def set_select(self, fields):
+        flst = list(fields)
+        primarykey = self.model.primarykey
+
+        if flst:
+            if self.model.single:  # if single model
+                flst.append(primarykey)  # add primarykey to select fields
+            else:
+                flst.extend(primarykey)  # extend primarykeys
+        else:
+            flst = self.model.get_fields()
+
+        # remove duplicates
+        self.data.select = list(set(flst))
+
+    def set_where(self, lst, dct):
+        lst = list(lst)
+
+        # if single model, turn dct to expressions
+        if self.model.single:
+            fields = self.model.fields
+            lst.extend(
+                [fields[k] == v for k, v in dct.iteritems()]
+            )
+
+        self.data['where'] = lst
+
+    def set_set(self, lst, dct):
+        lst = list(lst)  # cast to list, we need to append xxx to it
+
+        if self.model.single:
+            fields = self.model.fields
+            primarykey = self.model.primarykey
+            lst.append([
+                fields[k] == v
+                for k, v in dct.iteritems() if fields[k] is not primarykey
+            ])
+
+        self.data['set'] = lst
+
+
 class MetaModel(type):  # metaclass for 'single Model'
 
     def __init__(cls, name, bases, attrs):
@@ -403,6 +468,7 @@ class Model(object):
     """
 
     __metaclass__ = MetaModel
+    single = True  # mark if single model
 
     def __init__(self, *lst, **dct):
         self.data = {}
@@ -412,3 +478,10 @@ class Model(object):
             self.data[field.name] = value
         # update data dict from data parameter
         self.data.update(dct)
+
+    @classmethod
+    def get_fields(cls):
+        """
+        return list of this model's fields
+        """
+        return cls.fields.values()
