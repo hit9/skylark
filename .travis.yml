@@ -10,11 +10,9 @@ before_install:
 
 branches:
   only:
-    - dev
-    - master
+    - restructrue
 
 before_script:
   - mysql -e 'create database virgotest;'
-  - cd tests
 
-script: nosetests -v -x --process-timeout=10
+script: nosetests -v -x --process-timeout=10 -w tests
