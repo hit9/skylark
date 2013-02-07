@@ -45,6 +45,12 @@ OP_LIKE = 10
 OP_BETWEEN = 11
 OP_IN = 12
 
+# marks for query types
+QUERY_INSERT = 20
+QUERY_UPDATE = 21
+QUERY_SELECT = 22
+QUERY_DELETE = 23
+
 
 class Database(object):
     """Manage Database connection"""
@@ -364,6 +370,8 @@ class Compiler(object):
     # parse orderby tuple to string
     @staticmethod
     def parse_orderby(lst):
+        if not lst:  # empty
+            return ""
         orderby_str = " order by " + lst[0].fullname
         if lst[1]:
             orderby_str = orderby_str + " desc "
@@ -389,6 +397,42 @@ class Compiler(object):
         return " set " + ", ".join([
             Compiler.parse_expr(expr) for expr in lst
         ])
+
+    # generate SQL from runtime
+    #
+    # parameter
+    #   query_type, query types: QUERY_**
+    #   target_model, model to delete, update, select or insert
+    @staticmethod
+    def gen_sql(runtime, query_type, target_model=None):
+
+        from_table = runtime.model.table_name
+
+        # if target_table not figured out, use from_table instead
+        if target_model is None:
+            target_model = runtime.model
+
+        target_table = target_model.table_name
+        data = runtime.data
+
+        # quick mark for parse time functions
+        _where = Compiler.parse_where(data['where'])
+        _set = Compiler.parse_set(data['set'])
+        _orderby = Compiler.parse_orderby(data['orderby'])
+        _select = Compiler.parse_select(data['select'])
+
+        if query_type is QUERY_INSERT:
+            SQL = "insert into " + target_table + _set
+        elif query_type is QUERY_UPDATE:
+            SQL = "update " + target_table + _set + _where
+        elif query_type is QUERY_SELECT:
+            SQL = (
+                "select " + _select + " from " + from_table + _where + _orderby
+            )
+        elif query_type is QUERY_DELETE:
+            SQL = "delete " + target_table + " from " + from_table + _where
+        # yes, we return this string
+        return SQL
 
 
 class Runtime(object):
@@ -565,3 +609,13 @@ class Model(object):
         The same with: where(Model.primarykey == _id)
         """
         return cls.where(cls.primarykey == _id)
+
+    @classmethod
+    def create(cls, *lst, **dct):
+        cls.runtime.set_set(lst, dct)
+        # TODO :run query and return model instance
+
+    @classmethod
+    def delete(cls):
+        pass
+        # TODO: delete run result
