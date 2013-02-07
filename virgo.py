@@ -23,6 +23,9 @@
 #
 
 import re
+import sys
+from types import ModuleType
+
 import MySQLdb
 import MySQLdb.cursors
 
@@ -619,3 +622,31 @@ class Model(object):
     def delete(cls):
         pass
         # TODO: delete run result
+
+
+# module wrapper for sugar
+
+
+class ModuleWrapper(ModuleType):
+
+    def __init__(self, module):
+        #
+        # I hate this way to wrap module, auctually i just need
+        # some way like this:
+        # from virgo import sugar
+        # this line(above) will run some code
+        #
+        self.module = module
+
+    def __getattr__(self, name):
+
+        try:
+            return getattr(self.module, name)
+        except:
+            if name == "Sugar":
+                # TODO: here run some sugar codes..
+                print "Test wrapper for sugar"
+                return
+            raise AttributeError
+
+sys.modules[__name__] = ModuleWrapper(sys.modules[__name__])
