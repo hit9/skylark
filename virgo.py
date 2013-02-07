@@ -557,6 +557,11 @@ class SelectResult(object):  # wrap select result
                 b = self.mddct(dct, nfdct)
                 yield tuple(m(**(b[m])) for m in self.model.models)
 
+    @property
+    def count(self):
+        return int(self.cursor.rowcount)  # cast to int
+
+
 
 # TODO: pretty way for this class
 
@@ -619,7 +624,7 @@ class MetaModel(type):  # metaclass for 'single Model'
         cls.primarykey = primarykey
         cls.runtime = Runtime(cls)
 
-
+# TODO for this class: save(), destroy()
 class Model(object):
     """
     Model object. Tables are mapped to models.
