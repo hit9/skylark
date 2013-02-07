@@ -503,26 +503,93 @@ class Runtime(object):
         self.data['set'] = lst
 
 
+#TODO: Restructure this class
+
+class SelectResult(object):  # wrap select result
+
+    def __init__(self, model, cursor, flst):
+        self.model = model
+        self.cursor = cursor
+        self.flst = flst
+
+    @property
+    def nfdct(self):  # {field's name:field}
+        dct = {}
+        for f in self.flst:
+            if f.name not in dct:
+                dct[f.name] = f
+            else:
+                dct[f.fullname] = f
+        return dct
+
+    def mddct(self, dct, nfdct):  # {model: data dict}
+        mlst = self.model.models
+        b = dict((m, {}) for m in mlst)
+        for k, v in dct.iteritems():
+            field = nfdct[k]
+            data_dct = b[field.model]
+            data_dct[field.name] = v
+        return b
+
+    def fetchone(self):  # fetchone a time
+        dct = self.cursor.fetchone()
+        self.cursor.close()
+
+        if self.model.single:
+            return self.model(**dct) if dct else None
+        else:
+            nfdct = self.nfdct
+            b = self.mddct(dct, nfdct)
+            return tuple(m(**b[m]) for m in self.model.models)
+
+    def fetchall(self):  # fetchall result
+
+        data = self.cursor.fetchall()
+        self.cursor.close()
+
+        if self.model.single:
+            for dct in data:
+                yield self.model(**dct)
+        else:
+            nfdct = self.nfdct
+
+            for dct in data:
+                b = self.mddct(dct, nfdct)
+                yield tuple(m(**(b[m])) for m in self.model.models)
+
+
+# TODO: pretty way for this class
+
 class Query(object):  # class to run sql
 
     @staticmethod
     def insert(runtime):
         sql = Compiler.gen_sql(runtime, QUERY_INSERT)
         cursor = Database.execute(sql)
+        runtime.reset_data()
         return cursor.lastrowid if cursor.matchedRows else None
 
     @staticmethod
     def delete(runtime):
         sql = Compiler.gen_sql(runtime, QUERY_DELETE)
         cursor = Database.execute(sql)
+        runtime.reset_data()
         return cursor.matchedRows
 
     @staticmethod
     def update(runtime):
         sql = Compiler.gen_sql(runtime, QUERY_UPDATE)
         cursor = Database.execute(sql)
+        runtime.reset_data()
         return cursor.matchedRows
 
+    @staticmethod
+    def select(runtime):
+        sql = Compiler.gen_sql(runtime, QUERY_SELECT)
+        cursor = Database.execute(sql)
+        flst = runtime.data['select']
+        runtime.reset_data()
+        return SelectResult(runtime.model, cursor, flst)
 
 class MetaModel(type):  # metaclass for 'single Model'
 
@@ -595,8 +662,7 @@ class Model(object):
           User.select(User.name, User.email)
         """
         cls.runtime.set_select(flst)
-        # TODO: return query result
-        return cls
+        return Query.select(cls.runtime)
 
     @classmethod
     def where(cls, *lst, **dct):
