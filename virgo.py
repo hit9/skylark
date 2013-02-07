@@ -558,3 +558,10 @@ class Model(object):
     def orderby(cls, field, desc=False):
         cls.runtime.set_orderby((field, desc))
         return cls
+
+    @classmethod
+    def at(cls, _id):
+        """
+        The same with: where(Model.primarykey == _id)
+        """
+        return cls.where(cls.primarykey == _id)
