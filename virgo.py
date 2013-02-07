@@ -503,6 +503,27 @@ class Runtime(object):
         self.data['set'] = lst
 
 
+class Query(object):  # class to run sql
+
+    @staticmethod
+    def insert(runtime):
+        sql = Compiler.gen_sql(runtime, QUERY_INSERT)
+        cursor = Database.execute(sql)
+        return cursor.lastrowid if cursor.matchedRows else None
+
+    @staticmethod
+    def delete(runtime):
+        sql = Compiler.gen_sql(runtime, QUERY_DELETE)
+        cursor = Database.execute(sql)
+        return cursor.matchedRows
+
+    @staticmethod
+    def update(runtime):
+        sql = Compiler.gen_sql(runtime, QUERY_UPDATE)
+        cursor = Database.execute(sql)
+        return cursor.matchedRows
+
+
 class MetaModel(type):  # metaclass for 'single Model'
 
     def __init__(cls, name, bases, attrs):
@@ -593,16 +614,23 @@ class Model(object):
     def update(cls, *lst, **dct):
         """
         Parameter:
-            lst, expressions, e.g.: User.name == "Join"
-            dct, datas, e.g.: name="Join"
+          lst, expressions, e.g.: User.name == "Join"
+          ct, datas, e.g.: name="Join"
         e.g.
           User.where(User.id <=5 ).update(name="Join", User.email="i@u.com")
         """
         cls.runtime.set_set(lst, dct)
-        # TODO: return update result
+        return Query.update(cls.runtime)
 
     @classmethod
     def orderby(cls, field, desc=False):
+        """
+        Parameter:
+          field, field to order by
+          desc, if desc, bool
+        e.g.
+          User.where(User.id <= 5).orderby(User.id, desc=True).select()
+        """
         cls.runtime.set_orderby((field, desc))
         return cls
 
@@ -615,14 +643,23 @@ class Model(object):
 
     @classmethod
     def create(cls, *lst, **dct):
+        """
+        Parameters:
+          lst, expressions, e.g.:User.name == "xiaoming"
+          dct, e.g.: name="xiaoming"
+        e.g.
+
+        """
         cls.runtime.set_set(lst, dct)
-        # TODO :run query and return model instance
+        _id = Query.insert(cls.runtime)
+        if _id:
+            dct[cls.primarykey.name] = _id  # add id to dct
+            return cls(*lst, **dct)
+        return None
 
     @classmethod
     def delete(cls):
-        pass
-        # TODO: delete run result
-
+        return Query.delete(cls.runtime)
 
 # module wrapper for sugar
 
