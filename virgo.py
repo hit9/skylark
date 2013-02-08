@@ -571,8 +571,8 @@ class Query(object):  # class to run sql
 
     def Q(QUERY_TYPE):
         @staticmethod
-        def _Q(runtime, model=None):
-            sql = Compiler.gen_sql(runtime, QUERY_TYPE, target_model=model)
+        def _Q(runtime, target_model=None):
+            sql = Compiler.gen_sql(runtime, QUERY_TYPE, target_model)
             cursor = Database.execute(sql)
             runtime.reset_data()
 
@@ -649,6 +649,9 @@ class Model(object):
             self.data[field.name] = value
         # update data dict from data parameter
         self.data.update(dct)
+
+        #cache for data
+        self._cache = self.data.copy()
 
     @classmethod
     def get_fields(cls):
@@ -731,9 +734,36 @@ class Model(object):
     def delete(cls):
         return Query.delete(cls.runtime)
 
+    def save(self):
+        """
+        save data to table.
+        """
+        model = self.__class__
+        pkn = model.primarykey
+
+        _id = self.data.get(pkn, None)
+
+        if not _id:  # if insert
+            model.runtime.set_set([], self.data)
+            _id = Query.insert(model.runtime)
+            if _id:
+                self.data[pkn] = _id  # set primarykey value
+                self._cache = self.data.copy()  # sync cache after save
+                return _id
+        else:  # update
+            # only update changed data
+            dct = dict(set(self.data.items()) - set(self._cache.items()))
+
+            if not dct:
+                return 1  # data not change
+            re = model.at(_id).update(**dct)
+            if re:
+                self._cache = self.data.copy()  # sync cache after save
+                return re  # success update
+        return 0
+
+
 # module wrapper for sugar
-
-
 class ModuleWrapper(ModuleType):
 
     def __init__(self, module):
