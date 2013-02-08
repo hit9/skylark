@@ -801,7 +801,7 @@ class Models(object):
 
         self.models = list(models)  # cast to list
         self.single = False
-        self.runtime = Runtime()
+        self.runtime = Runtime(self)
 
         self.table_name = ", ".join([m.table_name for m in self.models])
         self.primarykey = [m.primarykey for m in self.models]
