@@ -572,7 +572,6 @@ class Query(object):  # class to run sql
         def _Q(runtime, target_model=None):
             sql = Compiler.gen_sql(runtime, QUERY_TYPE, target_model)
             cursor = Database.execute(sql)
-            runtime.reset_data()
 
             if QUERY_TYPE is QUERY_INSERT:
                 return cursor.lastrowid if cursor.matchedRows else None
@@ -581,6 +580,8 @@ class Query(object):  # class to run sql
             if QUERY_TYPE is QUERY_SELECT:
                 flst = runtime.data['select']
                 return SelectResult(runtime.model, cursor, flst)
+            # dont forget clear runtime infomation after query
+            runtime.reset_data()
             # close cursor
             if QUERY_TYPE is not QUERY_SELECT:
                 cursor.close()
@@ -791,6 +792,43 @@ class Model(object):
             model = self.__class__
             return model.at(self._id).delete()
         return 0
+
+
+class Models(object):
+    # multiple models
+
+    def __init__(self, *models):
+
+        self.models = list(models)  # cast to list
+        self.single = False
+        self.runtime = Runtime()
+
+        self.table_name = ", ".join([m.table_name for m in self.models])
+        self.primarykey = [m.primarykey for m in self.models]
+
+    def get_fields(self):
+        lst = [m.get_fields() for m in self.models]
+        return sum(lst, [])
+
+    def where(self, *lst):
+        self.runtime.set_where(lst, {})
+        return self
+
+    def select(self, *lst):
+        self.runtime.set_select(lst)
+        return Query.select(self.runtime)
+
+    def update(self, *lst):
+        self.runtime.set_set(lst, {})
+        return Query.update(self.runtime)
+
+    def delete(self, target_model=None):
+        return Query.delete(self.runtime, target_model=target_model)
+
+    def orderby(self, field, desc=False):
+        self.runtime.set_orderby((field, desc))
+        return self
+
 
 #
 # Sugar Part - Syntactic_sugar for virgo
