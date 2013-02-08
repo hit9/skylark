@@ -562,39 +562,31 @@ class SelectResult(object):  # wrap select result
         return int(self.cursor.rowcount)  # cast to int
 
 
-
-# TODO: pretty way for this class
+# TODO: close cursor after each query
 
 class Query(object):  # class to run sql
 
-    @staticmethod
-    def insert(runtime):
-        sql = Compiler.gen_sql(runtime, QUERY_INSERT)
-        cursor = Database.execute(sql)
-        runtime.reset_data()
-        return cursor.lastrowid if cursor.matchedRows else None
+    def Q(QUERY_TYPE):
+        @staticmethod
+        def _Q(runtime, model=None):
+            sql = Compiler.gen_sql(runtime, QUERY_TYPE, target_model=model)
+            cursor = Database.execute(sql)
+            runtime.reset_data()
 
-    @staticmethod
-    def delete(runtime):
-        sql = Compiler.gen_sql(runtime, QUERY_DELETE)
-        cursor = Database.execute(sql)
-        runtime.reset_data()
-        return cursor.matchedRows
+            if QUERY_TYPE is QUERY_INSERT:
+                return cursor.lastrowid if cursor.matchedRows else None
+            if QUERY_TYPE in (QUERY_UPDATE, QUERY_DELETE):
+                return cursor.matchedRows
+            if QUERY_TYPE is QUERY_SELECT:
+                flst = runtime.data['select']
+                return SelectResult(runtime.model, cursor, flst)
+        return _Q
 
-    @staticmethod
-    def update(runtime):
-        sql = Compiler.gen_sql(runtime, QUERY_UPDATE)
-        cursor = Database.execute(sql)
-        runtime.reset_data()
-        return cursor.matchedRows
+    insert = Q(QUERY_INSERT)
+    delete = Q(QUERY_DELETE)
+    update = Q(QUERY_UPDATE)
+    select = Q(QUERY_SELECT)
 
-    @staticmethod
-    def select(runtime):
-        sql = Compiler.gen_sql(runtime, QUERY_SELECT)
-        cursor = Database.execute(sql)
-        flst = runtime.data['select']
-        runtime.reset_data()
-        return SelectResult(runtime.model, cursor, flst)
 
 class MetaModel(type):  # metaclass for 'single Model'
 
