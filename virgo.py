@@ -565,8 +565,6 @@ class SelectResult(object):  # wrap select result
         return int(self.cursor.rowcount)  # cast to int
 
 
-# TODO: close cursor after each query
-
 class Query(object):  # class to run sql
 
     def Q(QUERY_TYPE):
@@ -626,7 +624,6 @@ class MetaModel(type):  # metaclass for 'single Model'
         cls.runtime = Runtime(cls)
 
 
-# TODO for this class: save(), destroy()
 class Model(object):
     """
     Model object. Tables are mapped to models.
@@ -680,8 +677,11 @@ class Model(object):
         Parameters:
           lst, expressions, e.g.: User.id > 3
           dct, datas, e.g.: name="Join"
+
         e.g.
           User.where(User.name == "Join", id=4).select()
+        produce
+          select user.id, user.email, user.name from user where user.name = 'Join' and user.id = 4
         """
         cls.runtime.set_where(lst, dct)
         return cls
@@ -692,8 +692,11 @@ class Model(object):
         Parameter:
           lst, expressions, e.g.: User.name == "Join"
           ct, datas, e.g.: name="Join"
+
         e.g.
-          User.where(User.id <=5 ).update(name="Join", User.email="i@u.com")
+          User.where(User.id <=5 ).update(name="Join")
+        produce
+          update user set user.name = 'Join' where user.id <= 5
         """
         cls.runtime.set_set(lst, dct)
         return Query.update(cls.runtime)
@@ -713,7 +716,7 @@ class Model(object):
     @classmethod
     def at(cls, _id):
         """
-        The same with: where(Model.primarykey == _id)
+        at(_id) is the same with where(Model.primarykey == _id)
         """
         return cls.where(cls.primarykey == _id)
 
@@ -723,8 +726,11 @@ class Model(object):
         Parameters:
           lst, expressions, e.g.:User.name == "xiaoming"
           dct, e.g.: name="xiaoming"
-        e.g.
 
+        e.g.
+          User.create(name="Join", email="Join@gmail.com")
+        produce
+          insert into user set user.name = 'Join', user.email = 'Join@gmail.com'
         """
         cls.runtime.set_set(lst, dct)
         _id = Query.insert(cls.runtime)
@@ -786,6 +792,13 @@ class Model(object):
             return model.at(self._id).delete()
         return 0
 
+#
+# Sugar Part - Syntactic_sugar for virgo
+#
+# Use Mix-in to add new and cool features to virgo
+# Enable Sugar: from virgo import Sugar
+#
+# Sugars are written in method loadSugar
 
 def loadSugar():
 
@@ -799,12 +812,10 @@ def loadSugar():
     # -------------------------------------- }
 
     # -------------------------------------- {
-    def getslice(model, start, end):
-        """
-        Model[start, end]
-        e.g. users = User[1:3]
-        Produce: select * from user where user.id >= start and user.id  <= end
-        """
+    def MetaModel_getslice(model, start, end):
+        # model[start, end]
+        # e.g. users = User[1:3]
+        # Produce: select * from user where user.id >= start and user.id  <= end
         exprs = []
 
         if start:
@@ -815,7 +826,18 @@ def loadSugar():
 
         return model.where(*exprs).select().fetchall()
 
-    MetaModel.__getslice__ = getslice
+    MetaModel.__getslice__ = MetaModel_getslice
+    # --------------------------------------- }
+
+    # --------------------------------------- {
+    # object in model
+    # e.g. user in User
+    # return True or False
+    def MetaModel_contains(model, obj):
+        if isinstance(obj, model) and model.where(**obj.data).select().count:
+            return True
+        return False
+    MetaModel.__contains__ = MetaModel_contains
     # --------------------------------------- }
 
 

@@ -6,10 +6,14 @@ all use one query
 
 ##########################################################
 
-change parser for runtime method name to private format
-
 concat for field objects
 
-select for Query
-
 transaction
+
+joinmodel
+
+example codes
+
+sugar wiki
+
+doc: use produce
