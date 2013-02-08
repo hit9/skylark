@@ -624,6 +624,10 @@ class MetaModel(type):  # metaclass for 'single Model'
         cls.primarykey = primarykey
         cls.runtime = Runtime(cls)
 
+    def __and__(self, join):
+        return JoinModel(self, join)
+
+
 
 class Model(object):
     """
@@ -828,6 +832,49 @@ class Models(object):
     def orderby(self, field, desc=False):
         self.runtime.set_orderby((field, desc))
         return self
+
+
+class JoinModel(Models):
+    """
+    e.g.  User & Post will make a JoinModel instance
+    """
+
+    def __init__(self, main, join):  # main's foreignkey is join's primarykey
+        super(JoinModel, self).__init__(main, join)
+
+        self.bridge = None  # the foreignkey point to join
+
+        # find the foreignkey
+        for field in main.get_fields():
+            if field.is_foreignkey and field.point_to is join.primarykey:
+                self.bridge = field
+
+        if not self.bridge:
+            raise Exception(
+                "foreignkey references to " +
+                join.__name__ + " not found in " + main.__name__
+            )
+
+    def brigde_wrapper(func):
+        def e(self, *arg, **kwarg):
+            # build brigde
+            self.runtime.data['where'].append(
+                self.bridge == self.bridge.point_to
+            )
+            return func(self, *arg, **kwarg)
+        return e
+
+    @brigde_wrapper
+    def select(self, *lst):
+        return super(JoinModel, self).select(*lst)
+
+    @brigde_wrapper
+    def update(self, *lst):
+        return super(JoinModel, self).update(*lst)
+
+    @brigde_wrapper
+    def delete(self, target_model=None):
+        return super(JoinModel, self).delete(target_model)
 
 
 #
