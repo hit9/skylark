@@ -9,6 +9,6 @@ setup(
     license="BSD",
     keywords="ORM MySQL Python tiny database virgo",
     url="https://virgo.readthedocs.org/",
-    py_modules=['virgo', 'virgoSugar'],
+    py_modules=['virgo'],
     install_requires = ['MySQL-python'],
 )

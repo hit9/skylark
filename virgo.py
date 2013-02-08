@@ -735,6 +735,12 @@ class Model(object):
 
     @classmethod
     def delete(cls):
+        """
+        e.g.
+          User.at(1).delete()
+        Produce
+          delete user from user where user.id = 1
+        """
         return Query.delete(cls.runtime)
 
     @property
@@ -793,11 +799,7 @@ def loadSugar():
     # -------------------------------------- }
 
     # -------------------------------------- {
-    # Model[start, end]
-    # e.g. users = User[1:3]
-    # note:change this after between implement
-
-    def vg_getslice(model, start, end):
+    def getslice(model, start, end):
         """
         Model[start, end]
         e.g. users = User[1:3]
@@ -813,7 +815,7 @@ def loadSugar():
 
         return model.where(*exprs).select().fetchall()
 
-    MetaModel.__getslice__ = vg_getslice
+    MetaModel.__getslice__ = getslice
     # --------------------------------------- }
 
 
