@@ -734,20 +734,23 @@ class Model(object):
     def delete(cls):
         return Query.delete(cls.runtime)
 
+    @property
+    def _id(self):  # value of primarykey
+        cls = self.__class__
+        return self.data.get(cls.primarykey.name, None)
+
     def save(self):
         """
         save data to table.
         """
         model = self.__class__
-        pkn = model.primarykey
-
-        _id = self.data.get(pkn, None)
+        _id = self._id
 
         if not _id:  # if insert
             model.runtime.set_set([], self.data)
             _id = Query.insert(model.runtime)
             if _id:
-                self.data[pkn] = _id  # set primarykey value
+                self.data[model.primarykey.name] = _id  # set primarykey value
                 self._cache = self.data.copy()  # sync cache after save
                 return _id
         else:  # update
@@ -760,6 +763,12 @@ class Model(object):
             if re:
                 self._cache = self.data.copy()  # sync cache after save
                 return re  # success update
+        return 0
+
+    def destroy(self):
+        if self._id:
+            model = self.__class__
+            return model.at(self._id).delete()
         return 0
 
 
