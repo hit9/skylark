@@ -530,6 +530,9 @@ class SelectResult(object):  # wrap select result
         return b
 
     def fetchone(self):  # fetchone a time
+        """
+        Fetches a single row
+        """
         dct = self.cursor.fetchone()
         self.cursor.close()
 
@@ -541,7 +544,9 @@ class SelectResult(object):  # wrap select result
             return tuple(m(**b[m]) for m in self.model.models)
 
     def fetchall(self):  # fetchall result
-
+        """
+        Fetchs all available rows
+        """
         data = self.cursor.fetchall()
         self.cursor.close()
 
