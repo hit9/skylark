@@ -385,7 +385,7 @@ class Compiler(object):
     def parse_where(lst):
         if not lst:  # if lst is empty
             return ""
-        return " where "+" and ".join([
+        return " where " + " and ".join([
             Compiler.parse_expr(expr) for expr in lst
         ])
 
@@ -503,8 +503,6 @@ class Runtime(object):
         self.data['set'] = lst
 
 
-#TODO: Restructure this class
-
 class SelectResult(object):  # wrap select result
 
     def __init__(self, model, cursor, flst):
@@ -580,6 +578,9 @@ class Query(object):  # class to run sql
             if QUERY_TYPE is QUERY_SELECT:
                 flst = runtime.data['select']
                 return SelectResult(runtime.model, cursor, flst)
+            # close cursor
+            if QUERY_TYPE is not QUERY_SELECT:
+                cursor.close()
         return _Q
 
     insert = Q(QUERY_INSERT)
@@ -615,6 +616,7 @@ class MetaModel(type):  # metaclass for 'single Model'
         cls.fields = fields
         cls.primarykey = primarykey
         cls.runtime = Runtime(cls)
+
 
 # TODO for this class: save(), destroy()
 class Model(object):
