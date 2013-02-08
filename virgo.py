@@ -836,7 +836,8 @@ class Models(object):
 
 class JoinModel(Models):
     """
-    e.g.  User & Post will make a JoinModel instance
+    JoinModel(main_model, join_model)
+    e.g.  Post & User will get JoinModel(Post, User)
     """
 
     def __init__(self, main, join):  # main's foreignkey is join's primarykey

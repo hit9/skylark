@@ -19,3 +19,5 @@ sugar wiki
 doc: use produce
 
 rename project to "CURD.py"
+
+next step: transaction; example code; doc; tests;  rename project name.
