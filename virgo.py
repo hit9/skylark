@@ -589,8 +589,11 @@ class Query(object):  # class to run sql
         return _Q
 
     insert = Q(QUERY_INSERT)
+
     delete = Q(QUERY_DELETE)
+
     update = Q(QUERY_UPDATE)
+
     select = Q(QUERY_SELECT)
 
 
@@ -736,6 +739,9 @@ class Model(object):
 
     @property
     def _id(self):  # value of primarykey
+        """
+        id for this object, actually is the value of primary key.
+        """
         cls = self.__class__
         return self.data.get(cls.primarykey.name, None)
 
@@ -766,10 +772,49 @@ class Model(object):
         return 0
 
     def destroy(self):
+        """
+        delete this object's data in database.
+        """
         if self._id:
             model = self.__class__
             return model.at(self._id).delete()
         return 0
+
+
+def loadSugar():
+
+    # -------------------------------------- {
+    # Model[index]
+    # e.g. user = User[2]
+
+    MetaModel.__getitem__ = (
+        lambda model, index: model.at(index).select().fetchone()
+    )
+    # -------------------------------------- }
+
+    # -------------------------------------- {
+    # Model[start, end]
+    # e.g. users = User[1:3]
+    # note:change this after between implement
+
+    def vg_getslice(model, start, end):
+        """
+        Model[start, end]
+        e.g. users = User[1:3]
+        Produce: select * from user where user.id >= start and user.id  <= end
+        """
+        exprs = []
+
+        if start:
+            exprs.append(model.primarykey >= start)
+
+        if end < 0x7fffffff:  # extremely big..
+            exprs.append(model.primarykey <= end)
+
+        return model.where(*exprs).select().fetchall()
+
+    MetaModel.__getslice__ = vg_getslice
+    # --------------------------------------- }
 
 
 # module wrapper for sugar
@@ -790,8 +835,7 @@ class ModuleWrapper(ModuleType):
             return getattr(self.module, name)
         except:
             if name == "Sugar":
-                # TODO: here run some sugar codes..
-                print "Test wrapper for sugar"
+                loadSugar()
                 return
             raise AttributeError
 
