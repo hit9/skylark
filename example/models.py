@@ -1,13 +1,9 @@
-#
-# models for virgo example
-#
+import sys
 
-from virgo import *
+sys.path.append("..")
 
-Database.config(db="mydb", user="root", passwd="123456")
+from CURD import Database, Model, Field, PrimaryKey, ForeignKey
 
-
-# define models:
 
 class User(Model):
     name = Field()
@@ -15,15 +11,9 @@ class User(Model):
 
 
 class Post(Model):
-    post_id = PrimaryKey()
     name = Field()
+    post_id = PrimaryKey()
     user_id = ForeignKey(User.id)
 
 
-# user defined methods..
-
-@classmethod
-def Model_get(cls, key):
-    return cls.at(key).select().fetchone()
-
-Model.get = Model_get
+Database.config(db="mydb", user="root", passwd="")
