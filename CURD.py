@@ -1,16 +1,16 @@
 # coding=utf-8
-#
-# __     ___       ____
-# \ \   / (_)_ __ / ___| ___
-#  \ \ / /| | '__| |  _ / _ \
-#   \ V / | | |  | |_| | (_) |
-#    \_/  |_|_|   \____|\___/
+#  ____ _   _ ____  ____
+# / ___| | | |  _ \|  _ \  _ __  _   _
+#| |   | | | | |_) | | | || '_ \| | | |
+#| |___| |_| |  _ <| |_| || |_) | |_| |
+# \____|\___/|_| \_\____(_) .__/ \__, |
+#                         |_|    |___/
 #
 #   Tiny Python ORM for MySQL
 #
 #   E-mail : nz2324@126.com
 #
-#   URL : https://virgo.readthedocs.org/
+#   URL : https://github.com/hit9/CURD.py
 #
 #   Licence : BSD
 #
@@ -879,10 +879,10 @@ class JoinModel(Models):
 
 
 #
-# Sugar Part - Syntactic_sugar for virgo
+# Sugar Part - Syntactic_sugar.
 #
-# Use Mix-in to add new and cool features to virgo
-# Enable Sugar: from virgo import Sugar
+# Use Mix-in to add new and cool features to CURD.py
+# Enable Sugar: from CURD import Sugar
 #
 # Sugars are written in method loadSugar
 
@@ -934,7 +934,7 @@ class ModuleWrapper(ModuleType):
         #
         # I hate this way to wrap module, auctually i just need
         # some way like this:
-        # from virgo import sugar
+        # from CURD import Sugar
         # this line(above) will run some code
         #
         self.module = module
