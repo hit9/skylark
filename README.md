@@ -4,7 +4,7 @@ CURD.py
 Sample Code
 -----------
 
-first, we define models in `models.py`
+Modeling our table's structure in `models.py`
 
 ```python
 from CURD import Database, Model, Field, PrimaryKey, ForeignKey, Sugar
