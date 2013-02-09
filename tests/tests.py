@@ -118,6 +118,7 @@ class TestField_:
         sys.path.append('..')
 
         from CURD import Compiler
+
         tostr = Compiler.parse_expr
 
         expr1 = User.id < 4
@@ -130,12 +131,13 @@ class TestField_:
         expr8 = User.id.between(3, 4)
         expr9 = User.id._in(1, 2, 3)
         expr10 = User.name.like("%Join%")
-        assert tostr(expr1) == "user.id < '4'"
-        assert tostr(expr2) == "user.id <= '4'"
-        assert tostr(expr3) == "user.id > '4'"
-        assert tostr(expr4) == "user.id >= '4'"
-        assert tostr(expr5) == "user.id <> '4'"
-        assert tostr(expr6) == "user.id = '4'"
-        assert tostr(expr7) == "user.id + '4'"
+        assert tostr(expr1) == "user.id < 4"
+        assert tostr(expr2) == "user.id <= 4"
+        assert tostr(expr3) == "user.id > 4"
+        assert tostr(expr4) == "user.id >= 4"
+        assert tostr(expr5) == "user.id <> 4"
+        assert tostr(expr6) == "user.id = 4"
+        assert tostr(expr7) == "user.id + 4"
         assert tostr(expr8) == "user.id between 3 and 4"
         assert tostr(expr9) == "user.id in (1, 2, 3)"
+        assert tostr(expr10) == "user.name like '%Join%'"

@@ -15,4 +15,4 @@ branches:
 before_script:
   - mysql -e 'create database curdtest;'
 
-script: nosetests -v -x --process-timeout=10 -w tests
+script: nosetests -v -x --process-timeout=10 -w tests --nocapture
