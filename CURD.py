@@ -574,17 +574,18 @@ class Query(object):  # class to run sql
             cursor = Database.execute(sql)
 
             if QUERY_TYPE is QUERY_INSERT:
-                return cursor.lastrowid if cursor.matchedRows else None
+                re = cursor.lastrowid if cursor.matchedRows else None
             if QUERY_TYPE in (QUERY_UPDATE, QUERY_DELETE):
-                return cursor.matchedRows
+                re = cursor.matchedRows
             if QUERY_TYPE is QUERY_SELECT:
                 flst = runtime.data['select']
-                return SelectResult(runtime.model, cursor, flst)
-            # dont forget clear runtime infomation after query
-            runtime.reset_data()
+                re = SelectResult(runtime.model, cursor, flst)
             # close cursor
             if QUERY_TYPE is not QUERY_SELECT:
                 cursor.close()
+            # dont forget clear runtime infomation after query
+            runtime.reset_data()
+            return re
         return _Q
 
     insert = Q(QUERY_INSERT)

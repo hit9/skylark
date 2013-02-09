@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append("..")
+sys.path.append("../")
 
 from CURD import Database, Model, Field, PrimaryKey, ForeignKey
 
