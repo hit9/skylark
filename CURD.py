@@ -316,7 +316,7 @@ class Compiler(object):
         OP_ADD: " + ",
         OP_AND: " and ",
         OP_OR: " or ",
-        OP_LIKE: "like"
+        OP_LIKE: " like "
     }
 
     expr_cache = {}  # dict to store parsed expressions {expr: string}
