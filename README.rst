@@ -6,6 +6,6 @@ Sample Code
 
 first, we define models in ``models.py``
 
-.. literalinclude:: ./sample/models.py
+.. literalinclude:: blob/dev/sample/models.py
 
 
