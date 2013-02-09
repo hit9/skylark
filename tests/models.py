@@ -2,7 +2,7 @@ import sys
 
 sys.path.append("..")
 
-from virgo import Database, Model, Field, PrimaryKey, ForeignKey
+from CURD import Database, Model, Field, PrimaryKey, ForeignKey, Sugar
 
 
 class User(Model):
