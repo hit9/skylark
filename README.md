@@ -1,26 +1,28 @@
 CURD.py
 =======
 
+Tiny Python ORM for MySQL
+
+Support:
+
+- Create
+
+- Update
+
+- Read
+
+- delete
+
+- Transaction
+
+- Mult-Table
+
 Sample Code
 -----------
 
-Modeling our table's structure in `models.py`
+See [sample/](sample/)
 
-```python
-from CURD import Database, Model, Field, PrimaryKey, ForeignKey, Sugar
+License
+-------
 
-
-class User(Model):
-    name = Field()
-    email = Field()
-
-
-class Post(Model):
-    name = Field()
-    post_id = PrimaryKey()
-    user_id = ForeignKey(User.id)
-
-# configure Database
-Database.config(db="mydb", user="root", passwd="")
-
-```
+See [LICENSE](LICENSE)
