@@ -141,3 +141,7 @@ class TestField_:
         assert tostr(expr8) == "user.id between 3 and 4"
         assert tostr(expr9) == "user.id in (1, 2, 3)"
         assert tostr(expr10) == "user.name like '%Join%'"
+
+
+class TestExpr:
+    pass
