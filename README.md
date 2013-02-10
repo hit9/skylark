@@ -49,6 +49,19 @@ Install
 
     pip install git+git://github.com/hit9/CURD.py.git@0.2.1
 
+FAQ
+---
+
+1. I meet problem installing MySQL-python via pip.
+
+for ubuntu users:
+
+    apt-get install libmysqlclient-dev
+
+for mac users,run this command in your terminal:
+
+    export PATH=$PATH:/usr/local/mysql/bin
+
 DOC
 ---
 
