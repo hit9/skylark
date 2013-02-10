@@ -22,8 +22,8 @@
 # and this permission notice appear in all copies.
 #
 
-import re
 import sys
+import re
 from types import ModuleType
 
 import MySQLdb

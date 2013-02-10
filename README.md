@@ -1,26 +1,54 @@
 CURD.py
 =======
 
+Tiny Python ORM for MySQL.
+
+Support:
+
+- Create
+
+- Update
+
+- Read
+
+- Delete
+
+- Transaction
+
+- Mult-Table
+
 Sample Code
 -----------
 
-Modeling our table's structure in `models.py`
-
 ```python
-from CURD import Database, Model, Field, PrimaryKey, ForeignKey, Sugar
-
-
-class User(Model):
-    name = Field()
-    email = Field()
-
-
-class Post(Model):
-    name = Field()
-    post_id = PrimaryKey()
-    user_id = ForeignKey(User.id)
-
-# configure Database
-Database.config(db="mydb", user="root", passwd="")
-
+# create
+User.create(name="Join", email="Join@gmail.com")
+# update
+User.at(2).update(email="Join@github.com")
+# read
+join = User.where(name="Join").select().fetchone()
+# have a look at who has written posts
+for post, user in (Post & User).select().fetchall():
+    print "Author: %s, PostName: %s" % (user.name, post.name)
+# delete
+User.at(3).delete()
+# sytactic sugar
+user = User[1]  # get the first user
+users = User[:]  # select all users
+users = User[3:7]  # primarykey between 3 and 7
+# if some user in table named "Join"
+user = User(name="Join")
+print user in User
 ```
+
+See [sample/](https://github.com/hit9/CURD.py/tree/master/sample) for more.
+
+Install
+-------
+
+    pip install git+git://github.com/hit9/CURD.py.git
+
+License
+-------
+
+See [LICENSE](https://github.com/hit9/CURD.py/blob/master/LICENSE)
