@@ -139,25 +139,6 @@ We only care about their names:
     
     User.where(User.id > 5).select(User.name)
 
-Is there someone in the table called 'James'?
-
-::
-
-    >>> user=User(name="James")
-    >>> user in User
-    False
-
-We record 'new users' only:
-
-::
-
-    user = User(name="Mark")
-
-    if user not in User:
-        user.save()
-    else:
-        exit("Already in database!")
-
 .. _Delete:
 
 Delete
