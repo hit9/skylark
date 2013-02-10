@@ -48,9 +48,9 @@ example:
 All models are inherited from Model.
 The lower case of model's classname will be regarded as its table's name
 
-Put all models in single script `models.py`:
+Put all models in single script `models.py`
 
-.. literalinclude:: ../sample/models.py
+.. literalinclude:: code/models.py
 
 .. _Create:
 
@@ -165,14 +165,13 @@ JoinModel
 
 We defined two models in models.py , ``User,Post``
 
-.. literalinclude:: ../sample/models.py
+.. literalinclude:: code/models.py
 
-Now,join them:
+Now,join them::
 
-::
     >>> Post & User
     <CURD.JoinModel object at 0xb76f292c>
-  
+
 
 Why not ``User & Post`` ? try it yourself.
 
