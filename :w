@@ -1,0 +1,30 @@
+CURD.py
+=======
+
+Tiny Python ORM for MySQL.
+
+Support:
+
+- Create
+
+- Update
+
+- Read
+
+- Delete
+
+- Transaction
+
+- Mult-Table
+
+Sample Code
+-----------
+
+``      ````
+    
+See [sample/](sample/) for more.
+
+License
+-------
+
+See [LICENSE](LICENSE)

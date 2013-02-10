@@ -1,7 +1,7 @@
 CURD.py
 =======
 
-Tiny Python ORM for MySQL
+Tiny Python ORM for MySQL.
 
 Support:
 
@@ -11,7 +11,7 @@ Support:
 
 - Read
 
-- delete
+- Delete
 
 - Transaction
 
@@ -20,7 +20,27 @@ Support:
 Sample Code
 -----------
 
-See [sample/](sample/)
+```python
+# create
+User.create(User.name == "Join", User.email == "Join@gmail.com")
+# update
+User.at(2).update(email="Join@github.com")
+# read
+join = User.where(name="Join").select().fetchone()
+# have a look at who has written posts
+for post, user in (Post & User).select().fetchall():
+    print "Author: %s, PostName: %s" % (user.name, post.name)
+# delete
+User.at(3).delete()
+# sytactic sugar
+user = User[1]  # get the first user
+users = User[:]  # select all users
+users = User[3:7]  # primarykey between 3 and 7
+user = User(name="Join")
+print user in User  # if some user in table named "Join"
+```
+    
+See [sample/](sample/) for more.
 
 License
 -------
