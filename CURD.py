@@ -8,11 +8,11 @@
 #
 #   Tiny Python ORM for MySQL
 #
-#   E-mail : nz2324@126.com
+#   E-mail: nz2324@126.com
 #
-#   URL : https://github.com/hit9/CURD.py
+#   URL: https://github.com/hit9/CURD.py
 #
-#   Licence : BSD
+#   License: BSD
 #
 #
 # Permission to use, copy, modify,
