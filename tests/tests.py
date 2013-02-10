@@ -63,8 +63,8 @@ class Test(object):  # need database connection
         else:  # in both, default
             for i in range(1, count+1):
                 User.create(name="name"+str(i), email="email"+str(i))
-                for i in range(1, count+1):
-                    Post.create(name="name"+str(i), user_id=count+1-i)
+            for i in range(1, count+1):
+                Post.create(name="name"+str(i), user_id=count+1-i)
 
 
 class TestDatabase_:
