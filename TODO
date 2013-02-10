@@ -1,25 +1,5 @@
-add parameter:autocommit to Database
-add like,bettween
-return type of each query
-
-all use one query
-
-##########################################################
-
 concat for field objects
 
 transaction
 
-joinmodel
-
-example codes
-
-sugar wiki
-
 doc: use produce
-
-rename project to "CURD.py"
-
-next step: transaction; example code; doc; tests;  rename project name.
-
-README the path of include set to dev/
