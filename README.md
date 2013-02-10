@@ -47,7 +47,7 @@ See [sample/](https://github.com/hit9/CURD.py/tree/master/sample) for more.
 Install
 -------
 
-    pip install git+git://github.com/hit9/CURD.py.git@master
+    pip install git+git://github.com/hit9/CURD.py.git@0.2.1
 
 DOC
 ---
