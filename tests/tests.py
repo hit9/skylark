@@ -268,6 +268,8 @@ class TestModel(Test):
 class TestModels_:
 
     def setUp(self):
+        sys.path.append("..")
+        from CURD import Models
         self.models = Models(User, Post)
 
     def test_table_name(self):
@@ -280,6 +282,8 @@ class TestModels_:
 class TestModels(Test):
 
     def setUp(self):
+        sys.path.append("..")
+        from CURD import Models
         super(TestModels, self).setUp()
         self.create_data(4)
         self.models = Models(Post, User)
@@ -378,7 +382,8 @@ class TestSugar(Test):
 
     def setUp(self):
         super(TestSugar, self).setUp()
-        from virgoSugar import *
+        sys.path.append("..")
+        from CURD import Sugar
 
     def test_Model_getitem(self):
         self.create_data(4)
