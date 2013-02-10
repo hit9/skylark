@@ -8,9 +8,19 @@ CURD.py How To
 Simple Example
 --------------
 
-Codes works with CURD.py looks like
+Codes works with CURD.py looks like::
 
-.. literalinclude:: code/example.py
+    from CURD import Database, Model, Field
+
+    Database.config(db="mydb", user="root", passwd="")
+
+
+    class User(Model):
+        name = Field()
+        email = Field()
+
+    user = User(name="Jack", email="Jack@github.com")
+    user.save()
 
 1. In this code, first we imported the ``CURD`` module and configure the Database class.
 
@@ -34,9 +44,7 @@ Database Configuration
 Define Model
 ------------
 
-example:
-
-::
+example::
 
     class User(Model):
         name = Field()
@@ -48,9 +56,23 @@ example:
 All models are inherited from Model.
 The lower case of model's classname will be regarded as its table's name
 
-Put all models in single script `models.py`
+Put all models in single script `models.py`::
 
-.. literalinclude:: code/models.py
+    from CURD import Database, Model, Field, PrimaryKey, ForeignKey, Sugar
+
+
+    class User(Model):
+        name = Field()
+        email = Field()
+
+
+    class Post(Model):
+        name = Field()
+        post_id = PrimaryKey()
+        user_id = ForeignKey(User.id)
+
+    # configure Database
+    Database.config(db="mydb", user="root", passwd="")
 
 .. _Create:
 
@@ -163,9 +185,7 @@ Both the two methods return affected rows number.
 JoinModel
 ---------
 
-We defined two models in models.py , ``User,Post``
-
-.. literalinclude:: code/models.py
+We defined two models in models.py , ``User, Post``
 
 Now,join them::
 
