@@ -264,6 +264,75 @@ class TestModel(Test):
         assert user.destroy()
         assert User.at(1).select().fetchone() is None
 
+
+class TestJoinModel(Test):
+
+    def setUp(self):
+        super(TestJoinModel, self).setUp()
+        self.create_data(10)
+
+    def test_select(self):
+        assert (Post & User).select().count is 10
+        assert (Post & User).where(User.name == "name2").select().count is 1
+        for post, user in (Post & User).select().fetchall():
+            assert post.post_id
+            assert user.id
+            assert post.user_id == user.id
+
+    def test_delete(self):
+        assert (Post & User).delete() is 20
+        assert (Post & User).select().count is 0
+
+    def test_delete2(self):
+        assert (Post & User).delete(Post) is 10
+
+    def test_update(self):
+        assert (Post & User).where(
+            User.name <= "name4"
+        ).update(User.name == "hello") is 5
+        assert (Post & User).where(
+            User.name == "hello"
+        ).update(Post.name == "good") is 5
+
+
+# select_result Tests
+
+class TestSelect_result(Test):
+
+    def test_count(self):
+        self.create_data(5)
+        assert User.select().count is 5
+
+    def test_fetchone(self):
+        self.create_data(4)
+        user = User.at(1).select().fetchone()
+        assert user.id == 1
+
+    def test_fetchall(self):
+        self.create_data(4)
+        for user in User.select().fetchall():
+            assert user._id
+
+
+class TestSugar(Test):
+
+    def setUp(self):
+        super(TestSugar, self).setUp()
+        from virgoSugar import *
+
+    def test_Model_getitem(self):
+        self.create_data(4)
+        user1 = User[1]
+        user2 = User[2]
+        assert user1.name == "name1"
+        assert user2.name == "name2"
+
+    def test_Model_getslice(self):
+        self.create_data(4)
+        users = User[1:3]
+        for user in users:
+            assert user.id
+
     def test_in(self):  # in operator
         user = User.create(name="myname", email="myemail")
         assert user in User
@@ -271,5 +340,3 @@ class TestModel(Test):
         assert user1 in User
         user1.email = "email"
         assert user1 not in User
-
-
