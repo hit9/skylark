@@ -22,7 +22,7 @@ Sample Code
 
 ```python
 # create
-User.create(User.name == "Join", User.email == "Join@gmail.com")
+User.create(name="Join", email="Join@gmail.com")
 # update
 User.at(2).update(email="Join@github.com")
 # read
