@@ -40,10 +40,15 @@ users = User[3:7]  # primarykey between 3 and 7
 user = User(name="Join")
 print user in User
 ```
-    
-See [sample/](sample/) for more.
+
+See [sample/](https://github.com/hit9/CURD.py/tree/master/sample) for more.
+
+Install
+-------
+
+    pip install git+git://github.com/hit9/CURD.py.git
 
 License
 -------
 
-See [LICENSE](LICENSE)
+See [LICENSE](https://github.com/hit9/CURD.py/blob/master/LICENSE)
