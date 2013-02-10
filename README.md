@@ -36,8 +36,9 @@ User.at(3).delete()
 user = User[1]  # get the first user
 users = User[:]  # select all users
 users = User[3:7]  # primarykey between 3 and 7
+# if some user in table named "Join"
 user = User(name="Join")
-print user in User  # if some user in table named "Join"
+print user in User
 ```
     
 See [sample/](sample/) for more.
