@@ -265,6 +265,66 @@ class TestModel(Test):
         assert User.at(1).select().fetchone() is None
 
 
+class TestModels_:
+
+    def setUp(self):
+        self.models = Models(User, Post)
+
+    def test_table_name(self):
+        assert self.models.table_name == "user, post"
+
+    def test_primarykey(self):
+        assert self.models.primarykey == [User.id, Post.post_id]
+
+
+class TestModels(Test):
+
+    def setUp(self):
+        super(TestModels, self).setUp()
+        self.create_data(4)
+        self.models = Models(Post, User)
+
+    def test_where(self):
+        assert self.models.where(User.id == Post.user_id).select().count is 4
+        assert self.models.where(
+            User.id == Post.user_id, User.id == 1
+        ).select().count is 1
+
+    def test_select(self):
+        for post, user in self.models.where(
+            User.id == Post.user_id
+        ).select().fetchall():
+            assert user.id == post.user_id
+
+        post, user = self.models.where(
+            Post.post_id == User.id
+        ).select().fetchone()
+
+        assert user.id == post.post_id
+
+    def test_update(self):
+        assert self.models.where(
+            User.id == Post.user_id
+        ).update(User.name == "new") is 4
+
+    def test_delete(self):
+        assert self.models.where(User.id == Post.user_id).delete() is 8
+        assert self.models.where(User.id == Post.user_id).select().count is 0
+
+    def test_delete2(self):
+        assert self.models.where(User.id == Post.user_id).delete(Post) is 4
+        assert User.select().count is 4
+        assert Post.select().count is 0
+
+    def test_orderby(self):
+        G = self.models.where(
+            Post.post_id == User.id
+        ).orderby(User.name, 1).select().fetchall()
+        d = tuple(G)
+        assert d == tuple(sorted(d, key=lambda x: x[0].name, reverse=True))
+
+
+
 class TestJoinModel(Test):
 
     def setUp(self):
