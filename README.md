@@ -49,6 +49,11 @@ Install
 
     pip install git+git://github.com/hit9/CURD.py.git
 
+DOC
+---
+
+See [docs/](https://github.com/hit9/CURD.py/tree/master/docs).
+
 License
 -------
 
