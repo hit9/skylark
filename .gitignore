@@ -4,6 +4,7 @@
 test.py
 build/
 dist/
-virgo.egg-info/
+CURD.py.egg-info
 docs/_build/
 Makefile
+.ropeproject
