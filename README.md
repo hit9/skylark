@@ -1,7 +1,8 @@
 CURD.py
 =======
 
-Tiny Python ORM for MySQL.
+Tiny Python ORM for MySQL. 
+[![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=dev)](https://travis-ci.org/hit9/CURD.py)
 
 Support:
 

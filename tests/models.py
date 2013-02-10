@@ -2,7 +2,7 @@ import sys
 
 sys.path.append("..")
 
-from CURD import Database, Model, Field, PrimaryKey, ForeignKey, Sugar
+from CURD import Database, Model, Field, PrimaryKey, ForeignKey
 
 
 class User(Model):

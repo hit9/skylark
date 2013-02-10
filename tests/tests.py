@@ -53,6 +53,19 @@ class Test(object):  # need database connection
         Database.query_times = 0
         Database.SQL = None
 
+    def create_data(self, count, table=None):
+        if table is 1:  # only create data in user
+            for i in range(1, count+1):
+                User.create(name="name"+str(i), email="email"+str(i))
+        elif table is 2:  # only create data in post
+            for i in range(1, count+1):
+                Post.create(name="name"+str(i), user_id=count+1-i)
+        else:  # in both, default
+            for i in range(1, count+1):
+                User.create(name="name"+str(i), email="email"+str(i))
+            for i in range(1, count+1):
+                Post.create(name="name"+str(i), user_id=count+1-i)
+
 
 class TestDatabase_:
 
@@ -144,4 +157,251 @@ class TestField_:
 
 
 class TestExpr:
-    pass
+
+    def test_op(self):
+        expr1 = User.name == "Join"
+        expr2 = User.email == "Join@github.com"
+        assert expr1 & expr2 == "user.name = 'Join' and user.email = 'Join@github.com'"
+        assert expr1 | expr2 == "user.name = 'Join' or user.email = 'Join@github.com'"
+
+
+class TestModel_:
+
+    def test_data(self):
+        user1 = User(name="Mark")
+        user2 = User(User.email == "Mark@gmail.com")
+        assert user1.data == {"name": "Mark"}
+        assert user2.data == {"email": "Mark@gmail.com"}
+
+    def test_modelobj_fieldname(self):
+        user = User(name="name1")
+        assert user.name == "name1"
+
+    def test_model_fieldname(self):
+        assert isinstance(User.name, Field)
+        assert isinstance(User.email, Field)
+
+    def test_table_name(self):
+        assert User.table_name == "user"
+        assert Post.table_name == "post"
+
+    def test_primarykey(self):
+        user_id = User.primarykey
+        post_id = Post.primarykey
+        assert user_id.name == "id"
+        assert post_id.name == "post_id"
+
+    def test_operator(self):
+        A = Post & User
+        assert A.models == [Post, User]
+        assert A.primarykey == [Post.post_id, User.id]
+
+
+class TestModel(Test):
+
+    def test_create(self):
+        user1 = User.create(name="name1", email="email1")
+        user2 = User.create(User.name == "name2", email="email2")
+        user3 = User.create(User.name == "name3", email="email3")
+        assert user1._id and user2._id and user3._id
+
+    def test_update(self):
+        self.create_data(2, table=1)
+        assert User.at(1).update(User.name == "newname") is 1
+        assert User.at(2).update(email="newemail") is 1
+
+    def test_select(self):
+        self.create_data(4, table=1)
+        user = User.at(1).select().fetchone()
+        assert user._id == 1L
+        for user in User.select(User.name).fetchall():
+            assert user._id and user.name
+
+    def test_delete(self):
+        self.create_data(4, table=1)
+        assert User.at(1).delete() is 1
+        assert User.where(
+            (User.name == "name2") | (User.name == "name3")
+        ).delete() is 2
+
+    def test_where(self):
+        self.create_data(3, table=1)
+        assert User.where(User.id == 1) is User
+        assert User.where(id=1) is User
+        assert User.where(User.name == "name1").select().count is 1
+        assert User.where(
+            User.name == "name1", User.email == "email"
+        ).select().count is 0
+        assert User.where(
+            User.name == "name1", email="email"
+        ).select().count is 0
+        assert User.where(name="name1", email="email1").select().count is 1
+
+    def test_at(self):
+        self.create_data(3, table=1)
+        assert User.at(1).select().count is 1
+        assert User.at(-1).select().count is 0
+        assert User.at(1).select().fetchone().name == "name1"
+        assert User.at(1).delete()
+
+    def test_orderby(self):
+        self.create_data(3, table=1)
+        users = User.orderby(User.id, desc=True).select(User.name).fetchall()
+        user1, user2, user3 = tuple(users)
+        assert user1.id > user2.id > user3.id
+
+    def test_modelobj_save(self):
+        user = User(name="jack", email="jack@github.com")
+        assert user.save()
+        assert User.select().count is 1
+        user.name = "li"
+        assert user.save()
+        assert User.at(1).select().fetchone().name == "li"
+
+    def test_modelobj_destroy(self):
+        self.create_data(3, table=1)
+        user = User.at(1).select().fetchone()
+        assert user.destroy()
+        assert User.at(1).select().fetchone() is None
+
+
+class TestModels_:
+
+    def setUp(self):
+        sys.path.append("..")
+        from CURD import Models
+        self.models = Models(User, Post)
+
+    def test_table_name(self):
+        assert self.models.table_name == "user, post"
+
+    def test_primarykey(self):
+        assert self.models.primarykey == [User.id, Post.post_id]
+
+
+class TestModels(Test):
+
+    def setUp(self):
+        sys.path.append("..")
+        from CURD import Models
+        super(TestModels, self).setUp()
+        self.create_data(4)
+        self.models = Models(Post, User)
+
+    def test_where(self):
+        assert self.models.where(User.id == Post.user_id).select().count is 4
+        assert self.models.where(
+            User.id == Post.user_id, User.id == 1
+        ).select().count is 1
+
+    def test_select(self):
+        for post, user in self.models.where(
+            User.id == Post.user_id
+        ).select().fetchall():
+            assert user.id == post.user_id
+
+        post, user = self.models.where(
+            Post.post_id == User.id
+        ).select().fetchone()
+
+        assert user.id == post.post_id
+
+    def test_update(self):
+        assert self.models.where(
+            User.id == Post.user_id
+        ).update(User.name == "new") is 4
+
+    def test_delete(self):
+        assert self.models.where(User.id == Post.user_id).delete() is 8
+        assert self.models.where(User.id == Post.user_id).select().count is 0
+
+    def test_delete2(self):
+        assert self.models.where(User.id == Post.user_id).delete(Post) is 4
+        assert User.select().count is 4
+        assert Post.select().count is 0
+
+    def test_orderby(self):
+        G = self.models.where(
+            Post.post_id == User.id
+        ).orderby(User.name, 1).select().fetchall()
+        d = tuple(G)
+        assert d == tuple(sorted(d, key=lambda x: x[0].name, reverse=True))
+
+
+
+class TestJoinModel(Test):
+
+    def setUp(self):
+        super(TestJoinModel, self).setUp()
+        self.create_data(10)
+
+    def test_select(self):
+        assert (Post & User).select().count is 10
+        assert (Post & User).where(User.name == "name2").select().count is 1
+        for post, user in (Post & User).select().fetchall():
+            assert post.post_id
+            assert user.id
+            assert post.user_id == user.id
+
+    def test_delete(self):
+        assert (Post & User).delete() is 20
+        assert (Post & User).select().count is 0
+
+    def test_delete2(self):
+        assert (Post & User).delete(Post) is 10
+
+    def test_update(self):
+        assert (Post & User).where(
+            User.name <= "name4"
+        ).update(User.name == "hello") is 5
+        assert (Post & User).where(
+            User.name == "hello"
+        ).update(Post.name == "good") is 5
+
+
+# select_result Tests
+
+class TestSelect_result(Test):
+
+    def test_count(self):
+        self.create_data(5)
+        assert User.select().count is 5
+
+    def test_fetchone(self):
+        self.create_data(4)
+        user = User.at(1).select().fetchone()
+        assert user.id == 1
+
+    def test_fetchall(self):
+        self.create_data(4)
+        for user in User.select().fetchall():
+            assert user._id
+
+
+class TestSugar(Test):
+
+    def setUp(self):
+        super(TestSugar, self).setUp()
+        sys.path.append("..")
+        from CURD import Sugar
+
+    def test_Model_getitem(self):
+        self.create_data(4)
+        user1 = User[1]
+        user2 = User[2]
+        assert user1.name == "name1"
+        assert user2.name == "name2"
+
+    def test_Model_getslice(self):
+        self.create_data(4)
+        users = User[1:3]
+        for user in users:
+            assert user.id
+
+    def test_in(self):  # in operator
+        user = User.create(name="myname", email="myemail")
+        assert user in User
+        user1 = User(User.name == "myname")
+        assert user1 in User
+        user1.email = "email"
+        assert user1 not in User
