@@ -332,7 +332,8 @@ class Compiler(object):
         else:  # string or numbers
             escapestr = MySQLdb.escape_string(str(side))
             return (
-                "'" + escapestr + "'" if isinstance(side, str) else escapestr
+                # if basestring(str or unicode..),  wrap it with queto
+                "'" + escapestr + "'" if isinstance(side, basestring) else escapestr
             )
 
     # parse expressions to string
@@ -497,8 +498,7 @@ class Runtime(object):
             primarykey = self.model.primarykey
 
             for k, v in dct.iteritems():
-                if fields[k] is not primarykey:
-                    lst.append(fields[k] == v)
+                lst.append(fields[k] == v)
 
         self.data['set'] = lst
 
