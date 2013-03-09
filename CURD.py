@@ -497,8 +497,7 @@ class Runtime(object):
             primarykey = self.model.primarykey
 
             for k, v in dct.iteritems():
-                if fields[k] is not primarykey:
-                    lst.append(fields[k] == v)
+                lst.append(fields[k] == v)
 
         self.data['set'] = lst
 
