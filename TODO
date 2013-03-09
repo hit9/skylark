@@ -3,3 +3,11 @@ concat for field objects
 transaction
 
 doc: use produce
+
+------------------------- if fix bug --------
+
+primarykey must gen by mysql !
+
+fix bug: 
+
+-----------------------------------------------
