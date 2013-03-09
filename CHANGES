@@ -1,0 +1,5 @@
+version 0.2.2
+-------------
+
+- fix: unicode supporting in process parsing expr string
+- fix: remove "avoid primary in set"
