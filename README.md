@@ -62,6 +62,8 @@ for mac users,run this command in your terminal:
 
     export PATH=$PATH:/usr/local/mysql/bin
 
+2. Attention: CURD.py only works with tables which primarykey is generate by MySQL(Such as autoincement priamarykey integer).
+
 DOC
 ---
 
