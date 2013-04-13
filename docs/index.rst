@@ -6,7 +6,7 @@ CURD.py | Tiny Python ORM for MySQL
 :Author: https://github.com/hit9
 :Issues: https://github.com/hit9/CURD.py/issues
 :Codes: https://github.com/hit9/CURD.py
-:Version: https://github.com/hit9/CURD.py/tree/v0.2.2
+:Version: https://github.com/hit9/CURD.py/tree/v0.2.3
 :Tests: .. image:: https://travis-ci.org/hit9/CURD.py.png?branch=dev
 :License: https://github.com/hit9/CURD.py/blob/master/LICENSE-MIT
 
@@ -38,7 +38,7 @@ Install
 
   ::
 
-      pip install git+git://github.com/hit9/CURD.py.git@0.2.2
+      pip install git+git://github.com/hit9/CURD.py.git@v0.2.3
 
 
 Supports
