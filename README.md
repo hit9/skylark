@@ -67,13 +67,15 @@ FAQ
 
 1. I meet problem installing MySQL-python via pip.
 
-for ubuntu users:
+  for ubuntu users:
+  ```
+  apt-get install libmysqlclient-dev
+  ```
 
-    apt-get install libmysqlclient-dev
-
-for mac users,run this command in your terminal:
-
-    export PATH=$PATH:/usr/local/mysql/bin
+  for mac users,run this command in your terminal:
+  ```
+  export PATH=$PATH:/usr/local/mysql/bin
+  ```
 
 2. Attention: CURD.py only works with tables which primarykey is generate by MySQL(Such as autoincement priamarykey integer).
 
