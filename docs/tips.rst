@@ -35,16 +35,19 @@ they are:
     destroy()
     model_instance in Model  # actually, it calls function - select()
 
-Test if one record is in the table
-----------------------------------
+Only these 7 methods talk to database, mean running these methods will query
+database.
 
-if someone in database called 'Jack'? ::
+Test whether an except record is in the table
+---------------------------------------------
+
+Is there someone called 'Jack' in database? ::
 
     user = User(name="Jack")
     if user in User:
         print "Yes!"
 
-**Note: This feature requires Sugar**
+**Note**: This feature requires :ref:`sugar <Sugar>` enabled.
 
 mix your methods into Model
 ---------------------------

@@ -1,5 +1,8 @@
 .. _index:
 
+CURD - Tiny ORM for MySQL
+=========================
+
 Release: v\ |version| (:ref:`Installation <install>`)
 
 Tests status: 
@@ -17,7 +20,7 @@ Sample
 
 Codes works with CURD.py looks like
 
-.. literalinclude:: sample/example.py
+.. literalinclude:: sample/sample.py
 
 1. In this code, first we imported the ``CURD`` module and configure the Database class.
 
@@ -31,12 +34,13 @@ More sample codes `here
 <https://github.com/hit9/CURD.py/tree/master/docs/sample>`_.
 
 .. _install:
-Install
--------
+
+Installation
+------------
 
   ::
 
-      pip install git+git://github.com/hit9/CURD.py.git@v0.2.3
+      pip install -e "git+git://github.com/hit9/CURD.py.git#egg=CURD.py"
 
 
 Supports
@@ -52,9 +56,7 @@ CURD.py only supports C, U, R, D, responsing to its name.
 
 - Delete
 
-- Transaction (In Plan)
-
-- Mult-Table
+- Multiple Tables
 
 Documentaion
 ------------

@@ -31,7 +31,9 @@ Define Model
 All models are inherited from Model.
 We take **the lower case of model's classname as table's name**
 
-Better to put all models in a single script,  such as ``models.py`` :
+Better to put all models in a single script,  name it ``models.py`` :
+
+.. _two_models:
 
 .. literalinclude:: sample/models.py
 
@@ -144,7 +146,7 @@ Both the two methods return affected rows number.
 JoinModel
 ---------
 
-We defined two models in models.py: ``User``, ``Post``
+We defined :ref:`two models <two_models>` in models.py: ``User``, ``Post``
 
 .. literalinclude:: ../sample/models.py
 
@@ -175,5 +177,3 @@ Delete Jack's posts::
 
     >>> (Post & User).where(User.name=="Jack").delete(Post)
     1
-
-

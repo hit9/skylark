@@ -11,8 +11,8 @@ Just some syntatic sugar for CURD.py, to enable them::
 
 But, be careful to use the sugar.
 
-Get Item
---------
+Get an Item
+------------
 
 example::
 
