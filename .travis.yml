@@ -10,7 +10,7 @@ before_install:
 
 branches:
   only:
-    - dev
+    - master
 
 before_script:
   - mysql -e 'create database curdtest;'
