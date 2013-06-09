@@ -22,6 +22,8 @@
 # and this permission notice appear in all copies.
 #
 
+__version__ = '0.2.4'
+
 import sys
 import re
 from types import ModuleType
