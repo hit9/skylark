@@ -1,21 +1,19 @@
 .. _index:
 
-CURD.py | Tiny Python ORM for MySQL
-===================================
+Release: v\ |version| (:ref:`Installation <install>`)
 
-:Author: https://github.com/hit9
-:Issues: https://github.com/hit9/CURD.py/issues
-:Codes: https://github.com/hit9/CURD.py
-:Version: https://github.com/hit9/CURD.py/tree/v0.2.3
-:Tests: .. image:: https://travis-ci.org/hit9/CURD.py.png?branch=dev
-:License: https://github.com/hit9/CURD.py/blob/master/LICENSE-MIT
+Tests status: 
+
+.. image:: https://travis-ci.org/hit9/CURD.py.png?branch=dev
+
+CURD.py is a tiny orm for mysql database, written in Python.
 
 .. Contents::
 
 .. _SimpleExample:
 
-Simple Example
---------------
+Sample
+------
 
 Codes works with CURD.py looks like
 
@@ -29,10 +27,10 @@ Codes works with CURD.py looks like
 
 4. Finally we insert one record into database by calling function ``save``
 
-More sample codes here_
+More sample codes `here
+<https://github.com/hit9/CURD.py/tree/master/docs/sample>`_.
 
-.. _here: https://github.com/hit9/CURD.py/tree/master/docs/sample
-
+.. _install:
 Install
 -------
 
@@ -44,7 +42,7 @@ Install
 Supports
 --------
 
-- Support:
+CURD.py only supports C, U, R, D, responsing to its name.
 
 - Create
 
@@ -58,17 +56,20 @@ Supports
 
 - Mult-Table
 
-Docs
----------
+Documentaion
+------------
 
 .. toctree::
     :maxdepth: 2
     :numbered:
 
-    docs
+    quickstart
+    sugar
+    tips
 
-Problems?
----------
+
+Common Issues
+-------------
 
 1. I meet problem installing MySQL-python via pip.
 

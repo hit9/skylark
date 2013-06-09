@@ -81,7 +81,7 @@ exclude_patterns = ['_build']
 #show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+# pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
@@ -242,5 +242,6 @@ texinfo_documents = [
 #texinfo_show_urls = 'footnote'
 
 html_title = u'CURD.py | Tiny Python ORM for MySQL'
-
-html_theme = 'nature'
+sys.path.append(os.path.abspath('_themes'))
+html_theme_path = ['_themes']
+html_theme = 'flask_small'

@@ -2,7 +2,7 @@ CURD.py
 =======
 
 Tiny Python ORM for MySQL. 
-[![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=dev)](https://travis-ci.org/hit9/CURD.py)
+[![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
 
 Support:
 
@@ -79,10 +79,10 @@ FAQ
 
 2. Attention: CURD.py only works with tables which primarykey is generate by MySQL(Such as autoincement priamarykey integer).
 
-DOC
----
+Documents
+---------
 
-See https://curdpy.readthedocs.org/
+Documentaion is already on https://curdpy.readthedocs.org/
 
 License
 -------
