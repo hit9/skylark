@@ -4,7 +4,7 @@ CURD.py
 Tiny Python ORM for MySQL. 
 [![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
 
-Support:
+Only support C, U, R, D, responsing to its name:
 
 - Create
 
@@ -14,53 +14,35 @@ Support:
 
 - Delete
 
-- Transaction [In Plan]
-
-- Mult-Table
+- Multiple Tables
 
 Sample Code
 -----------
 
 ```python
-from CURD import Database, Model, Field, PrimaryKey, ForeignKey, Sugar
+from CURD import Database, Model, Field
 
+Database.config(user="root", passwd="", db="mytest")
 
 class User(Model):
     name = Field()
     email = Field()
 
-
-class Post(Model):
-    name = Field()
-    post_id = PrimaryKey()
-    user_id = ForeignKey(User.id)
-
-Database.config(db="mydb", user="root", passwd="")
-
-User.create(name="John", email="John@gmail.com")  # create
-
-User.at(2).update(email="John@github.com")  # update
-
-John = User.where(name="John").select().fetchone()  # read
-
-# who wrote posts?
-for post, user in (Post & User).select().fetchall():
-    print "Author: %s, PostName: %s" % (user.name, post.name)
-
-User.at(3).delete()  # delete
-
-# sytactic sugar
-user = User[1]  # 1st user
-users = User[:]  # all users
-users = User[3:7]  # users whose id between 3 and 7
+user = User(name="Join", email="Join@gmail.com")
+user.save()
 ```
 
-See [docs/sample/](https://github.com/hit9/CURD.py/tree/master/docs/sample) for more.
+More examples are in [docs/sample/](https://github.com/hit9/CURD.py/tree/master/docs/sample).
 
 Install
 -------
 
-    pip install git+git://github.com/hit9/CURD.py.git@v0.2.3
+    $ pip install -e "git+git://github.com/hit9/CURD.py.git#egg=CURD.py"
+
+Documents
+---------
+
+Documentaion is already on https://curdpy.readthedocs.org/
 
 FAQ
 ---
@@ -79,12 +61,7 @@ FAQ
 
 2. Attention: CURD.py only works with tables which primarykey is generate by MySQL(Such as autoincement priamarykey integer).
 
-Documents
----------
-
-Documentaion is already on https://curdpy.readthedocs.org/
-
 License
 -------
 
-See [LICENSE](https://github.com/hit9/CURD.py/blob/master/LICENSE-BSD)
+[LICENSE-BSD](https://github.com/hit9/CURD.py/blob/master/LICENSE-BSD)
