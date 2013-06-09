@@ -87,4 +87,4 @@ See https://curdpy.readthedocs.org/
 License
 -------
 
-See [LICENSE](https://github.com/hit9/CURD.py/blob/master/LICENSE)
+See [LICENSE](https://github.com/hit9/CURD.py/blob/master/LICENSE-BSD)
