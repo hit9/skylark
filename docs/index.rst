@@ -38,9 +38,9 @@ More sample codes `here
 Installation
 ------------
 
-  ::
+::
 
-      pip install -e "git+git://github.com/hit9/CURD.py.git#egg=CURD.py"
+    pip install -e "git+git://github.com/hit9/CURD.py.git#egg=CURD.py"
 
 
 Supports
@@ -73,13 +73,11 @@ Documentaion
 Common Issues
 -------------
 
-1. I meet problem installing MySQL-python via pip.
-
-  for ubuntu users::
+1. I meet problem installing MySQL-python via pip.for ubuntu users::
 
       $ apt-get install libmysqlclient-dev
 
-  for mac users,run this command in your terminal::
+   for mac users,run this command in your terminal::
 
       $ export PATH=$PATH:/usr/local/mysql/bin
 

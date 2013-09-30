@@ -244,4 +244,4 @@ texinfo_documents = [
 html_title = u'CURD.py | Tiny Python ORM for MySQL'
 sys.path.append(os.path.abspath('_themes'))
 html_theme_path = ['_themes']
-html_theme = 'flask_small'
+html_theme = 'rux'
