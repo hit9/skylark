@@ -1,11 +1,10 @@
-*.swp
-*.swo
+.*.swp
+.*.swo
 *.pyc
 test.py
 build/
 dist/
 CURD.py.egg-info
-docs/_build/
-Makefile
+docs/_build
 .ropeproject
 venv
