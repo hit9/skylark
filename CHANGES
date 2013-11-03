@@ -1,3 +1,12 @@
+version 0.2.5 (**not backward compatiable**)
+--------------------------------------------
+
+Removed
+
+- `Database.debug`, no more debug mode
+- `Database.SQL`, no more SQL last executed recorded
+- `Database.query_times`, no more query_times recorded
+
 version 0.2.2
 -------------
 
