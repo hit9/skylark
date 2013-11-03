@@ -6,6 +6,7 @@ Removed
 - `Database.debug`, no more debug mode
 - `Database.SQL`, no more SQL last executed recorded
 - `Database.query_times`, no more query_times recorded
+- `Database.execute()` now return `rows_affected` no more `rows_matched`
 
 version 0.2.2
 -------------

@@ -28,6 +28,21 @@ import MySQLdb
 import MySQLdb.cursors
 
 
+# marks for operators
+OP_LT = 1
+OP_LE = 2
+OP_GT = 3
+OP_GE = 4
+OP_EQ = 5
+OP_NE = 6
+OP_ADD = 7
+OP_AND = 8
+OP_OR = 9
+OP_LIKE = 10
+OP_BETWEEN = 11
+OP_IN = 12
+
+
 class Database(object):
     """Database connection manager"""
 
@@ -122,3 +137,45 @@ class Database(object):
         cursor = cls.get_conn().cursor()
         cursor.execute(sql)
         return cursor
+
+
+class Leaf(object):
+
+    def _e(op):
+        def e(self, right):
+            return Expr(self, right, op)
+
+    __lt__ = _e(OP_LT)
+
+    __le__ = _e(OP_LE)
+
+    __gt__ = _e(OP_GT)
+
+    __ge__ = _e(OP_GE)
+
+    __eq__ = _e(OP_EQ)
+
+    __ne__ = _e(OP_NE)
+
+    __add__ = _e(OP_ADD)
+
+    __and__ = _e(OP_AND)
+
+    __or__ = _e(OP_OR)
+
+
+class Expr(Leaf):
+    """
+    Expression object.
+
+    You need't new an expression in this way: myexpr = Expr(left, right, op)
+
+    Use expression like this:
+      User.id == 4
+      User.name == "Amy"
+    """
+
+    def __init__(self, left, right, op):
+        self.left = left
+        self.right = right
+        self.op = op
