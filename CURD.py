@@ -474,8 +474,9 @@ class Runtime(object):
         if self.model.single:
             fields = self.model.fields
             primarykey = self.model.primarykey
-            # TODO: need us to avoid primarykey in flst?
             lst.extend(fields[k] == v for k, v in dct.iteritems())
+
+        self.data['set'] = lst
 
 
 class MetaModel(type):  # metaclass for `Model`
@@ -521,4 +522,4 @@ class Model(object):
 
     __metaclass__ = MetaModel
 
-    singel = True  # single model
+    single = True  # single model
