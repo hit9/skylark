@@ -282,16 +282,16 @@ class Compiler(object):
 
     # operator mapping
     OP_MAPPING = {
-        OP_LT: " < ",
-        OP_LE: " <= ",
-        OP_GT: " > ",
-        OP_GE: " >= ",
-        OP_EQ: " = ",
-        OP_NE: " <> ",
-        OP_ADD: " + ",
-        OP_AND: " and ",
-        OP_OR: " or ",
-        OP_LIKE: " like "
+        OP_LT: ' < ',
+        OP_LE: ' <= ',
+        OP_GT: ' > ',
+        OP_GE: ' >= ',
+        OP_EQ: ' = ',
+        OP_NE: ' <> ',
+        OP_ADD: ' + ',
+        OP_AND: ' and ',
+        OP_OR: ' or ',
+        OP_LIKE: ' like '
     }
 
     expr_cache = {}  # dict to cache parsed expr
