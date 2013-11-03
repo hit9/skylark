@@ -109,3 +109,16 @@ class Database(object):
             cls.connect()
 
         return cls.conn
+
+    @classmethod
+    def execute(cls, sql):
+        """
+        Execute one sql
+
+        parameters
+          sql
+            string, sql command to run
+        """
+        cursor = cls.get_conn().cursor()
+        cursor.execute(sql)
+        return cursor
