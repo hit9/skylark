@@ -380,7 +380,7 @@ class Compiler(object):
         '''
         Generate SQL from runtime information.
 
-        parameters
+        parameters:
 
           runtime
             Runtime, runtime instance
@@ -476,3 +476,49 @@ class Runtime(object):
             primarykey = self.model.primarykey
             # TODO: need us to avoid primarykey in flst?
             lst.extend(fields[k] == v for k, v in dct.iteritems())
+
+
+class MetaModel(type):  # metaclass for `Model`
+
+    def __init__(cls, name, bases, attrs):
+
+        cls.table_name = cls.__name__.lower()  # clsname lowercase => table name
+
+        fields = {}  # {field_name: field}
+        primarykey = None
+
+        # foreach field, describe it and find the primarykey
+        for name, attr in cls.__dict__.iteritems():
+            if isinstance(attr, Field):
+                attr.describe(name, cls)
+                fields[name] = attr
+                if attr.is_primarykey:
+                    primarykey = attr
+
+        if primarykey is None:  # if primarykey not found
+            primarykey = PrimaryKey()  # use `id` as default
+            primarykey.describe('id', cls)
+            fields['id'] = primarykey
+
+        cls.fields = fields
+        cls.primarykey = primarykey
+        cls.runtime = Runtime(cls)
+
+
+class Model(object):
+    """
+    Model object. Tables are mapped to models.
+
+    Parameters:
+
+      expressions
+        Expr objects, e.g. User(User.name == "Join")
+
+      datas
+        e.g. User(name="Join")
+
+    """
+
+    __metaclass__ = MetaModel
+
+    singel = True  # single model
