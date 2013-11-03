@@ -558,6 +558,22 @@ class SelectResult(QueryResult):
         self.flst = fields  # fields select out
         self.cursor = cursor
 
+        # field name dont duplicate:
+        # if `user.name`, `post.name` both in the field list, return data dict
+        # keys will contain `user.name` and `post.name` both, but if `user.name`
+        # in field list and `post.name` doesn't, the returned data dict keys
+        # will only contain the key `name`
+        # so, this attribute `nfdct` makes a dict {field name: field object}
+        # responsing to MySQLdb's behavior
+
+        nfdct = {}
+
+        for field in self.flst:
+            if field.name not in nfdct:
+                nfdct[field.name] = field
+            else:
+                nfdct[field.fullname] = field
+
     def __repr__(self):
         return '< Select Query Result [count=%d] >' % self.rows_affected
 
