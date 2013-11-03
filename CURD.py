@@ -109,8 +109,11 @@ class Database(object):
     def get_conn(cls):
         """
         Get MySQL connection object.
-        if the conn is open and working, return it.
-        else new another one and return it.
+
+        if the conn is open and working
+          return it.
+        else
+          new another one and return it.
         """
 
         # singleton
@@ -179,3 +182,82 @@ class Expr(Leaf):
         self.left = left
         self.right = right
         self.op = op
+
+
+class FieldDescriptor(object):
+
+    def __init__(self, field):
+        self.name = field.name
+        self.field = field
+
+    def __get__(self, instance, type=None):
+        if instance:
+            return instance.data[self.name]
+        return self.field
+
+    def __set__(self, instance, value):
+        instance.data[self.name] = value
+
+
+class Field(Leaf):
+    """
+    Field object.
+
+    examples: User.name, User.age ..
+    """
+
+    def __init__(self, is_primarykey=False, is_foreignkey=False):
+        self.is_primarykey = is_primarykey
+        self.is_foreignkey = is_foreignkey
+
+    def describe(self, name, model):
+        self.name = name
+        self.model = model
+        # `fullname`: e.g.: User.id => fullname is 'user.id'
+        self.fullname = self.model.table_name + '.' + self.name
+        # describe the attribute
+        setattr(model, name, FieldDescriptor(self))
+
+    def like(self, pattern):
+        """
+        e.g. User.name.like("Amy%")
+        """
+        return Expr(self, pattern, OP_LIKE)
+
+    def between(self, value1, value2):
+        """
+        e.g. User.id.between(3, 7)
+        """
+        return Expr(self, (value1, value2), OP_BETWEEN)
+
+    def _in(self, **values):
+        """
+        e.g. User.id._in(1, 2, 3, 4, 5)
+        """
+        return Expr(self, values, OP_IN)
+
+
+class PrimaryKey(Field):
+    """
+    PrimaryKey object.
+
+    PrimaryKey example: User.id
+    """
+
+    def __init__(self):
+        super(PrimaryKey, self).__init__(is_primarykey=True)
+
+
+class ForeignKey(Field):
+    """
+    ForeignKey object.
+    ForeignKey example: Post.user_id = ForeignKey(point_to=User.id)
+
+    Parameter:
+      point_to
+        PrimaryKey object, the primary key this foreignkey referenced to.
+    """
+
+    def __init__(self, point_to):
+        super(ForeignKey, self).__init__(is_foreignkey=True)
+        self.point_to = point_to
