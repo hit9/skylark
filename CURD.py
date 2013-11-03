@@ -314,6 +314,8 @@ class Compiler(object):
     def parse_expr(expr):
         '''parse expression to string'''
 
+        cache = Compiler.expr_cache
+
         # check cache at first
         if expr in cache:  # `in` statement use `__hash__` and then `__eq__`
             return cache[expr]
