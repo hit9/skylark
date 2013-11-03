@@ -312,6 +312,7 @@ class Compiler(object):
 
     @staticmethod
     def parse_expr(expr):
+        '''parse expression to string'''
 
         # check cache at first
         if expr in cache:  # `in` statement use `__hash__` and then `__eq__`
@@ -336,3 +337,140 @@ class Compiler(object):
         cache[expr] = string
 
         return string
+
+    # ------------------ runtime part -----
+
+    @staticmethod
+    def parse_orderby(lst):
+        '''parse orderby tuple to string'''
+        if not lst:  # empty list
+            return ''
+
+        orderby_str = ' orderby ' + lst[0].fullname
+
+        if lst[1]:
+            orderby_str += ' desc '
+
+        return orderby_str
+
+    @staticmethod
+    def parse_where(lst):
+        '''parse where expressions to string'''
+        if not lst:
+            return ''
+        return ' where ' + ' and '.join(
+            Compiler.parse_expr(expr) for expr in lst)
+
+    @staticmethod
+    def parse_select(lst):
+        '''parse select fields to string'''
+        return ', '.join(field.fullname for field in lst)
+
+    @staticmethod
+    def parse_set(lst):
+        '''parse set expressions to string'''
+        return ' set ' + ', '.join(
+            Compiler.parse_expr(expr) for expr in lst
+        )
+
+    @staticmethod
+    def gen_sql(runtime, query_type, target_model=None):
+        '''
+        Generate SQL from runtime information.
+
+        parameters
+
+          runtime
+            Runtime, runtime instance
+
+          query_type
+            macros, query_types, the QUERY_**:
+
+          target_model
+            Model, model to delete, update, select or insert
+        '''
+
+        from_table = runtime.model.table_name
+
+        # if target_model not given, use from_table instead
+        if target_model is None:
+            target_model = runtime.model
+
+        target_table = target_model.table_name
+
+        data = runtime.data  # alias
+
+        # quick mark for parse time functions
+        _where = Compiler.parse_where(data['where'])
+        _set = Compiler.parse_set(data['set'])
+        _orderby = Compiler.parse_orderby(data['orderby'])
+        _select = Compiler.parse_select(data['select'])
+
+        if query_type is QUERY_INSERT:
+            SQL = 'insert into ' + target_table + _set
+        elif query_type is QUERY_UPDATE:
+            SQL = 'update ' + target_table + _set + _where
+        elif query_type is QUERY_SELECT:
+            SQL = 'select ' + _select + ' from ' + from_table + _where + _orderby
+        elif query_type is QUERY_DELETE:
+            SQL = 'delete ' + target_table + ' from ' + from_table + _where
+
+        return SQL
+
+
+class Runtime(object):
+    """Runtime information manager"""
+
+    def __init__(self, model=None):
+        self.model = model
+        self.data = {}.fromkeys(('where', 'set', 'orderby', 'select'), None)
+        # reset runtime data
+        self.reset_data()
+
+    def reset_data(self):
+        '''reset runtime data'''
+        dct = dict((key, []) for key in self.data.keys())
+        self.data.update(dct)
+
+    def set_orderby(self, field_desc):
+        '''
+        filed_desc
+          tuple, tuple of (field, desc), desc is a boolean
+        '''
+        self.data['orderby'] = list(field_desc)
+
+    def set_select(self, fields):
+        flst = list(fields)
+        primarykey = self.model.primarykey
+
+        if flst:
+            # add primarykey(s) to select fields list
+            if self.model.single:
+                flst.append(primarykey)
+            else:
+                flst.extend(primarykey)
+        else:
+            # else, empty args -> select all fields
+            flst = self.model.get_fields()
+        # remove duplicates
+        self.data['select'] = list(set(flst))
+
+    def set_where(self, lst, dct):
+        # lst: list of expressions, dct: dict if {filed=>value}
+        lst = list(lst)
+
+        # turn dct to list of expressions
+        if self.model.single:  # muti models cannt use dct arg
+            fields = self.model.fields
+            lst.extend(fields[k] == v for k, v in dct.iteritems())
+
+        self.data['where'] = lst
+
+    def set_set(self, lst, dct):
+        lst = list(lst)
+
+        if self.model.single:
+            fields = self.model.fields
+            primarykey = self.model.primarykey
+            # TODO: need us to avoid primarykey in flst?
+            lst.extend(fields[k] == v for k, v in dct.iteritems())
