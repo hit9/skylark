@@ -523,3 +523,19 @@ class Model(object):
     __metaclass__ = MetaModel
 
     single = True  # single model
+
+    def __init__(self, *lst, **dct):
+        self.data = {}
+        # update data dict from expressions
+        for expr in dct:
+            field, value = expr.left, expr.right
+            self.data[field.name] = value
+        # update data dict from data parameter
+        self.data.update(dct)
+        # cache for data
+        self._cache = self.data.copy()
+
+    @classmethod
+    def get_fields(cls):
+        """return list of model's fields"""
+        return cls.fields.values()
