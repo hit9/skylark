@@ -1,22 +1,26 @@
-# coding=utf8
+# coding=utf-8
+#  ____ _   _ ____  ____
+# / ___| | | |  _ \|  _ \  _ __  _   _
+#| |   | | | | |_) | | | || '_ \| | | |
+#| |___| |_| |  _ <| |_| || |_) | |_| |
+# \____|\___/|_| \_\____(_) .__/ \__, |
+#                         |_|    |___/
+#
+#   Tiny Python ORM for MySQL
+#
+#   E-mail: nz2324@126.com
+#
+#   URL: https://github.com/hit9/CURD.py
+#
+#   License: BSD
+#
+#
 # Permission to use, copy, modify,
 # and distribute this software for any purpose with
 # or without fee is hereby granted,
 # provided that the above copyright notice
 # and this permission notice appear in all copies.
 #
-"""
-    CURD.py
-    ~~~~~~~
-
-    Tiny Python ORM for MySQL
-
-    :Author: Hit9
-    :Email: nz2324[at]126.com
-    :URL: https://github.com/hit9/CURD.py
-    :License: BSD
-"""
-
 
 __version__ = '0.2.5'
 
@@ -147,6 +151,7 @@ class Leaf(object):
     def _e(op):
         def e(self, right):
             return Expr(self, right, op)
+        return e
 
     __lt__ = _e(OP_LT)
 
@@ -182,6 +187,15 @@ class Expr(Leaf):
         self.left = left
         self.right = right
         self.op = op
+
+    def __attrs(self):
+        return (self.left, self.op, self.right)
+
+    def __hash__(self):
+        return hash(self.__attrs())
+
+    def __eq__(self, other):
+        return self.__attrs() == self.__attrs()
 
 
 class FieldDescriptor(object):
@@ -261,3 +275,64 @@ class ForeignKey(Field):
     def __init__(self, point_to):
         super(ForeignKey, self).__init__(is_foreignkey=True)
         self.point_to = point_to
+
+
+class Compiler(object):
+    """Compile expressions and sequence of methods to SQL strings"""
+
+    # operator mapping
+    OP_MAPPING = {
+        OP_LT: " < ",
+        OP_LE: " <= ",
+        OP_GT: " > ",
+        OP_GE: " >= ",
+        OP_EQ: " = ",
+        OP_NE: " <> ",
+        OP_ADD: " + ",
+        OP_AND: " and ",
+        OP_OR: " or ",
+        OP_LIKE: " like "
+    }
+
+    expr_cache = {}  # dict to cache parsed expr
+
+    @staticmethod
+    def __parse_expr_one_side(side):
+
+        if isinstance(side, Field):
+            return side.fullname
+        elif isinstance(side, Expr):
+            return Compiler.parse_expr(side)
+        else:  # string or number
+            escaped_str = MySQLdb.escape_string(str(side))  # !safety
+            return (
+                # if basestring(str or unicode..),  wrap it with quote
+                "'" + escaped_str + "'" if isinstance(side, basestring) else escaped_str
+            )
+
+    @staticmethod
+    def parse_expr(expr):
+
+        # check cache at first
+        if expr in cache:  # `in` statement use `__hash__` and then `__eq__`
+            return cache[expr]
+
+        # make alias
+        l, op, r = expr.left, expr.op, expr.right
+        OP_MAPPING = Compiler.OP_MAPPING
+        tostr = Compiler.__parse_expr_one_side
+
+        string = None
+
+        if op in OP_MAPPING:
+            string = tostr(l) + OP_MAPPING[op] + tostr(r)
+        elif op is OP_BETWEEN:
+            string = tostr(l) + ' between ' + tostr(r[0]) + ' and ' + tostr(r[1])
+        elif op is OP_IN:
+            values_str = ', '.join(tostr(value) for value in r)
+            string = tostr(l) + ' in ' + '(' + values_str + ')'
+
+        # set cache
+        cache[expr] = string
+
+        return string
