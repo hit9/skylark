@@ -25,7 +25,6 @@
 __version__ = '0.2.5'
 
 
-import re
 import sys
 
 import MySQLdb
@@ -45,6 +44,12 @@ OP_OR = 9
 OP_LIKE = 10
 OP_BETWEEN = 11
 OP_IN = 12
+
+# marks for query types
+QUERY_INSERT = 20
+QUERY_UPDATE = 21
+QUERY_SELECT = 22
+QUERY_DELETE = 23
 
 
 class Database(object):
@@ -477,6 +482,84 @@ class Runtime(object):
             lst.extend(fields[k] == v for k, v in dct.iteritems())
 
         self.data['set'] = lst
+
+
+class Query(object):
+    """Class to run SQL"""
+
+    def Q(QUERY_TYPE):
+        @staticmethod
+        def _Q(runtime, target_model=None):
+            sql = Compiler.gen_sql(runtime, QUERY_TYPE, target_model)
+            cursor.execute(sql)
+
+            if QUERY_TYPE is QUERY_SELECT:
+                re = SelectResult(cursor, runtime.model, runtime.data['select'])
+            elif QUERY_TYPE is QUERY_UPDATE:
+                re = UpdateResult(cursor)
+            elif QUERY_TYPE is QUERY_INSERT:
+                re = InsertResult(cursor)
+            elif QUERY_TYPE is QUERY_DELETE:
+                re = DeleteResult(cursor)
+
+            # cursor.close()  # !close cursor
+            runtime.reset_data()  # dont forget to reset runtime data
+            return re
+        return _Q
+
+    insert = Q(QUERY_INSERT)
+
+    update = Q(QUERY_UPDATE)
+
+    select = Q(QUERY_SELECT)
+
+    delete = Q(QUERY_DELETE)
+
+
+class QueryResult(object):
+    """Query Result information manager"""
+
+    def __init__(self, cursor):
+        self.rows_affected = cursor.rowcount
+        self.last_executed = cursor._last_executed
+
+    def __bool__(self):
+        return self.rows_affected  # if updated success?
+
+
+class InsertResult(QueryResult):
+
+    def __init__(self, cursor):
+        super(InsertResult, self).__init__(cursor)
+        # inserted row's id
+        self.row_id = cursor.lastrowid if cursor.rows_affected else None
+
+    def __repr__(self):
+        return '< Insert Query Result [row_id=%d] >' % self.row_id
+
+
+class UpdateResult(QueryResult):
+
+    def __repr__(self):
+        return '< Update Query Result [rows_affected=%d] >' % self.rows_affected
+
+
+class DeleteResult(QueryResult):
+
+    def __repr__(self):
+        return '< Delete Query Result [rows_affected=%d] >' % self.rows_affected
+
+
+class SelectResult(QueryResult):
+
+    def __init__(self, cursor, model, fields):
+        super(SelectResult, self).__init__(cursor)
+        self.model = model
+        self.flst = fields  # fields select out
+        self.cursor = cursor
+
+    def __repr__(self):
+        return '< Select Query Result [count=%d] >' % self.rows_affected
 
 
 class MetaModel(type):  # metaclass for `Model`
