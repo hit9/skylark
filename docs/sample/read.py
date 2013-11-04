@@ -4,8 +4,8 @@ from models import User, Post
 first_user = User.at(1).select().fetchone()
 print first_user.name
 
-# get user who called "Join"
-join = User.where(name="Join").select().fetchone()
+# get user who called 'Join'
+join = User.where(name='Join').select().fetchone()
 
 # get all users
 for user in User.select().fetchall():
@@ -13,4 +13,4 @@ for user in User.select().fetchall():
 
 # have a look at who has written posts
 for post, user in (Post & User).select().fetchall():
-    print "Author: %s, PostName: %s" % (user.name, post.name)
+    print 'Author: %s, PostName: %s' % (user.name, post.name)

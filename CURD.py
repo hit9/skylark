@@ -61,7 +61,7 @@ class CURDException(Exception):
 
 
 class UnSupportedType(CURDException):
-    """This type is unsupported now"""
+    """This value's type is unsupported now"""
     pass
 
 
@@ -333,6 +333,9 @@ class Compiler(object):
                 side = side.encode('utf8')  # encode unicode with `utf8`
             escaped_str = MySQLdb.escape_string(side)  # !safety
             return "'%s'" % escaped_str
+        else:
+            raise UnSupportedType("Unsupported type '%s' in one side of some"
+                                  " expression" % str(type(side)))
 
     @staticmethod
     def parse_expr(expr):

@@ -1,7 +1,7 @@
 .. _Sugar:
 
-Sytactic Sugar
-==============
+Syntactic sugar
+===============
 
 .. Contents::
 
@@ -57,7 +57,7 @@ Is there someone in the table called "James"?
 
 ::
 
-    >>> user=User(name="James")
+    >>> user=User(name='James')
     >>> user in User
     False
 
@@ -65,9 +65,9 @@ We record 'new users' only:
 
 ::
 
-    user = User(name="Mark")
+    user = User(name='Mark')
 
     if user not in User:
         user.save()
     else:
-        exit("Already in database!")
+        exit('Already in database!')
