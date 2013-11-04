@@ -144,6 +144,19 @@ class TestField_:
         assert tostr(expr9) == "user.id in (1, 2, 3)"
         assert tostr(expr10) == "user.name like '%Join%'"
 
+    def test_parser_cache(self):
+
+        sys.path.insert(0, "..")
+        from CURD import Compiler
+
+        tostr = Compiler.parse_expr
+
+        expr1 = User.id == 199
+        expr2 = User.id == 199
+        assert expr1 is not expr2
+        assert expr1 == expr2
+        assert tostr(expr1) is tostr(expr2)
+
 
 class TestExpr:
 

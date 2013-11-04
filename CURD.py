@@ -60,7 +60,7 @@ class CURDException(Exception):
     pass
 
 
-class ForeignKeyNotFound(Exception):
+class ForeignKeyNotFound(CURDException):
     """Foreign key not found in main model"""
     pass
 
