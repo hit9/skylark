@@ -1,4 +1,4 @@
-# coding=utf-8
+# coding=utf8
 #  ____ _   _ ____  ____
 # / ___| | | |  _ \|  _ \  _ __  _   _
 #| |   | | | | |_) | | | || '_ \| | | |
@@ -706,9 +706,11 @@ class Model(object):
         """
         cls.runtime.set_set(lst, dct)
         _id = Query.insert(cls.runtime)
-        if _id:
+
+        if _id is not None:
             dct[cls.primarykey.name] = _id  # add id to dct
             return cls(*lst, **dct)
+
         return None
 
     @classmethod
@@ -723,9 +725,7 @@ class Model(object):
 
     @property
     def _id(self): # value of primarykey
-        """
-        id for this object, actually is the value of primary key.
-        """
+        """value of this instance's primarykey"""
         cls = self.__class__
         return self.data.get(cls.primarykey.name, None)
 
@@ -736,26 +736,24 @@ class Model(object):
 
         if not _id:  # if insert
             model.runtime.set_set([], self.data)
-            _id = Query.insert(model.runtime)
-            if _id:
-                self.data[model.primarykey.name] = _id # set primarykey value
-                self._cache = self.data.copy() # sync cache after save
-                return _id
-        else:  # update
+            ret = Query.insert(model.runtime)
+
+            if ret is not None:
+                self.data[model.primarykey.name] = ret  # set primarykey value
+                self._cache = self.data.copy()  # sync cache after save
+        else:  # else, update
             # only update changed data
             dct = dict(set(self.data.items()) - set(self._cache.items()))
 
             if not dct:
-                return 1 # data not change
-            re = model.at(_id).update(**dct)
-            if re:
-                self._cache = self.data.copy() # sync cache after save
-                return re # success update
-        return 0
+                return 0  # data not change
+
+            ret = model.at(_id).update(**dct)
+            self._cache = self.data.copy()  # sync cache after save
+        return ret
 
     def destroy(self):
         """delete this object's data in database"""
         if self._id:
             model = self.__class__
             return model.at(self._id).delete()
-        return 0
