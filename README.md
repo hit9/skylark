@@ -39,7 +39,7 @@ More examples are in [docs/sample/](http://github.com/hit9/CURD.py/tree/master/d
 Install
 -------
 
-    $ pip install -e "git+git://github.com/hit9/CURD.py.git#egg=CURD.py"
+    $ pip install CURD.py
 
 Documents
 ---------
@@ -56,7 +56,7 @@ FAQ
   apt-get install libmysqlclient-dev
   ```
 
-  for mac users,run this command in your terminal:
+  for mac users:
   ```
   export PATH=$PATH:/usr/local/mysql/bin
   ```
