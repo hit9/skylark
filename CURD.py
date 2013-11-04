@@ -623,9 +623,6 @@ class MetaModel(type):  # metaclass for `Model`
         cls.primarykey = primarykey
         cls.runtime = Runtime(cls)
 
-    def get_fields(cls):
-        return cls.fields.values()
-
 
 class Model(object):
     """
@@ -655,6 +652,11 @@ class Model(object):
         self.data.update(dct)
         # cache for data
         self._cache = self.data.copy()
+
+    @classmethod
+    def get_fields(cls):
+        """return list of this model's fields"""
+        return cls.fields.values()
 
     @classmethod
     def select(cls, *flst):
