@@ -485,69 +485,34 @@ class Runtime(object):
 
 
 class Query(object):
-    """Class to run SQL"""
 
     def Q(QUERY_TYPE):
         @staticmethod
         def _Q(runtime, target_model=None):
             sql = Compiler.gen_sql(runtime, QUERY_TYPE, target_model)
-            cursor.execute(sql)
+            cursor = Database.execute(sql)
 
-            if QUERY_TYPE is QUERY_SELECT:
-                re = SelectResult(cursor, runtime.model, runtime.data['select'])
-            elif QUERY_TYPE is QUERY_UPDATE:
-                re = UpdateResult(cursor)
-            elif QUERY_TYPE is QUERY_INSERT:
-                re = InsertResult(cursor)
-            elif QUERY_TYPE is QUERY_DELETE:
-                re = DeleteResult(cursor)
+            if QUERY_TYPE is QUERY_INSERT:
+                re = cursor.lastrowid if cursor.rowcount else None
+            elif QUERY_TYPE in (QUERY_UPDATE, QUERY_DELETE):
+                re = cursor.rowcount
+            elif QUERY_TYPE is QUERY_SELECT:
+                re = SelectResult(runtime.model, cursor, runtime.data['select'])
 
-            # cursor.close()  # !close cursor
-            runtime.reset_data()  # dont forget to reset runtime data
+            if QUERY_TYPE is not QUERY_SELECT:  # close cursor on non-select query
+                cursor.close()
+            # dont forget clear runtime infomation after query
+            runtime.reset_data()
             return re
         return _Q
 
     insert = Q(QUERY_INSERT)
 
+    delete = Q(QUERY_DELETE)
+
     update = Q(QUERY_UPDATE)
 
     select = Q(QUERY_SELECT)
-
-    delete = Q(QUERY_DELETE)
-
-
-class QueryResult(object):
-    """Query Result information manager"""
-
-    def __init__(self, cursor):
-        self.rows_affected = cursor.rowcount
-        self.last_executed = cursor._last_executed
-
-    def __bool__(self):
-        return self.rows_affected  # if updated success?
-
-
-class InsertResult(QueryResult):
-
-    def __init__(self, cursor):
-        super(InsertResult, self).__init__(cursor)
-        # inserted row's id
-        self.row_id = cursor.lastrowid if cursor.rows_affected else None
-
-    def __repr__(self):
-        return '< Insert Query Result [row_id=%d] >' % self.row_id
-
-
-class UpdateResult(QueryResult):
-
-    def __repr__(self):
-        return '< Update Query Result [rows_affected=%d] >' % self.rows_affected
-
-
-class DeleteResult(QueryResult):
-
-    def __repr__(self):
-        return '< Delete Query Result [rows_affected=%d] >' % self.rows_affected
 
 
 class SelectResult(QueryResult):
@@ -555,7 +520,7 @@ class SelectResult(QueryResult):
     def __init__(self, cursor, model, fields):
         super(SelectResult, self).__init__(cursor)
         self.model = model
-        self.flst = fields  # fields select out
+        self.fields = fields  # fields select out
         self.cursor = cursor
 
         # field name dont duplicate:
@@ -568,7 +533,7 @@ class SelectResult(QueryResult):
 
         nfdct = {}
 
-        for field in self.flst:
+        for field in self.fields:
             if field.name not in nfdct:
                 nfdct[field.name] = field
             else:
@@ -577,6 +542,7 @@ class SelectResult(QueryResult):
     def mddct(self, data, nfdct):  # {model: data dict}
         models = self.model.models
         b = dict((m, {}) for m in models)
+
         for field_name, value in data.iteritems():
             field = nfdct[field_name]
             data_dct = b[field.model]
@@ -592,9 +558,6 @@ class SelectResult(QueryResult):
         else:
             b = self.mddct(dct, self.nfdct)
             return (m(**b[m]) for m in self.model.models)
-
-    def __repr__(self):
-        return '< Select Query Result [count=%d] >' % self.rows_affected
 
 
 class MetaModel(type):  # metaclass for `Model`
