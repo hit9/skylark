@@ -497,7 +497,7 @@ class Query(object):
             elif QUERY_TYPE in (QUERY_UPDATE, QUERY_DELETE):
                 re = cursor.rowcount
             elif QUERY_TYPE is QUERY_SELECT:
-                re = SelectResult(runtime.model, cursor, runtime.data['select'])
+                re = SelectResult(cursor, runtime.model, runtime.data['select'])
 
             if QUERY_TYPE is not QUERY_SELECT:  # close cursor on non-select query
                 cursor.close()
@@ -515,10 +515,9 @@ class Query(object):
     select = Q(QUERY_SELECT)
 
 
-class SelectResult(QueryResult):
+class SelectResult(object):
 
     def __init__(self, cursor, model, fields):
-        super(SelectResult, self).__init__(cursor)
         self.model = model
         self.fields = fields  # fields select out
         self.cursor = cursor
@@ -557,7 +556,19 @@ class SelectResult(QueryResult):
             return self.model(**dct) if dct else None
         else:
             b = self.mddct(dct, self.nfdct)
-            return (m(**b[m]) for m in self.model.models)
+            return tuple(m(**b[m]) for m in self.model.models)
+
+    def fetchall(self):
+        '''Fetch all rows at a time'''
+        data = self.cursor.fetchall()
+
+        if self.model.single:
+            for dct in data:
+                yield self.model(**dct)
+        else:
+            for dct in data:
+                b = self.mddct(dct, self.nfdct)
+                yield tuple(m(**b[m]) for m in self.model.models)
 
 
 class MetaModel(type):  # metaclass for `Model`
@@ -608,7 +619,7 @@ class Model(object):
     def __init__(self, *lst, **dct):
         self.data = {}
         # update data dict from expressions
-        for expr in dct:
+        for expr in lst:
             field, value = expr.left, expr.right
             self.data[field.name] = value
         # update data dict from data parameter
@@ -631,3 +642,120 @@ class Model(object):
         """
         cls.runtime.set_select(flst)
         return Query.select(cls.runtime)
+
+    @classmethod
+    def where(cls, *lst, **dct):
+        """
+        parameters:
+          lst, expressions, e.g.: User.id > 3
+          dct, datas, e.g.: name="Join"
+
+        e.g.
+          User.where(User.name == "Join", id=4).select()
+          =>
+          select user.id, user.email, user.name from user where user.name = 'Join' and user.id = 4
+        """
+        cls.runtime.set_where(lst, dct)
+        return cls
+
+    @classmethod
+    def update(cls, *lst, **dct):
+        """
+        parameter:
+          lst, expressions, e.g. User.name == "Join"
+          dct, datas, e.g. name="Join"
+
+        e.g.
+          User.where(User.id <=5 ).update(name="Join")
+          =>
+          update user set user.name = 'Join' where user.id <= 5
+        """
+        cls.runtime.set_set(lst, dct)
+        return Query.update(cls.runtime)
+
+    @classmethod
+    def orderby(cls, field, desc=False):
+        """
+        parameter:
+          field, field to order by
+          desc, if desc, bool
+        e.g.
+          User.where(User.id <= 5).orderby(User.id, desc=True).select()
+        """
+        cls.runtime.set_orderby((field, desc))
+        return cls
+
+    @classmethod
+    def at(cls, _id):
+        """
+        at(_id) is the alias of where(Model.primarykey == _id)
+        """
+        return cls.where(cls.primarykey == _id)
+
+    @classmethod
+    def create(cls, *lst, **dct):
+        """
+        parameters:
+          lst, expressions, e.g. User.name == "xiaoming"
+          dct, e.g. name="xiaoming"
+
+        e.g.
+          User.create(name="Join", email="Join@gmail.com")
+          =>
+          insert into user set user.name = 'Join', user.email = 'Join@gmail.com'
+        """
+        cls.runtime.set_set(lst, dct)
+        _id = Query.insert(cls.runtime)
+        if _id:
+            dct[cls.primarykey.name] = _id  # add id to dct
+            return cls(*lst, **dct)
+        return None
+
+    @classmethod
+    def delete(cls):
+        """
+        e.g.
+          User.at(1).delete()
+          =>
+          delete user from user where user.id = 1
+        """
+        return Query.delete(cls.runtime)
+
+    @property
+    def _id(self): # value of primarykey
+        """
+        id for this object, actually is the value of primary key.
+        """
+        cls = self.__class__
+        return self.data.get(cls.primarykey.name, None)
+
+    def save(self):
+        """save this instance's data to database"""
+        model = self.__class__
+        _id = self._id
+
+        if not _id:  # if insert
+            model.runtime.set_set([], self.data)
+            _id = Query.insert(model.runtime)
+            if _id:
+                self.data[model.primarykey.name] = _id # set primarykey value
+                self._cache = self.data.copy() # sync cache after save
+                return _id
+        else:  # update
+            # only update changed data
+            dct = dict(set(self.data.items()) - set(self._cache.items()))
+
+            if not dct:
+                return 1 # data not change
+            re = model.at(_id).update(**dct)
+            if re:
+                self._cache = self.data.copy() # sync cache after save
+                return re # success update
+        return 0
+
+    def destroy(self):
+        """delete this object's data in database"""
+        if self._id:
+            model = self.__class__
+            return model.at(self._id).delete()
+        return 0
