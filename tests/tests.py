@@ -11,7 +11,7 @@
 
 import sys
 
-# read config
+# -------------------------------------  {{{ read config
 
 import ConfigParser
 
@@ -21,6 +21,8 @@ cf.read("mysql.conf")
 mysql_user = cf.get("MySQL", "user")
 mysql_passwd = cf.get("MySQL", "passwd")
 mysql_db = cf.get("MySQL", "db")
+
+# --------------------------------------- read config }}}
 
 
 # create tables & droptables using MySQLdb
@@ -71,13 +73,12 @@ class TestDatabase_:
 
     def test_config(self):
         Database.config(db=mysql_db, user=mysql_user, passwd=mysql_passwd,
-                        charset="utf8", autocommit=True, debug=True)
+                        charset="utf8", autocommit=True)
 
 
 class TestDatabase(Test):
 
     def test_connect(self):
-        Database.connect()
         Database.connect()
 
     def test_get_conn(self):
@@ -87,18 +88,6 @@ class TestDatabase(Test):
 
     def test_execute(self):
         Database.execute("insert into user set name='hello'")
-
-    def test_SQL(self):
-        SQL = "insert into user set name = 'hello'"
-        Database.execute(SQL)
-        assert Database.SQL == SQL
-
-    def test_query_times(self):
-        SQL = "insert into user set name = 'hello'"
-        assert Database.query_times is 0
-        Database.execute(SQL)
-        print Database.query_times
-        assert Database.query_times is 1
 
 
 class TestField_:
@@ -128,7 +117,7 @@ class TestField_:
 
     def test_operator(self):
 
-        sys.path.append('..')
+        sys.path.insert(0, '..')
 
         from CURD import Compiler
 

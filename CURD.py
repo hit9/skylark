@@ -26,6 +26,7 @@ __version__ = '0.2.5'
 
 
 import sys
+from types import ModuleType
 
 import MySQLdb
 import MySQLdb.cursors
@@ -597,6 +598,9 @@ class MetaModel(type):  # metaclass for `Model`
         cls.primarykey = primarykey
         cls.runtime = Runtime(cls)
 
+    def __and__(self, join):
+        return JoinModel(self, join)
+
 
 class Model(object):
     """
@@ -757,3 +761,158 @@ class Model(object):
         if self._id:
             model = self.__class__
             return model.at(self._id).delete()
+
+
+class Models(object):
+    # multiple models
+
+    def __init__(self, *models):
+
+        self.models = list(models) # cast to list
+        self.single = False
+        self.runtime = Runtime(self)
+
+        self.table_name = ", ".join([m.table_name for m in self.models])
+        self.primarykey = [m.primarykey for m in self.models]
+
+    def get_fields(self):
+        lst = [m.get_fields() for m in self.models]
+        return sum(lst, [])
+
+    def where(self, *lst):
+        self.runtime.set_where(lst, {})
+        return self
+
+    def select(self, *lst):
+        self.runtime.set_select(lst)
+        return Query.select(self.runtime)
+
+    def update(self, *lst):
+        self.runtime.set_set(lst, {})
+        return Query.update(self.runtime)
+
+    def delete(self, target_model=None):
+        return Query.delete(self.runtime, target_model=target_model)
+
+    def orderby(self, field, desc=False):
+        self.runtime.set_orderby((field, desc))
+        return self
+
+
+class JoinModel(Models):
+    """
+    JoinModel(main_model, join_model)
+    e.g. Post & User will get JoinModel(Post, User)
+    """
+
+    def __init__(self, main, join): # main's foreignkey is join's primarykey
+        super(JoinModel, self).__init__(main, join)
+
+        self.bridge = None # the foreignkey point to join
+
+        # find the foreignkey
+        for field in main.get_fields():
+            if field.is_foreignkey and field.point_to is join.primarykey:
+                self.bridge = field
+
+        if not self.bridge:
+            raise Exception(
+                "foreignkey references to " +
+                join.__name__ + " not found in " + main.__name__
+            )
+
+    def brigde_wrapper(func):
+        def e(self, *arg, **kwarg):
+            # build brigde
+            self.runtime.data['where'].append(
+                self.bridge == self.bridge.point_to
+            )
+            return func(self, *arg, **kwarg)
+        return e
+
+    @brigde_wrapper
+    def select(self, *lst):
+        return super(JoinModel, self).select(*lst)
+
+    @brigde_wrapper
+    def update(self, *lst):
+        return super(JoinModel, self).update(*lst)
+
+    @brigde_wrapper
+    def delete(self, target_model=None):
+        return super(JoinModel, self).delete(target_model)
+
+
+#
+# Sugar Part - Syntactic_sugar.
+#
+# Use Mix-in to add new and cool features to CURD.py
+# Enable Sugar: from CURD import Sugar
+#
+# Sugars are written in method loadSugar
+
+def loadSugar():
+
+    # -------------------------------------- {
+    # Model[index]
+    # e.g. user = User[2]
+
+    MetaModel.__getitem__ = (
+        lambda model, index: model.at(index).select().fetchone()
+    )
+    # -------------------------------------- }
+
+    # -------------------------------------- {
+    def MetaModel_getslice(model, start, end):
+        # model[start, end]
+        # e.g. users = User[1:3]
+        # Produce: select * from user where user.id >= start and user.id <= end
+        exprs = []
+
+        if start:
+            exprs.append(model.primarykey >= start)
+
+        if end < 0x7fffffff: # extremely big..
+            exprs.append(model.primarykey <= end)
+
+        return model.where(*exprs).select().fetchall()
+
+    MetaModel.__getslice__ = MetaModel_getslice
+    # --------------------------------------- }
+
+    # --------------------------------------- {
+    # object in model
+    # e.g. user in User
+    # return True or False
+    def MetaModel_contains(model, obj):
+        if isinstance(obj, model) and model.where(**obj.data).select().count:
+            return True
+        return False
+    MetaModel.__contains__ = MetaModel_contains
+    # --------------------------------------- }
+
+
+# module wrapper for sugar
+class ModuleWrapper(ModuleType):
+
+    def __init__(self, module):
+        #
+        # I hate this way to wrap module, auctually i just need
+        # some way like this:
+        # from CURD import Sugar
+        # this line(above) will run some code
+        #
+        self.module = module
+
+    def __getattr__(self, name):
+
+        try:
+            return getattr(self.module, name)
+        except:
+            if name == "Sugar":
+                loadSugar()
+                return
+            raise AttributeError
+
+
+sys.modules[__name__] = ModuleWrapper(sys.modules[__name__])
