@@ -250,7 +250,7 @@ class Field(Leaf):
         """
         return Expr(self, (value1, value2), OP_BETWEEN)
 
-    def _in(self, **values):
+    def _in(self, *values):
         """
         e.g. User.id._in(1, 2, 3, 4, 5)
         """
@@ -354,7 +354,7 @@ class Compiler(object):
         if not lst:  # empty list
             return ''
 
-        orderby_str = ' orderby ' + lst[0].fullname
+        orderby_str = ' order by ' + lst[0].fullname
 
         if lst[1]:
             orderby_str += ' desc '
@@ -539,12 +539,14 @@ class SelectResult(object):
             else:
                 nfdct[field.fullname] = field
 
-    def mddct(self, data, nfdct):  # {model: data dict}
+        self.nfdct = nfdct
+
+    def mddct(self, data):  # {model: data dict}
         models = self.model.models
         b = dict((m, {}) for m in models)
 
         for field_name, value in data.iteritems():
-            field = nfdct[field_name]
+            field = self.nfdct[field_name]
             data_dct = b[field.model]
             data_dct[field_name] = value
         return b
@@ -556,7 +558,7 @@ class SelectResult(object):
         if self.model.single:
             return self.model(**dct) if dct else None
         else:
-            b = self.mddct(dct, self.nfdct)
+            b = self.mddct(dct)
             return tuple(m(**b[m]) for m in self.model.models)
 
     def fetchall(self):
@@ -568,8 +570,12 @@ class SelectResult(object):
                 yield self.model(**dct)
         else:
             for dct in data:
-                b = self.mddct(dct, self.nfdct)
+                b = self.mddct(dct)
                 yield tuple(m(**b[m]) for m in self.model.models)
+
+    @property
+    def count(self):
+        return self.cursor.rowcount
 
 
 class MetaModel(type):  # metaclass for `Model`

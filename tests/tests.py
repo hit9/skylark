@@ -196,8 +196,8 @@ class TestModel(Test):
 
     def test_update(self):
         self.create_data(2, table=1)
-        assert User.at(1).update(User.name == "newname") is 1
-        assert User.at(2).update(email="newemail") is 1
+        assert User.at(1).update(User.name == "newname") == 1L
+        assert User.at(2).update(email="newemail") == 1L
 
     def test_select(self):
         self.create_data(4, table=1)
@@ -208,28 +208,28 @@ class TestModel(Test):
 
     def test_delete(self):
         self.create_data(4, table=1)
-        assert User.at(1).delete() is 1
+        assert User.at(1).delete() == 1L
         assert User.where(
             (User.name == "name2") | (User.name == "name3")
-        ).delete() is 2
+        ).delete() == 2L
 
     def test_where(self):
         self.create_data(3, table=1)
         assert User.where(User.id == 1) is User
         assert User.where(id=1) is User
-        assert User.where(User.name == "name1").select().count is 1
+        assert User.where(User.name == "name1").select().count == 1L
         assert User.where(
             User.name == "name1", User.email == "email"
-        ).select().count is 0
+        ).select().count == 0L
         assert User.where(
             User.name == "name1", email="email"
-        ).select().count is 0
-        assert User.where(name="name1", email="email1").select().count is 1
+        ).select().count == 0L
+        assert User.where(name="name1", email="email1").select().count == 1L
 
     def test_at(self):
         self.create_data(3, table=1)
-        assert User.at(1).select().count is 1
-        assert User.at(-1).select().count is 0
+        assert User.at(1).select().count == 1L
+        assert User.at(-1).select().count == 0
         assert User.at(1).select().fetchone().name == "name1"
         assert User.at(1).delete()
 
@@ -242,7 +242,7 @@ class TestModel(Test):
     def test_modelobj_save(self):
         user = User(name="jack", email="jack@github.com")
         assert user.save()
-        assert User.select().count is 1
+        assert User.select().count == 1L
         user.name = "li"
         assert user.save()
         assert User.at(1).select().fetchone().name == "li"
@@ -257,7 +257,7 @@ class TestModel(Test):
 class TestModels_:
 
     def setUp(self):
-        sys.path.append("..")
+        sys.path.insert(0, "..")
         from CURD import Models
         self.models = Models(User, Post)
 
@@ -271,17 +271,17 @@ class TestModels_:
 class TestModels(Test):
 
     def setUp(self):
-        sys.path.append("..")
+        sys.path.insert(0, "..")
         from CURD import Models
         super(TestModels, self).setUp()
         self.create_data(4)
         self.models = Models(Post, User)
 
     def test_where(self):
-        assert self.models.where(User.id == Post.user_id).select().count is 4
+        assert self.models.where(User.id == Post.user_id).select().count == 4L
         assert self.models.where(
             User.id == Post.user_id, User.id == 1
-        ).select().count is 1
+        ).select().count == 1L
 
     def test_select(self):
         for post, user in self.models.where(
@@ -298,23 +298,23 @@ class TestModels(Test):
     def test_update(self):
         assert self.models.where(
             User.id == Post.user_id
-        ).update(User.name == "new") is 4
+        ).update(User.name == "new") == 4L
 
     def test_delete(self):
-        assert self.models.where(User.id == Post.user_id).delete() is 8
-        assert self.models.where(User.id == Post.user_id).select().count is 0
+        assert self.models.where(User.id == Post.user_id).delete() == 8L
+        assert self.models.where(User.id == Post.user_id).select().count == 0L
 
     def test_delete2(self):
-        assert self.models.where(User.id == Post.user_id).delete(Post) is 4
-        assert User.select().count is 4
-        assert Post.select().count is 0
+        assert self.models.where(User.id == Post.user_id).delete(Post) == 4L
+        assert User.select().count == 4L
+        assert Post.select().count == 0L
 
     def test_orderby(self):
         G = self.models.where(
             Post.post_id == User.id
         ).orderby(User.name, 1).select().fetchall()
         d = tuple(G)
-        assert d == tuple(sorted(d, key=lambda x: x[0].name, reverse=True))
+        assert d == tuple(sorted(d, key=lambda x: x[1].name, reverse=True))
 
 
 
@@ -325,27 +325,27 @@ class TestJoinModel(Test):
         self.create_data(10)
 
     def test_select(self):
-        assert (Post & User).select().count is 10
-        assert (Post & User).where(User.name == "name2").select().count is 1
+        assert (Post & User).select().count == 10L
+        assert (Post & User).where(User.name == "name2").select().count == 1L
         for post, user in (Post & User).select().fetchall():
             assert post.post_id
             assert user.id
             assert post.user_id == user.id
 
     def test_delete(self):
-        assert (Post & User).delete() is 20
-        assert (Post & User).select().count is 0
+        assert (Post & User).delete() == 20L
+        assert (Post & User).select().count == 0L
 
     def test_delete2(self):
-        assert (Post & User).delete(Post) is 10
+        assert (Post & User).delete(Post) == 10L
 
     def test_update(self):
         assert (Post & User).where(
             User.name <= "name4"
-        ).update(User.name == "hello") is 5
+        ).update(User.name == "hello") == 5L
         assert (Post & User).where(
             User.name == "hello"
-        ).update(Post.name == "good") is 5
+        ).update(Post.name == "good") == 5L
 
 
 # select_result Tests
@@ -354,12 +354,12 @@ class TestSelect_result(Test):
 
     def test_count(self):
         self.create_data(5)
-        assert User.select().count is 5
+        assert User.select().count == 5L
 
     def test_fetchone(self):
         self.create_data(4)
         user = User.at(1).select().fetchone()
-        assert user.id == 1
+        assert user.id == 1L
 
     def test_fetchall(self):
         self.create_data(4)
@@ -371,7 +371,7 @@ class TestSugar(Test):
 
     def setUp(self):
         super(TestSugar, self).setUp()
-        sys.path.append("..")
+        sys.path.insert(0, '..')
         from CURD import Sugar
 
     def test_Model_getitem(self):
