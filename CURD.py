@@ -574,6 +574,25 @@ class SelectResult(QueryResult):
             else:
                 nfdct[field.fullname] = field
 
+    def mddct(self, data, nfdct):  # {model: data dict}
+        models = self.model.models
+        b = dict((m, {}) for m in models)
+        for field_name, value in data.iteritems():
+            field = nfdct[field_name]
+            data_dct = b[field.model]
+            data_dct[field_name] = value
+        return b
+
+    def fetchone(self):  # fetch one row each time
+        '''Fetch a single row each time'''
+        dct = self.cursor.fetchone()
+
+        if self.model.single:
+            return self.model(**dct) if dct else None
+        else:
+            b = self.mddct(dct, self.nfdct)
+            return (m(**b[m]) for m in self.model.models)
+
     def __repr__(self):
         return '< Select Query Result [count=%d] >' % self.rows_affected
 
@@ -603,6 +622,9 @@ class MetaModel(type):  # metaclass for `Model`
         cls.fields = fields
         cls.primarykey = primarykey
         cls.runtime = Runtime(cls)
+
+    def get_fields(cls):
+        return cls.fields.values()
 
 
 class Model(object):
@@ -635,6 +657,12 @@ class Model(object):
         self._cache = self.data.copy()
 
     @classmethod
-    def get_fields(cls):
-        """return list of model's fields"""
-        return cls.fields.values()
+    def select(cls, *flst):
+        """
+        parameters:
+          flst, list of fields to select out
+        e.g.
+          User.select(User.name, User.email)
+        """
+        cls.runtime.set_select(flst)
+        return Query.select(cls.runtime)
