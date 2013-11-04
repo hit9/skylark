@@ -4,6 +4,8 @@ CURD.py
 Tiny Python ORM for MySQL. 
 [![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
 
+latest version: v0.2.5
+
 Only support C, U, R, D, responsing to its name:
 
 - Create
@@ -32,7 +34,7 @@ user = User(name="Join", email="Join@gmail.com")
 user.save()
 ```
 
-More examples are in [docs/sample/](https://github.com/hit9/CURD.py/tree/master/docs/sample).
+More examples are in [docs/sample/](http://github.com/hit9/CURD.py/tree/master/docs/sample).
 
 Install
 -------

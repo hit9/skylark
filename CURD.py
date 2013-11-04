@@ -53,6 +53,18 @@ QUERY_SELECT = 22
 QUERY_DELETE = 23
 
 
+# exceptions
+
+class CURDException(Exception):
+    """There was an ambiguous exception occurred"""
+    pass
+
+
+class ForeignKeyNotFound(Exception):
+    """Foreign key not found in main model"""
+    pass
+
+
 class Database(object):
     """Database connection manager"""
 
@@ -770,14 +782,13 @@ class Model(object):
 
 
 class Models(object):
-    # multiple models
+    """Mutiple models"""
 
     def __init__(self, *models):
 
-        self.models = list(models) # cast to list
+        self.models = list(models)  # cast to list
         self.single = False
         self.runtime = Runtime(self)
-
         self.table_name = ", ".join([m.table_name for m in self.models])
         self.primarykey = [m.primarykey for m in self.models]
 
@@ -811,21 +822,20 @@ class JoinModel(Models):
     e.g. Post & User will get JoinModel(Post, User)
     """
 
-    def __init__(self, main, join): # main's foreignkey is join's primarykey
+    def __init__(self, main, join):  # main's foreignkey is join's primarykey
         super(JoinModel, self).__init__(main, join)
 
         self.bridge = None # the foreignkey point to join
 
-        # find the foreignkey
+        # try to find the foreignkey
         for field in main.get_fields():
             if field.is_foreignkey and field.point_to is join.primarykey:
                 self.bridge = field
 
         if not self.bridge:
-            raise Exception(
-                "foreignkey references to " +
-                join.__name__ + " not found in " + main.__name__
-            )
+            raise ForeignKeyNotFound(
+                "Foreign key references to "
+                "'%s' not found in '%s'" % (join.__name__, main.__name__))
 
     def brigde_wrapper(func):
         def e(self, *arg, **kwarg):
