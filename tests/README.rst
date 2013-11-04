@@ -1,8 +1,13 @@
-To run tests with nose::
+To run tests with nose
 
-    # create a database
+1. create a database::
+
     $ mysql -e 'create database curdtest;' -uroot -p 
-    # add your mysql username and passwd
+
+2. add your mysql username and passwd::
+
     $ vim mysql.conf
-    # run this command in this directoryonf
-    nosetests  -v
+
+3. run this command in this directoryonf::
+
+    $ nosetests  -v
