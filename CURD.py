@@ -60,6 +60,11 @@ class CURDException(Exception):
     pass
 
 
+class UnSupportedType(CURDException):
+    """This type is unsupported now"""
+    pass
+
+
 class ForeignKeyNotFound(CURDException):
     """Foreign key not found in main model"""
     pass
@@ -321,12 +326,13 @@ class Compiler(object):
             return side.fullname
         elif isinstance(side, Expr):
             return Compiler.parse_expr(side)
-        else:  # string or number
-            escaped_str = MySQLdb.escape_string(str(side))  # !safety
-            return (
-                # if basestring(str or unicode..),  wrap it with quote
-                "'" + escaped_str + "'" if isinstance(side, basestring) else escaped_str
-            )
+        elif isinstance(side, (int, long, float)):  # a number
+            return str(side)
+        elif isinstance(side, basestring):
+            if isinstance(side, unicode):
+                side = side.encode('utf8')  # encode unicode with `utf8`
+            escaped_str = MySQLdb.escape_string(side)  # !safety
+            return "'%s'" % escaped_str
 
     @staticmethod
     def parse_expr(expr):
