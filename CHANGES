@@ -9,6 +9,7 @@ Removed
 - `Database.execute()` now return `rows_affected` no more `rows_matched`
 
 - `model.save()` now return `0` for 'data not changed'
+- `select_result.count` return long int now, no `cast to int`
 
 version 0.2.2
 -------------

@@ -548,7 +548,7 @@ class SelectResult(object):
         for field_name, value in data.iteritems():
             field = self.nfdct[field_name]
             data_dct = b[field.model]
-            data_dct[field_name] = value
+            data_dct[field.name] = value
         return b
 
     def fetchone(self):  # fetch one row each time
