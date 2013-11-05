@@ -1,6 +1,6 @@
 import sys
 
-sys.path.append("..")
+sys.path.insert(0, '..')
 
 from CURD import Database, Model, Field, PrimaryKey, ForeignKey
 

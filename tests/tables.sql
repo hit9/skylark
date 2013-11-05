@@ -24,10 +24,10 @@ create table user(
     id int primary key auto_increment, 
     name varchar(33), 
     email varchar(33)
-) engine=innodb; 
+) engine=innodb default charset=utf8; 
 create table post(
     post_id int primary key auto_increment,
     name varchar(100),
     user_id int,
     foreign key(user_id) references user(id)
-) engine=innodb; 
+) engine=innodb  default charset=utf8; 

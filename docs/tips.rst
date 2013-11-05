@@ -43,7 +43,7 @@ Test whether an except record is in the table
 
 Is there someone called 'Jack' in database? ::
 
-    user = User(name="Jack")
+    user = User(name='Jack')
     if user in User:
         print "Yes!"
 

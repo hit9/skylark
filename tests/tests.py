@@ -1,4 +1,4 @@
-#
+# coding=utf8
 # run tests with nose:
 #
 # $ nosetests
@@ -11,7 +11,7 @@
 
 import sys
 
-# read config
+# -------------------------------------  {{{ read config
 
 import ConfigParser
 
@@ -21,6 +21,8 @@ cf.read("mysql.conf")
 mysql_user = cf.get("MySQL", "user")
 mysql_passwd = cf.get("MySQL", "passwd")
 mysql_db = cf.get("MySQL", "db")
+
+# --------------------------------------- read config }}}
 
 
 # create tables & droptables using MySQLdb
@@ -71,13 +73,12 @@ class TestDatabase_:
 
     def test_config(self):
         Database.config(db=mysql_db, user=mysql_user, passwd=mysql_passwd,
-                        charset="utf8", autocommit=True, debug=True)
+                        charset="utf8", autocommit=True)
 
 
 class TestDatabase(Test):
 
     def test_connect(self):
-        Database.connect()
         Database.connect()
 
     def test_get_conn(self):
@@ -87,18 +88,6 @@ class TestDatabase(Test):
 
     def test_execute(self):
         Database.execute("insert into user set name='hello'")
-
-    def test_SQL(self):
-        SQL = "insert into user set name = 'hello'"
-        Database.execute(SQL)
-        assert Database.SQL == SQL
-
-    def test_query_times(self):
-        SQL = "insert into user set name = 'hello'"
-        assert Database.query_times is 0
-        Database.execute(SQL)
-        print Database.query_times
-        assert Database.query_times is 1
 
 
 class TestField_:
@@ -126,9 +115,18 @@ class TestField_:
         assert Post.user_id.is_foreignkey is True
         assert Post.user_id.point_to is User.id
 
+
+class TestExpr:
+
+    def test_op(self):
+        expr1 = User.name == "Join"
+        expr2 = User.email == "Join@github.com"
+        assert expr1 & expr2 == "user.name = 'Join' and user.email = 'Join@github.com'"
+        assert expr1 | expr2 == "user.name = 'Join' or user.email = 'Join@github.com'"
+
     def test_operator(self):
 
-        sys.path.append('..')
+        sys.path.insert(0, '..')
 
         from CURD import Compiler
 
@@ -155,14 +153,29 @@ class TestField_:
         assert tostr(expr9) == "user.id in (1, 2, 3)"
         assert tostr(expr10) == "user.name like '%Join%'"
 
+    def test_parser_cache(self):
 
-class TestExpr:
+        sys.path.insert(0, "..")
+        from CURD import Compiler
 
-    def test_op(self):
-        expr1 = User.name == "Join"
-        expr2 = User.email == "Join@github.com"
-        assert expr1 & expr2 == "user.name = 'Join' and user.email = 'Join@github.com'"
-        assert expr1 | expr2 == "user.name = 'Join' or user.email = 'Join@github.com'"
+        tostr = Compiler.parse_expr
+
+        expr1 = User.id == 199
+        expr2 = User.id == 199
+        assert expr1 is not expr2
+        assert expr1 == expr2
+        assert tostr(expr1) is tostr(expr2)
+
+    def test_unicode(self):
+
+        from CURD import Compiler
+
+        tostr = Compiler.parse_expr
+
+        expr = User.name == u"你好世界"
+
+        assert tostr(expr) == "user.name = '你好世界'"
+
 
 
 class TestModel_:
@@ -207,8 +220,8 @@ class TestModel(Test):
 
     def test_update(self):
         self.create_data(2, table=1)
-        assert User.at(1).update(User.name == "newname") is 1
-        assert User.at(2).update(email="newemail") is 1
+        assert User.at(1).update(User.name == "newname") == 1L
+        assert User.at(2).update(email="newemail") == 1L
 
     def test_select(self):
         self.create_data(4, table=1)
@@ -219,28 +232,28 @@ class TestModel(Test):
 
     def test_delete(self):
         self.create_data(4, table=1)
-        assert User.at(1).delete() is 1
+        assert User.at(1).delete() == 1L
         assert User.where(
             (User.name == "name2") | (User.name == "name3")
-        ).delete() is 2
+        ).delete() == 2L
 
     def test_where(self):
         self.create_data(3, table=1)
         assert User.where(User.id == 1) is User
         assert User.where(id=1) is User
-        assert User.where(User.name == "name1").select().count is 1
+        assert User.where(User.name == "name1").select().count == 1L
         assert User.where(
             User.name == "name1", User.email == "email"
-        ).select().count is 0
+        ).select().count == 0L
         assert User.where(
             User.name == "name1", email="email"
-        ).select().count is 0
-        assert User.where(name="name1", email="email1").select().count is 1
+        ).select().count == 0L
+        assert User.where(name="name1", email="email1").select().count == 1L
 
     def test_at(self):
         self.create_data(3, table=1)
-        assert User.at(1).select().count is 1
-        assert User.at(-1).select().count is 0
+        assert User.at(1).select().count == 1L
+        assert User.at(-1).select().count == 0
         assert User.at(1).select().fetchone().name == "name1"
         assert User.at(1).delete()
 
@@ -253,7 +266,7 @@ class TestModel(Test):
     def test_modelobj_save(self):
         user = User(name="jack", email="jack@github.com")
         assert user.save()
-        assert User.select().count is 1
+        assert User.select().count == 1L
         user.name = "li"
         assert user.save()
         assert User.at(1).select().fetchone().name == "li"
@@ -268,7 +281,7 @@ class TestModel(Test):
 class TestModels_:
 
     def setUp(self):
-        sys.path.append("..")
+        sys.path.insert(0, "..")
         from CURD import Models
         self.models = Models(User, Post)
 
@@ -282,17 +295,17 @@ class TestModels_:
 class TestModels(Test):
 
     def setUp(self):
-        sys.path.append("..")
+        sys.path.insert(0, "..")
         from CURD import Models
         super(TestModels, self).setUp()
         self.create_data(4)
         self.models = Models(Post, User)
 
     def test_where(self):
-        assert self.models.where(User.id == Post.user_id).select().count is 4
+        assert self.models.where(User.id == Post.user_id).select().count == 4L
         assert self.models.where(
             User.id == Post.user_id, User.id == 1
-        ).select().count is 1
+        ).select().count == 1L
 
     def test_select(self):
         for post, user in self.models.where(
@@ -309,23 +322,23 @@ class TestModels(Test):
     def test_update(self):
         assert self.models.where(
             User.id == Post.user_id
-        ).update(User.name == "new") is 4
+        ).update(User.name == "new") == 4L
 
     def test_delete(self):
-        assert self.models.where(User.id == Post.user_id).delete() is 8
-        assert self.models.where(User.id == Post.user_id).select().count is 0
+        assert self.models.where(User.id == Post.user_id).delete() == 8L
+        assert self.models.where(User.id == Post.user_id).select().count == 0L
 
     def test_delete2(self):
-        assert self.models.where(User.id == Post.user_id).delete(Post) is 4
-        assert User.select().count is 4
-        assert Post.select().count is 0
+        assert self.models.where(User.id == Post.user_id).delete(Post) == 4L
+        assert User.select().count == 4L
+        assert Post.select().count == 0L
 
     def test_orderby(self):
         G = self.models.where(
             Post.post_id == User.id
         ).orderby(User.name, 1).select().fetchall()
         d = tuple(G)
-        assert d == tuple(sorted(d, key=lambda x: x[0].name, reverse=True))
+        assert d == tuple(sorted(d, key=lambda x: x[1].name, reverse=True))
 
 
 
@@ -336,27 +349,37 @@ class TestJoinModel(Test):
         self.create_data(10)
 
     def test_select(self):
-        assert (Post & User).select().count is 10
-        assert (Post & User).where(User.name == "name2").select().count is 1
+        assert (Post & User).select().count == 10L
+        assert (Post & User).where(User.name == "name2").select().count == 1L
         for post, user in (Post & User).select().fetchall():
             assert post.post_id
             assert user.id
             assert post.user_id == user.id
 
     def test_delete(self):
-        assert (Post & User).delete() is 20
-        assert (Post & User).select().count is 0
+        assert (Post & User).delete() == 20L
+        assert (Post & User).select().count == 0L
 
     def test_delete2(self):
-        assert (Post & User).delete(Post) is 10
+        assert (Post & User).delete(Post) == 10L
 
     def test_update(self):
         assert (Post & User).where(
             User.name <= "name4"
-        ).update(User.name == "hello") is 5
+        ).update(User.name == "hello") == 5L
         assert (Post & User).where(
             User.name == "hello"
-        ).update(Post.name == "good") is 5
+        ).update(Post.name == "good") == 5L
+
+    def test_foreignkey_exception(self):
+        sys.path.insert(0, "..")
+        from CURD import ForeignKeyNotFound
+        try:
+            User & Post
+        except ForeignKeyNotFound:
+            pass
+        else:
+            raise Exception
 
 
 # select_result Tests
@@ -365,12 +388,12 @@ class TestSelect_result(Test):
 
     def test_count(self):
         self.create_data(5)
-        assert User.select().count is 5
+        assert User.select().count == 5L
 
     def test_fetchone(self):
         self.create_data(4)
         user = User.at(1).select().fetchone()
-        assert user.id == 1
+        assert user.id == 1L
 
     def test_fetchall(self):
         self.create_data(4)
@@ -382,7 +405,7 @@ class TestSugar(Test):
 
     def setUp(self):
         super(TestSugar, self).setUp()
-        sys.path.append("..")
+        sys.path.insert(0, '..')
         from CURD import Sugar
 
     def test_Model_getitem(self):
@@ -404,4 +427,10 @@ class TestSugar(Test):
         user1 = User(User.name == "myname")
         assert user1 in User
         user1.email = "email"
+        assert user1 not in User
+
+    def test_unicode_in(self):
+        user = User.create(name="小明", email="xiaoming@gmail.com")
+        assert user in User
+        user1 = User(name=u"lalala23456")
         assert user1 not in User

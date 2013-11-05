@@ -11,5 +11,5 @@ class Post(Model):
     post_id = PrimaryKey()
     user_id = ForeignKey(User.id)
 
-# configure Database
-Database.config(db="mydb", user="root", passwd="")
+
+Database.config(db='mydb', user='root', passwd='')

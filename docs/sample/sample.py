@@ -3,7 +3,7 @@
 from CURD import Database, Model, Field
 
 
-Database.config(user="root", passwd="", db="mytest")
+Database.config(user='root', passwd='', db='mytest')
 
 
 class User(Model):
@@ -11,5 +11,5 @@ class User(Model):
     email = Field()
 
 
-user = User(name="Join", email="Join@gmail.com")
+user = User(name='Join', email='Join@gmail.com')
 user.save()

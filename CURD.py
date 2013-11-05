@@ -1,4 +1,4 @@
-# coding=utf-8
+# coding=utf8
 #  ____ _   _ ____  ____
 # / ___| | | |  _ \|  _ \  _ __  _   _
 #| |   | | | | |_) | | | || '_ \| | | |
@@ -22,18 +22,14 @@
 # and this permission notice appear in all copies.
 #
 
-__version__ = '0.2.4'
+__version__ = '0.2.5'
+
 
 import sys
-import re
 from types import ModuleType
 
 import MySQLdb
 import MySQLdb.cursors
-
-
-# regular expression to get matched rows number from cursor's info
-VG_RowsMatchedRe = re.compile(r'Rows matched: (\d+)')
 
 
 # marks for operators
@@ -57,36 +53,44 @@ QUERY_SELECT = 22
 QUERY_DELETE = 23
 
 
+# exceptions
+
+class CURDException(Exception):
+    """There was an ambiguous exception occurred"""
+    pass
+
+
+class UnSupportedType(CURDException):
+    """This value's type is unsupported now"""
+    pass
+
+
+class ForeignKeyNotFound(CURDException):
+    """Foreign key not found in main model"""
+    pass
+
+
 class Database(object):
-    """Manage Database connection"""
+    """Database connection manager"""
 
-    # configs for connection with default value
+    # configuration for connection with default values
     configs = {
-        "host": "localhost",
-        "port": 3306,
-        "db": "",
-        "user": "",
-        "passwd": "",
-        "charset": "utf8"
+        'host': 'localhost',
+        'port': 3306,
+        'db': '',
+        'user': '',
+        'passwd': '',
+        'charset': 'utf8'
     }
-
-    # debuge mode?
-    debug = True
 
     # It is strongly recommended that you set this True
     autocommit = True
 
-    # MySQL connection object, you should use method get_conn to get it
+    # MySQL connection object
     conn = None
 
-    # record query times
-    query_times = 0
-
-    # record SQL last time executed
-    SQL = None
-
     @classmethod
-    def config(cls, debug=True, autocommit=True, **configs):
+    def config(cls, autocommit=True, **configs):
         """
         Configure the database connection.
 
@@ -101,33 +105,30 @@ class Database(object):
             string, user to connect as
 
           passwd
-            string, password to use
+            string, password for this user
 
           db
             string, database to use
 
           port
-            integer, TCP/IP port to connect to
+            integer, TCP/IP port to connect
 
           charset
             string, charset of connection
 
-        See the MySQLdb documentation for more infomation,
-        the parameters of MySQLdb.connect are all supported.
+        See the MySQLdb documentation for more information,
+        the parameters of `MySQLdb.connect` are all supported.
         """
         cls.configs.update(configs)
-        cls.debug = debug
         cls.autocommit = autocommit
 
     @classmethod
     def connect(cls):
         """
-        Connect to database, singleton pattern.
-        This will new one conn object.
+        Connect to database, this method will new a connect object
         """
         cls.conn = MySQLdb.connect(
-            cursorclass=MySQLdb.cursors.DictCursor,
-            **cls.configs
+            cursorclass=MySQLdb.cursors.DictCursor, **cls.configs
         )
         cls.conn.autocommit(cls.autocommit)
 
@@ -135,46 +136,36 @@ class Database(object):
     def get_conn(cls):
         """
         Get MySQL connection object.
-        if the conn is open and working, return it,
-        else, new one and return it.
+
+        if the conn is open and working
+          return it.
+        else
+          new another one and return it.
         """
+
         # singleton
         if not cls.conn or not cls.conn.open:
             cls.connect()
 
         try:
-            cls.conn.ping()  # ping to test if the connection is working
+            # ping to test if this conn is working
+            cls.conn.ping()
         except MySQLdb.OperationalError:
             cls.connect()
 
         return cls.conn
 
     @classmethod
-    def execute(cls, SQL):
+    def execute(cls, sql):
         """
-        Execute one SQL command.
+        Execute one sql
 
-        Parameter:
-          SQL
-            string, SQL command to run.
+        parameters
+          sql
+            string, sql command to run
         """
         cursor = cls.get_conn().cursor()
-
-        try:
-            cursor.execute(SQL)
-        except Exception, e:
-            if cls.debug:  # if debug, report the SQL
-                print "SQL:", SQL
-            raise e
-
-        cls.query_times += 1
-        cls.SQL = SQL
-
-        # add attribute 'matchedRows' to cursor.store query matched rows number
-        cursor.matchedRows = int(
-            VG_RowsMatchedRe.search(cursor._info).group(1)
-        ) if cursor._info else int(cursor.rowcount)
-
+        cursor.execute(sql)
         return cursor
 
 
@@ -220,8 +211,16 @@ class Expr(Leaf):
         self.right = right
         self.op = op
 
+    def __attrs(self):
+        return (self.left, self.op, self.right)
 
-# descriptor for Field objects
+    def __hash__(self):
+        return hash(self.__attrs())
+
+    def __eq__(self, other):
+        return self.__attrs() == self.__attrs()
+
+
 class FieldDescriptor(object):
 
     def __init__(self, field):
@@ -241,20 +240,19 @@ class Field(Leaf):
     """
     Field object.
 
-    Field examples: User.name, User.age ..
+    examples: User.name, User.age ..
     """
 
     def __init__(self, is_primarykey=False, is_foreignkey=False):
         self.is_primarykey = is_primarykey
         self.is_foreignkey = is_foreignkey
 
-    # describe model's attr
     def describe(self, name, model):
         self.name = name
         self.model = model
-        # fullname e.g. : User.id 's fullname is "user.id"
-        self.fullname = self.model.table_name + "." + self.name
-        # describe the attribute, reload its access control of writing, reading
+        # `fullname`: e.g.: User.id => fullname is 'user.id'
+        self.fullname = self.model.table_name + '.' + self.name
+        # describe the attribute
         setattr(model, name, FieldDescriptor(self))
 
     def like(self, pattern):
@@ -265,7 +263,7 @@ class Field(Leaf):
 
     def between(self, value1, value2):
         """
-        e.g. User.id.bettwen(3, 7)
+        e.g. User.id.between(3, 7)
         """
         return Expr(self, (value1, value2), OP_BETWEEN)
 
@@ -303,27 +301,24 @@ class ForeignKey(Field):
 
 
 class Compiler(object):
-    """
-    Compile expressions and sequence of methods to SQL string(s).
-    """
+    """Compile expressions and sequence of methods to SQL strings"""
 
     # operator mapping
     OP_MAPPING = {
-        OP_LT: " < ",
-        OP_LE: " <= ",
-        OP_GT: " > ",
-        OP_GE: " >= ",
-        OP_EQ: " = ",
-        OP_NE: " <> ",
-        OP_ADD: " + ",
-        OP_AND: " and ",
-        OP_OR: " or ",
-        OP_LIKE: " like "
+        OP_LT: ' < ',
+        OP_LE: ' <= ',
+        OP_GT: ' > ',
+        OP_GE: ' >= ',
+        OP_EQ: ' = ',
+        OP_NE: ' <> ',
+        OP_ADD: ' + ',
+        OP_AND: ' and ',
+        OP_OR: ' or ',
+        OP_LIKE: ' like '
     }
 
-    expr_cache = {}  # dict to store parsed expressions {expr: string}
+    expr_cache = {}  # dict to cache parsed expr
 
-    # parse one side of expression to string
     @staticmethod
     def __parse_expr_one_side(side):
 
@@ -331,95 +326,108 @@ class Compiler(object):
             return side.fullname
         elif isinstance(side, Expr):
             return Compiler.parse_expr(side)
-        else:  # string or numbers
-            escapestr = MySQLdb.escape_string(str(side))
-            return (
-                # if basestring(str or unicode..),  wrap it with queto
-                "'" + escapestr + "'" if isinstance(side, basestring) else escapestr
-            )
+        elif isinstance(side, (int, long, float)):  # a number
+            return str(side)
+        elif isinstance(side, basestring):
+            if isinstance(side, unicode):
+                side = side.encode('utf8')  # encode unicode with `utf8`
+            escaped_str = MySQLdb.escape_string(side)  # !safety
+            return "'%s'" % escaped_str
+        else:
+            raise UnSupportedType("Unsupported type '%s' in one side of some"
+                                  " expression" % str(type(side)))
 
-    # parse expressions to string
     @staticmethod
     def parse_expr(expr):
+        '''parse expression to string'''
 
-        # first check cache
         cache = Compiler.expr_cache
-        if expr in cache:
+
+        # check cache at first
+        if expr in cache:  # `in` statement use `__hash__` and then `__eq__`
             return cache[expr]
 
+        # make alias
         l, op, r = expr.left, expr.op, expr.right
-
         OP_MAPPING = Compiler.OP_MAPPING
+        tostr = Compiler.__parse_expr_one_side
 
         string = None
-
-        tostr = Compiler.__parse_expr_one_side
 
         if op in OP_MAPPING:
             string = tostr(l) + OP_MAPPING[op] + tostr(r)
         elif op is OP_BETWEEN:
-            string = (
-                tostr(l) + " between " + tostr(r[0]) + " and " + tostr(r[1])
-            )
+            string = tostr(l) + ' between ' + tostr(r[0]) + ' and ' + tostr(r[1])
         elif op is OP_IN:
-            valuestr = ", ".join(tostr(value) for value in r)
-            string = (
-                tostr(l) + " in " + "(" + valuestr + ")"
-            )
+            values_str = ', '.join(tostr(value) for value in r)
+            string = tostr(l) + ' in ' + '(' + values_str + ')'
 
-        # dont forget to set cache
+        # set cache
         cache[expr] = string
+
         return string
 
-    # ------------------ parser for runtime -------------
+    # ------------------ runtime part -----
 
-    # parse orderby tuple to string
     @staticmethod
     def parse_orderby(lst):
-        if not lst:  # empty
-            return ""
-        orderby_str = " order by " + lst[0].fullname
+        '''parse orderby tuple to string'''
+        if not lst:  # empty list
+            return ''
+
+        orderby_str = ' order by ' + lst[0].fullname
+
         if lst[1]:
-            orderby_str = orderby_str + " desc "
+            orderby_str += ' desc '
+
         return orderby_str
 
-    # parse where expr list to string
     @staticmethod
     def parse_where(lst):
-        if not lst:  # if lst is empty
-            return ""
-        return " where " + " and ".join([
-            Compiler.parse_expr(expr) for expr in lst
-        ])
+        '''parse where expressions to string'''
+        if not lst:
+            return ''
+        return ' where ' + ' and '.join(
+            Compiler.parse_expr(expr) for expr in lst)
 
-    # parse select field list to string
     @staticmethod
     def parse_select(lst):
-        return ", ".join([field.fullname for field in lst])
+        '''parse select fields to string'''
+        return ', '.join(field.fullname for field in lst)
 
-    # parse set expr list to string
     @staticmethod
     def parse_set(lst):
-        return " set " + ", ".join([
+        '''parse set expressions to string'''
+        return ' set ' + ', '.join(
             Compiler.parse_expr(expr) for expr in lst
-        ])
+        )
 
-    # generate SQL from runtime
-    #
-    # parameter
-    #   query_type, query types: QUERY_**
-    #   target_model, model to delete, update, select or insert
     @staticmethod
     def gen_sql(runtime, query_type, target_model=None):
+        '''
+        Generate SQL from runtime information.
+
+        parameters:
+
+          runtime
+            Runtime, runtime instance
+
+          query_type
+            macros, query_types, the QUERY_**:
+
+          target_model
+            Model, model to delete, update, select or insert
+        '''
 
         from_table = runtime.model.table_name
 
-        # if target_table not figured out, use from_table instead
+        # if target_model not given, use from_table instead
         if target_model is None:
             target_model = runtime.model
 
         target_table = target_model.table_name
-        data = runtime.data
+
+        data = runtime.data  # alias
 
         # quick mark for parse time functions
         _where = Compiler.parse_where(data['where'])
@@ -428,146 +436,77 @@ class Compiler(object):
         _select = Compiler.parse_select(data['select'])
 
         if query_type is QUERY_INSERT:
-            SQL = "insert into " + target_table + _set
+            SQL = 'insert into ' + target_table + _set
         elif query_type is QUERY_UPDATE:
-            SQL = "update " + target_table + _set + _where
+            SQL = 'update ' + target_table + _set + _where
         elif query_type is QUERY_SELECT:
-            SQL = (
-                "select " + _select + " from " + from_table + _where + _orderby
-            )
+            SQL = 'select ' + _select + ' from ' + from_table + _where + _orderby
         elif query_type is QUERY_DELETE:
-            SQL = "delete " + target_table + " from " + from_table + _where
-        # yes, we return this string
+            SQL = 'delete ' + target_table + ' from ' + from_table + _where
+
         return SQL
 
 
 class Runtime(object):
-    """
-    Runtime infomation manager
-    """
+    """Runtime information manager"""
 
     def __init__(self, model=None):
         self.model = model
-
-        self.data = {}.fromkeys((
-            "where", "set", "orderby", "select"
-        ), None)
-
+        self.data = {}.fromkeys(('where', 'set', 'orderby', 'select'), None)
         # reset runtime data
         self.reset_data()
 
-    # reset runtime data
     def reset_data(self):
-        dct = dict((i, []) for i in self.data.keys())
+        '''reset runtime data'''
+        dct = dict((key, []) for key in self.data.keys())
         self.data.update(dct)
 
-    def set_orderby(self, field_desc_tuple):
-        # field_desc_tuple, (field, bool)
-        self.data['orderby'] = list(field_desc_tuple)
+    def set_orderby(self, field_desc):
+        '''
+        filed_desc
+          tuple, tuple of (field, desc), desc is a boolean
+        '''
+        self.data['orderby'] = list(field_desc)
 
     def set_select(self, fields):
         flst = list(fields)
         primarykey = self.model.primarykey
 
         if flst:
-            if self.model.single:  # if single model
-                flst.append(primarykey)  # add primarykey to select fields
+            # add primarykey(s) to select fields list
+            if self.model.single:
+                flst.append(primarykey)
             else:
-                flst.extend(primarykey)  # extend primarykeys
-        else:  # select all
+                flst.extend(primarykey)
+        else:
+            # else, empty args -> select all fields
             flst = self.model.get_fields()
-
         # remove duplicates
         self.data['select'] = list(set(flst))
 
     def set_where(self, lst, dct):
+        # lst: list of expressions, dct: dict if {filed=>value}
         lst = list(lst)
 
-        # if single model, turn dct to expressions
-        if self.model.single:
+        # turn dct to list of expressions
+        if self.model.single:  # muti models cannt use dct arg
             fields = self.model.fields
-            lst.extend(
-                [fields[k] == v for k, v in dct.iteritems()]
-            )
+            lst.extend(fields[k] == v for k, v in dct.iteritems())
 
         self.data['where'] = lst
 
     def set_set(self, lst, dct):
-        lst = list(lst)  # cast to list, we need to append xxx to it
+        lst = list(lst)
 
         if self.model.single:
             fields = self.model.fields
             primarykey = self.model.primarykey
-
-            for k, v in dct.iteritems():
-                lst.append(fields[k] == v)
+            lst.extend(fields[k] == v for k, v in dct.iteritems())
 
         self.data['set'] = lst
 
 
-class SelectResult(object):  # wrap select result
-
-    def __init__(self, model, cursor, flst):
-        self.model = model
-        self.cursor = cursor
-        self.flst = flst
-
-    @property
-    def nfdct(self):  # {field's name:field}
-        dct = {}
-        for f in self.flst:
-            if f.name not in dct:
-                dct[f.name] = f
-            else:
-                dct[f.fullname] = f
-        return dct
-
-    def mddct(self, dct, nfdct):  # {model: data dict}
-        mlst = self.model.models
-        b = dict((m, {}) for m in mlst)
-        for k, v in dct.iteritems():
-            field = nfdct[k]
-            data_dct = b[field.model]
-            data_dct[field.name] = v
-        return b
-
-    def fetchone(self):  # fetchone a time
-        """
-        Fetches a single row
-        """
-        dct = self.cursor.fetchone()
-        self.cursor.close()
-
-        if self.model.single:
-            return self.model(**dct) if dct else None
-        else:
-            nfdct = self.nfdct
-            b = self.mddct(dct, nfdct)
-            return tuple(m(**b[m]) for m in self.model.models)
-
-    def fetchall(self):  # fetchall result
-        """
-        Fetchs all available rows
-        """
-        data = self.cursor.fetchall()
-        self.cursor.close()
-
-        if self.model.single:
-            for dct in data:
-                yield self.model(**dct)
-        else:
-            nfdct = self.nfdct
-
-            for dct in data:
-                b = self.mddct(dct, nfdct)
-                yield tuple(m(**(b[m])) for m in self.model.models)
-
-    @property
-    def count(self):
-        return int(self.cursor.rowcount)  # cast to int
-
-
-class Query(object):  # class to run sql
+class Query(object):
 
     def Q(QUERY_TYPE):
         @staticmethod
@@ -576,14 +515,13 @@ class Query(object):  # class to run sql
             cursor = Database.execute(sql)
 
             if QUERY_TYPE is QUERY_INSERT:
-                re = cursor.lastrowid if cursor.matchedRows else None
-            if QUERY_TYPE in (QUERY_UPDATE, QUERY_DELETE):
-                re = cursor.matchedRows
-            if QUERY_TYPE is QUERY_SELECT:
-                flst = runtime.data['select']
-                re = SelectResult(runtime.model, cursor, flst)
-            # close cursor
-            if QUERY_TYPE is not QUERY_SELECT:
+                re = cursor.lastrowid if cursor.rowcount else None
+            elif QUERY_TYPE in (QUERY_UPDATE, QUERY_DELETE):
+                re = cursor.rowcount
+            elif QUERY_TYPE is QUERY_SELECT:
+                re = SelectResult(cursor, runtime.model, runtime.data['select'])
+
+            if QUERY_TYPE is not QUERY_SELECT:  # close cursor on non-select query
                 cursor.close()
             # dont forget clear runtime infomation after query
             runtime.reset_data()
@@ -599,18 +537,78 @@ class Query(object):  # class to run sql
     select = Q(QUERY_SELECT)
 
 
-class MetaModel(type):  # metaclass for 'single Model'
+class SelectResult(object):
+
+    def __init__(self, cursor, model, fields):
+        self.model = model
+        self.fields = fields  # fields select out
+        self.cursor = cursor
+
+        # field name dont duplicate:
+        # if `user.name`, `post.name` both in the field list, return data dict
+        # keys will contain `user.name` and `post.name` both, but if `user.name`
+        # in field list and `post.name` doesn't, the returned data dict keys
+        # will only contain the key `name`
+        # so, this attribute `nfdct` makes a dict {field name: field object}
+        # responsing to MySQLdb's behavior
+
+        nfdct = {}
+
+        for field in self.fields:
+            if field.name not in nfdct:
+                nfdct[field.name] = field
+            else:
+                nfdct[field.fullname] = field
+
+        self.nfdct = nfdct
+
+    def mddct(self, data):  # {model: data dict}
+        models = self.model.models
+        b = dict((m, {}) for m in models)
+
+        for field_name, value in data.iteritems():
+            field = self.nfdct[field_name]
+            data_dct = b[field.model]
+            data_dct[field.name] = value
+        return b
+
+    def fetchone(self):  # fetch one row each time
+        '''Fetch a single row each time'''
+        dct = self.cursor.fetchone()
+
+        if self.model.single:
+            return self.model(**dct) if dct else None
+        else:
+            b = self.mddct(dct)
+            return tuple(m(**b[m]) for m in self.model.models)
+
+    def fetchall(self):
+        '''Fetch all rows at a time'''
+        data = self.cursor.fetchall()
+
+        if self.model.single:
+            for dct in data:
+                yield self.model(**dct)
+        else:
+            for dct in data:
+                b = self.mddct(dct)
+                yield tuple(m(**b[m]) for m in self.model.models)
+
+    @property
+    def count(self):
+        return self.cursor.rowcount
+
+
+class MetaModel(type):  # metaclass for `Model`
 
     def __init__(cls, name, bases, attrs):
 
-        # use lowercase of clsname as table name
-        cls.table_name = cls.__name__.lower()
-        # {field name: filed}
-        fields = {}
-        # PrimaryKey object
+        cls.table_name = cls.__name__.lower()  # clsname lowercase => table name
+
+        fields = {}  # {field_name: field}
         primarykey = None
 
-        # foreach filed, describe it and find the primarykey
+        # foreach field, describe it and find the primarykey
         for name, attr in cls.__dict__.iteritems():
             if isinstance(attr, Field):
                 attr.describe(name, cls)
@@ -619,8 +617,8 @@ class MetaModel(type):  # metaclass for 'single Model'
                     primarykey = attr
 
         if primarykey is None:  # if primarykey not found
-            primarykey = PrimaryKey()  # then we new one primarykey: 'id'
-            primarykey.describe("id", cls)
+            primarykey = PrimaryKey()  # use `id` as default
+            primarykey.describe('id', cls)
             fields['id'] = primarykey
 
         cls.fields = fields
@@ -629,7 +627,6 @@ class MetaModel(type):  # metaclass for 'single Model'
 
     def __and__(self, join):
         return JoinModel(self, join)
-
 
 
 class Model(object):
@@ -647,7 +644,8 @@ class Model(object):
     """
 
     __metaclass__ = MetaModel
-    single = True  # mark if single model
+
+    single = True  # single model
 
     def __init__(self, *lst, **dct):
         self.data = {}
@@ -657,22 +655,19 @@ class Model(object):
             self.data[field.name] = value
         # update data dict from data parameter
         self.data.update(dct)
-
-        #cache for data
+        # cache for data
         self._cache = self.data.copy()
 
     @classmethod
     def get_fields(cls):
-        """
-        return list of this model's fields
-        """
+        """return list of this model's fields"""
         return cls.fields.values()
 
     @classmethod
     def select(cls, *flst):
         """
-        Parameters:
-          flst, fields
+        parameters:
+          flst, list of fields to select out
         e.g.
           User.select(User.name, User.email)
         """
@@ -682,13 +677,13 @@ class Model(object):
     @classmethod
     def where(cls, *lst, **dct):
         """
-        Parameters:
+        parameters:
           lst, expressions, e.g.: User.id > 3
           dct, datas, e.g.: name="Join"
 
         e.g.
           User.where(User.name == "Join", id=4).select()
-        produce
+          =>
           select user.id, user.email, user.name from user where user.name = 'Join' and user.id = 4
         """
         cls.runtime.set_where(lst, dct)
@@ -697,13 +692,13 @@ class Model(object):
     @classmethod
     def update(cls, *lst, **dct):
         """
-        Parameter:
-          lst, expressions, e.g.: User.name == "Join"
-          ct, datas, e.g.: name="Join"
+        parameter:
+          lst, expressions, e.g. User.name == "Join"
+          dct, datas, e.g. name="Join"
 
         e.g.
           User.where(User.id <=5 ).update(name="Join")
-        produce
+          =>
           update user set user.name = 'Join' where user.id <= 5
         """
         cls.runtime.set_set(lst, dct)
@@ -712,7 +707,7 @@ class Model(object):
     @classmethod
     def orderby(cls, field, desc=False):
         """
-        Parameter:
+        parameter:
           field, field to order by
           desc, if desc, bool
         e.g.
@@ -724,27 +719,29 @@ class Model(object):
     @classmethod
     def at(cls, _id):
         """
-        at(_id) is the same with where(Model.primarykey == _id)
+        at(_id) is the alias of where(Model.primarykey == _id)
         """
         return cls.where(cls.primarykey == _id)
 
     @classmethod
     def create(cls, *lst, **dct):
         """
-        Parameters:
-          lst, expressions, e.g.:User.name == "xiaoming"
-          dct, e.g.: name="xiaoming"
+        parameters:
+          lst, expressions, e.g. User.name == "xiaoming"
+          dct, e.g. name="xiaoming"
 
         e.g.
           User.create(name="Join", email="Join@gmail.com")
-        produce
+          =>
           insert into user set user.name = 'Join', user.email = 'Join@gmail.com'
         """
         cls.runtime.set_set(lst, dct)
         _id = Query.insert(cls.runtime)
-        if _id:
+
+        if _id is not None:
             dct[cls.primarykey.name] = _id  # add id to dct
             return cls(*lst, **dct)
+
         return None
 
     @classmethod
@@ -752,64 +749,55 @@ class Model(object):
         """
         e.g.
           User.at(1).delete()
-        Produce
+          =>
           delete user from user where user.id = 1
         """
         return Query.delete(cls.runtime)
 
     @property
-    def _id(self):  # value of primarykey
-        """
-        id for this object, actually is the value of primary key.
-        """
+    def _id(self): # value of primarykey
+        """value of this instance's primarykey"""
         cls = self.__class__
         return self.data.get(cls.primarykey.name, None)
 
     def save(self):
-        """
-        save data to table.
-        """
+        """save this instance's data to database"""
         model = self.__class__
         _id = self._id
 
         if not _id:  # if insert
             model.runtime.set_set([], self.data)
-            _id = Query.insert(model.runtime)
-            if _id:
-                self.data[model.primarykey.name] = _id  # set primarykey value
+            ret = Query.insert(model.runtime)
+
+            if ret is not None:
+                self.data[model.primarykey.name] = ret  # set primarykey value
                 self._cache = self.data.copy()  # sync cache after save
-                return _id
-        else:  # update
+        else:  # else, update
             # only update changed data
             dct = dict(set(self.data.items()) - set(self._cache.items()))
 
             if not dct:
-                return 1  # data not change
-            re = model.at(_id).update(**dct)
-            if re:
-                self._cache = self.data.copy()  # sync cache after save
-                return re  # success update
-        return 0
+                return 0  # data not change
+
+            ret = model.at(_id).update(**dct)
+            self._cache = self.data.copy()  # sync cache after save
+        return ret
 
     def destroy(self):
-        """
-        delete this object's data in database.
-        """
+        """delete this object's data in database"""
         if self._id:
             model = self.__class__
             return model.at(self._id).delete()
-        return 0
 
 
 class Models(object):
-    # multiple models
+    """Mutiple models"""
 
     def __init__(self, *models):
 
         self.models = list(models)  # cast to list
         self.single = False
         self.runtime = Runtime(self)
-
         self.table_name = ", ".join([m.table_name for m in self.models])
         self.primarykey = [m.primarykey for m in self.models]
 
@@ -840,24 +828,23 @@ class Models(object):
 class JoinModel(Models):
     """
     JoinModel(main_model, join_model)
-    e.g.  Post & User will get JoinModel(Post, User)
+    e.g. Post & User will get JoinModel(Post, User)
     """
 
     def __init__(self, main, join):  # main's foreignkey is join's primarykey
         super(JoinModel, self).__init__(main, join)
 
-        self.bridge = None  # the foreignkey point to join
+        self.bridge = None # the foreignkey point to join
 
-        # find the foreignkey
+        # try to find the foreignkey
         for field in main.get_fields():
             if field.is_foreignkey and field.point_to is join.primarykey:
                 self.bridge = field
 
         if not self.bridge:
-            raise Exception(
-                "foreignkey references to " +
-                join.__name__ + " not found in " + main.__name__
-            )
+            raise ForeignKeyNotFound(
+                "Foreign key references to "
+                "'%s' not found in '%s'" % (join.__name__, main.__name__))
 
     def brigde_wrapper(func):
         def e(self, *arg, **kwarg):
@@ -904,13 +891,13 @@ def loadSugar():
     def MetaModel_getslice(model, start, end):
         # model[start, end]
         # e.g. users = User[1:3]
-        # Produce: select * from user where user.id >= start and user.id  <= end
+        # Produce: select * from user where user.id >= start and user.id <= end
         exprs = []
 
         if start:
             exprs.append(model.primarykey >= start)
 
-        if end < 0x7fffffff:  # extremely big..
+        if end < 0x7fffffff: # extremely big..
             exprs.append(model.primarykey <= end)
 
         return model.where(*exprs).select().fetchall()
@@ -951,5 +938,6 @@ class ModuleWrapper(ModuleType):
                 loadSugar()
                 return
             raise AttributeError
+
 
 sys.modules[__name__] = ModuleWrapper(sys.modules[__name__])

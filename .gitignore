@@ -1,7 +1,7 @@
 .*.swp
 .*.swo
 *.pyc
-test.py
+test*.py
 build/
 dist/
 CURD.py.egg-info
