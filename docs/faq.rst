@@ -16,7 +16,7 @@ out a new SQL::
 the ``u'小明'`` above will be encode with ``utf8`` at first, and then CURD's 
 compiler makes a SQL::
 
-    select user.id where user.name = '小明';
+    select user.id from user where user.name = '小明';
 
 
 SQL Injection Problem?

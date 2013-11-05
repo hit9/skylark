@@ -1,15 +1,21 @@
 version 0.2.5 (**not backward compatiable**)
 --------------------------------------------
 
-Removed
+Removed:
 
-- `Database.debug`, no more debug mode
-- `Database.SQL`, no more SQL last executed recorded
-- `Database.query_times`, no more query_times recorded
-- `Database.execute()` now return `rows_affected` no more `rows_matched`
+- `Database.debug`
+- `Database.SQL`
+- `Database.query_times`
 
+Changes:
+
+- `Database.execute()` now return `rows_affected`, not `rows_matched`
 - `model.save()` now return `0` for 'data not changed'
 - `select_result.count` return long int now, no `cast to int`
+
+Added:
+
+- Exceptions: `UnSupportedType`, `ForeignKeyNotFound`
 
 version 0.2.2
 -------------

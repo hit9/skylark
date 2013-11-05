@@ -1,4 +1,4 @@
-#
+# coding=utf8
 # run tests with nose:
 #
 # $ nosetests
@@ -115,6 +115,15 @@ class TestField_:
         assert Post.user_id.is_foreignkey is True
         assert Post.user_id.point_to is User.id
 
+
+class TestExpr:
+
+    def test_op(self):
+        expr1 = User.name == "Join"
+        expr2 = User.email == "Join@github.com"
+        assert expr1 & expr2 == "user.name = 'Join' and user.email = 'Join@github.com'"
+        assert expr1 | expr2 == "user.name = 'Join' or user.email = 'Join@github.com'"
+
     def test_operator(self):
 
         sys.path.insert(0, '..')
@@ -157,14 +166,16 @@ class TestField_:
         assert expr1 == expr2
         assert tostr(expr1) is tostr(expr2)
 
+    def test_unicode(self):
 
-class TestExpr:
+        from CURD import Compiler
 
-    def test_op(self):
-        expr1 = User.name == "Join"
-        expr2 = User.email == "Join@github.com"
-        assert expr1 & expr2 == "user.name = 'Join' and user.email = 'Join@github.com'"
-        assert expr1 | expr2 == "user.name = 'Join' or user.email = 'Join@github.com'"
+        tostr = Compiler.parse_expr
+
+        expr = User.name == u"你好世界"
+
+        assert tostr(expr) == "user.name = '你好世界'"
+
 
 
 class TestModel_:
@@ -360,6 +371,16 @@ class TestJoinModel(Test):
             User.name == "hello"
         ).update(Post.name == "good") == 5L
 
+    def test_foreignkey_exception(self):
+        sys.path.insert(0, "..")
+        from CURD import ForeignKeyNotFound
+        try:
+            User & Post
+        except ForeignKeyNotFound:
+            pass
+        else:
+            raise Exception
+
 
 # select_result Tests
 
@@ -406,4 +427,10 @@ class TestSugar(Test):
         user1 = User(User.name == "myname")
         assert user1 in User
         user1.email = "email"
+        assert user1 not in User
+
+    def test_unicode_in(self):
+        user = User.create(name="小明", email="xiaoming@gmail.com")
+        assert user in User
+        user1 = User(name=u"lalala23456")
         assert user1 not in User
