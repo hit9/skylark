@@ -44,7 +44,7 @@ Install
 Documents
 ---------
 
-Documentaion is already on https://curdpy.readthedocs.org/
+Documentaion is already on http://curdpy.readthedocs.org/
 
 FAQ
 ---
