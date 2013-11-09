@@ -18,6 +18,8 @@ Only support C, U, R, D, responsing to its name:
 
 - Multiple Tables
 
+**NOTE**: CURD.py may not be stable before version v1.0
+
 Sample Code
 -----------
 
