@@ -875,16 +875,18 @@ def loadSugar():
     def MetaModel_getslice(model, start, end):
         # model[start, end]
         # e.g. users = User[1:3]
-        # Produce: select * from user where user.id >= start and user.id <= end
-        exprs = []
+        # Produce: select * from user limit start, end-start
 
-        if start:
-            exprs.append(model.primarykey >= start)
+        offset = start
 
-        if end < 0x7fffffff: # extremely big..
-            exprs.append(model.primarykey <= end)
+        if end < 0x7fffffff:
+            rows = end - start
+        else:  # get all rows
+            rows = 0x7fffffff
 
-        return model.where(*exprs).select().fetchall()
+        query = model.limit(rows, offset=offset).select()
+        results = query.execute()
+        return results.fetchall()
 
     MetaModel.__getslice__ = MetaModel_getslice
     # --------------------------------------- }
