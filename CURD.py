@@ -588,15 +588,20 @@ class SelectResult(object):
             data_dct[field.name] = value
         return b
 
+    def __instance_from_db(self, model, data):
+        instance = model(**data)
+        instance.set_in_db(True)
+        return instance
+
     def fetchone(self):  # fetch one row each time
         '''Fetch a single row each time'''
         dct = self.cursor.fetchone()
 
         if self.model.single:
-            return self.model(**dct) if dct else None
+            return self.__instance_from_db(self.model, dct) if dct else None
         else:
             b = self.mddct(dct)
-            return tuple(m(**b[m]) for m in self.model.models)
+            return tuple(self.__instance_from_db(m, b[m]) for m in self.model.models)
 
     def fetchall(self):
         '''Fetch all rows at a time'''
@@ -604,11 +609,11 @@ class SelectResult(object):
 
         if self.model.single:
             for dct in data:
-                yield self.model(**dct)
+                yield self.__instance_from_db(self.model, dct)
         else:
             for dct in data:
                 b = self.mddct(dct)
-                yield tuple(m(**b[m]) for m in self.model.models)
+                yield tuple(self.__instance_from_db(m, b[m]) for m in self.model.models)
 
     @property
     def count(self):
@@ -669,10 +674,10 @@ class Model(object):
         for expr in lst:
             field, value = expr.left, expr.right
             self.data[field.name] = value
-        # update data dict from data parameter
-        self.data.update(dct)
-        # cache for data
-        self._cache = self.data.copy()
+
+        self.data.update(dct) # update data dict from data parameter
+        self._cache = self.data.copy()  # cache for data
+        self.set_in_db(False)  # not in database
 
     @classmethod
     def get_fields(cls):
@@ -710,14 +715,13 @@ class Model(object):
 
     @classmethod
     def create(cls, *lst, **dct):
-        query = cls.inert(*lst, **dct)
-        _id = query.execute()
-
-        if _id is not None:
-            dct[cls.primarykey.name] = _id  # add id to dct
-            return cls(*lst, **dct)  # TODO: in_db=True
-
-        return None
+        query = cls.insert(*lst, **dct)
+        id = query.execute()
+        if id is not None:
+            dct[cls.primarykey.name] = id  # add id to dct
+            instance = cls(*lst, **dct)
+            instance.set_in_db(True)
+            return instance
 
     @classmethod
     def delete(cls):
@@ -725,36 +729,37 @@ class Model(object):
 
     @property
     def _id(self):  # value of primarykey
-        cls = self.__class__
-        return self.data.get(cls.primarykey.name, None)
+        return self.data.get(type(self).primarykey.name, None)
+
+    def set_in_db(self, boolean):
+        self._in_db = boolean
 
     def save(self):
-        model = self.__class__
-        _id = self._id
+        model = type(self)
 
-        if not _id:  # if insert
-            model.runtime.set_set([], self.data)
-            ret = Query.insert(model.runtime)  # TODO; update to query.execute()
+        if not self._in_db:  # insert
+            id = model.insert(**self.data).execute()
 
-            if ret is not None:
-                self.data[model.primarykey.name] = ret  # set primarykey value
-                self._cache = self.data.copy()  # sync cache after save
-        else:  # else, update
+            if id is not None:
+                self.data[model.primarykey.name] = id  # set primarykey value
+                self._cache = self.data.copy()  # sync cache after saving
+            return id
+        else:  # update
             # only update changed data
             dct = dict(set(self.data.items()) - set(self._cache.items()))
 
-            if not dct:
-                return 0  # data not change
-
-            ret = model.at(_id).update(**dct)
-            self._cache = self.data.copy()  # sync cache after save
-        return ret
+            if dct:
+                query = model.at(self._id).update(**dct)
+                rows_affected = query.execute()
+            else:
+                rows_affected = 0
+            self._cache = self.data.copy()  # sync cache after saving
+            return rows_affected
 
     def destroy(self):
-        if self._id:
-            model = self.__class__
-            return model.at(self._id).delete()
-
+        if self._in_db:
+            return type(self).at(self._id).delete()
+        # TODO:need raise an exception?
 
 class Models(object):
     """Mutiple models"""
