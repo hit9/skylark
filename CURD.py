@@ -45,6 +45,7 @@ OP_OR = 9
 OP_LIKE = 10
 OP_BETWEEN = 11
 OP_IN = 12
+OP_NOT_IN = 13
 
 # marks for query types
 QUERY_INSERT = 20
@@ -269,9 +270,19 @@ class Field(Leaf):
 
     def _in(self, *values):
         """
-        e.g. User.id._in(1, 2, 3, 4, 5)
+        e.g.:
+          User.id._in(1, 2, 3, 4, 5)
+          User.id._in(Post.select(Post.user_id))
         """
         return Expr(self, values, OP_IN)
+
+    def not_in(self, *values):
+        """
+        e.g.:
+          User.id.not_in(1, 2, 3, 4, 5)
+          User.id.not_in(Post.select(Post.user_id))
+        """
+        return Expr(self, values, OP_NOT_IN)
 
 
 class PrimaryKey(Field):
@@ -360,9 +371,11 @@ class Compiler(object):
             string = tostr(l) + OP_MAPPING[op] + tostr(r)
         elif op is OP_BETWEEN:
             string = tostr(l) + ' between ' + tostr(r[0]) + ' and ' + tostr(r[1])
-        elif op is OP_IN:
+        elif op is OP_IN or OP_NOT_IN:
             values_str = ', '.join(tostr(value) for value in r)
-            string = tostr(l) + ' in ' + '(' + values_str + ')'
+            string = (tostr(l) + '%s in (' + values_str + ')') % (
+                ' not' if op is OP_NOT_IN else '')
+
 
         # set cache
         cache[expr] = string
@@ -486,11 +499,18 @@ class Runtime(object):
     def set_limit(self, offset_rows):
         self.data['limit'] = list(offset_rows)
 
-    def set_select(self, fields):
+    def set_select(self, fields, auto_append_primarykey=True):
         flst = list(fields)
+        primarykey = self.model.primarykey
 
-        if not flst:
-            # empty args -> select all fields
+        if flst:
+            if auto_append_primarykey:
+                if self.model.single:
+                    flst.append(primarykey)
+                else:
+                    flst.extend(primarykey)
+        else:
+            # else, empty args -> select all fields
             flst = self.model.get_fields()
         # remove duplicates
         self.data['select'] = list(set(flst))
@@ -701,8 +721,8 @@ class Model(object):
         return InsertQuery(cls.runtime)
 
     @classmethod
-    def select(cls, *flst):
-        cls.runtime.set_select(flst)
+    def select(cls, auto_append_primarykey=True, *flst):
+        cls.runtime.set_select(flst, auto_append_primarykey=auto_append_primarykey)
         return SelectQuery(cls.runtime)
 
     @classmethod
