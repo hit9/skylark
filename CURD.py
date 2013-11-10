@@ -396,6 +396,14 @@ class Compiler(object):
         return ', '.join(field.fullname for field in lst)
 
     @staticmethod
+    def parse_limit(lst):
+        offset, rows = lst
+        if offset is None:
+            return ' limit %s ' % rows
+        else:
+            return ' limit %s, %s ' % lst
+
+    @staticmethod
     def parse_set(lst):
         '''parse set expressions to string'''
         return ' set ' + ', '.join(
@@ -434,13 +442,14 @@ class Compiler(object):
         _set = Compiler.parse_set(data['set'])
         _orderby = Compiler.parse_orderby(data['orderby'])
         _select = Compiler.parse_select(data['select'])
+        _limit = Compiler.parse_limit(data['limit'])
 
         if query_type is QUERY_INSERT:
             SQL = 'insert into ' + target_table + _set
         elif query_type is QUERY_UPDATE:
             SQL = 'update ' + target_table + _set + _where
         elif query_type is QUERY_SELECT:
-            SQL = 'select ' + _select + ' from ' + from_table + _where + _orderby
+            SQL = 'select ' + _select + ' from ' + from_table + _where + _orderby + _limit
         elif query_type is QUERY_DELETE:
             SQL = 'delete ' + target_table + ' from ' + from_table + _where
 
@@ -452,7 +461,7 @@ class Runtime(object):
 
     def __init__(self, model=None):
         self.model = model
-        self.data = {}.fromkeys(('where', 'set', 'orderby', 'select'), None)
+        self.data = {}.fromkeys(('where', 'set', 'orderby', 'select', 'limit'), None)
         # reset runtime data
         self.reset_data()
 
@@ -467,6 +476,9 @@ class Runtime(object):
           tuple, tuple of (field, desc), desc is a boolean
         '''
         self.data['orderby'] = list(field_desc)
+
+    def set_limit(self, offset_rows):
+        self.data['limit'] = offset_rows
 
     def set_select(self, fields):
         flst = list(fields)
@@ -710,6 +722,11 @@ class Model(object):
         return cls
 
     @classmethod
+    def limit(cls, rows, offset=None):
+        cls.runtime.set_limit((offset, rows))
+        return cls
+
+    @classmethod
     def at(cls, _id):  # TODO: changed to limit
         return cls.where(cls.primarykey == _id)
 
@@ -752,13 +769,13 @@ class Model(object):
                 query = model.at(self._id).update(**dct)
                 rows_affected = query.execute()
             else:
-                rows_affected = 0
+                rows_affected = 0L
             self._cache = self.data.copy()  # sync cache after saving
             return rows_affected
 
     def destroy(self):
         if self._in_db:
-            return type(self).at(self._id).delete()
+            return type(self).at(self._id).delete().execute()
         # TODO:need raise an exception?
 
 class Models(object):
@@ -782,7 +799,7 @@ class Models(object):
 
     def select(self, *lst):
         self.runtime.set_select(lst)
-        return SelecyQuery(self.runtime)
+        return SelectQuery(self.runtime)
 
     def update(self, *lst):
         self.runtime.set_set(lst, {})
@@ -797,10 +814,6 @@ class Models(object):
 
 
 class JoinModel(Models):
-    """
-    JoinModel(main_model, join_model)
-    e.g. Post & User will get JoinModel(Post, User)
-    """
 
     def __init__(self, main, join):  # main's foreignkey is join's primarykey
         super(JoinModel, self).__init__(main, join)
