@@ -959,8 +959,7 @@ def loadSugar():
     # return True or False
     def MetaModel_contains(model, obj):
         if isinstance(obj, model):
-            query = model.where(**obj.data).select()
-            result = query.execute()
+            result = model.where(**obj.data).select().execute()
             if result.count:
                 return True
         return False

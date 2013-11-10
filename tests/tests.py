@@ -303,6 +303,7 @@ class TestModel(Test):
         self.create_data(3, table=1)
         user = User.at(1).getone()
         assert user.id == 1L
+        assert User.at(100).getone() is None
 
     def test_getall(self):
         self.create_data(3, table=1)
