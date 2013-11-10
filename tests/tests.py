@@ -146,7 +146,7 @@ class TestExpr_:
         expr8 = User.id.between(3, 4)
         expr9 = User.id._in(1, 2, 3)
         expr10 = User.name.like("%Join%")
-        expr11 = USer.id.not_in(1, 2, 3)
+        expr11 = User.id.not_in(1, 2, 3)
         assert tostr(expr1) == "user.id < 4"
         assert tostr(expr2) == "user.id <= 4"
         assert tostr(expr3) == "user.id > 4"
@@ -157,7 +157,7 @@ class TestExpr_:
         assert tostr(expr8) == "user.id between 3 and 4"
         assert tostr(expr9) == "user.id in (1, 2, 3)"
         assert tostr(expr10) == "user.name like '%Join%'"
-        assert tostr(expr11) == "user.name not in (1, 2, 3)"
+        assert tostr(expr11) == "user.id not in (1, 2, 3)"
 
     def test_parser_cache(self):
 
@@ -248,36 +248,64 @@ class TestModel(Test):
         assert User.where(User.name == "name1").select().execute().count == 1L
         assert User.where(
             User.name == "name1", User.email == "email"
-        ).select().count == 0L
+        ).select().execute().count == 0L
         assert User.where(
             User.name == "name1", email="email"
-        ).select().count == 0L
-        assert User.where(name="name1", email="email1").select().count == 1L
+        ).select().execute().count == 0L
+        assert User.where(name="name1", email="email1").select().execute().count == 1L
 
     def test_at(self):
         self.create_data(3, table=1)
-        assert User.at(1).select().count == 1L
-        assert User.at(-1).select().count == 0
-        assert User.at(1).select().fetchone().name == "name1"
-        assert User.at(1).delete()
+        assert User.at(1).select().execute().count == 1L
+        assert User.at(-1).select().execute().count == 0
+        assert User.at(1).select().execute().fetchone().name == "name1"
+        assert User.at(1).delete().execute()
 
     def test_orderby(self):
         self.create_data(3, table=1)
-        users = User.orderby(User.id, desc=True).select(User.name).fetchall()
+        users = User.orderby(User.id, desc=True).select(User.name).execute().fetchall()
         user1, user2, user3 = tuple(users)
         assert user1.id > user2.id > user3.id
 
     def test_modelobj_save(self):
         user = User(name="jack", email="jack@github.com")
         assert user.save()
-        assert User.select().count == 1L
+        assert User.select().execute().count == 1L
         user.name = "li"
         assert user.save()
-        assert User.at(1).select().fetchone().name == "li"
+        assert User.at(1).select().execute().fetchone().name == "li"
 
     def test_modelobj_destroy(self):
         self.create_data(3, table=1)
-        user = User.at(1).select().fetchone()
+        user = User.at(1).select().execute().fetchone()
         assert user.destroy()
-        assert User.at(1).select().fetchone() is None
+        assert User.at(1).select().execute().fetchone() is None
+
+    def test_select_without_primaryeky(self):
+        self.create_data(3, table=1)
+        user = User.at(1).select_without_primarykey(User.name).execute().fetchone()
+        try:
+            name = user.name
+        except KeyError:
+            pass
+
+    def test_findone(self):
+        self.create_data(3, table=1)
+        user = User.findone(name="name1")
+        assert User.id
+
+    def test_findall(self):
+        self.create_data(3, table=1)
+        users = User.findall(User.name.like("name%"))
+        assert len(list(users)) is 3
+
+    def test_getone(self):
+        self.create_data(3, table=1)
+        user = User.at(1).getone()
+        assert user.id == 1L
+
+    def test_getall(self):
+        self.create_data(3, table=1)
+        users = User.where(User.name=="name1").getall()
+        assert len(list(users)) is 1
 

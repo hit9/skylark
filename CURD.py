@@ -780,11 +780,29 @@ class Model(object):
     def delete(cls):
         return DeleteQuery(cls.runtime)
 
+    #  ------------------ {{{select shortcuts
+
     @classmethod
     def findone(cls, *lst, **dct):
-        query = cls.select(*lst, **dct)
+        query = cls.where(*lst, **dct).select()
         result = query.execute()
-        return result.findone()
+        return result.fetchone()
+
+    @classmethod
+    def findall(cls, *lst, **dct):
+        query = cls.where(*lst, **dct).select()
+        result = query.execute()
+        return result.fetchall()
+
+    @classmethod
+    def getone(cls):
+        return cls.select().execute().fetchone()
+
+    @classmethod
+    def getall(cls):
+        return cls.select().execute().fetchall()
+
+    # ------------ select shortcuts }}}
 
     @property
     def _id(self):  # value of primarykey
@@ -801,6 +819,7 @@ class Model(object):
 
             if id is not None:
                 self.data[model.primarykey.name] = id  # set primarykey value
+                self.set_in_db(True)
                 self._cache = self.data.copy()  # sync cache after saving
             return id
         else:  # update
