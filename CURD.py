@@ -221,6 +221,9 @@ class Expr(Leaf):
     def __eq__(self, other):
         return self.__attrs() == self.__attrs()
 
+    def __repr__(self):
+        return '<Expression %r>' % Compiler.parse_expr(self)
+
 
 class FieldDescriptor(object):
 
@@ -489,6 +492,9 @@ class Runtime(object):
         dct = dict((key, []) for key in self.data.keys())
         self.data.update(dct)
 
+    def __repr__(self):
+        return '''<Runtime %r>''' % self.data
+
     def set_orderby(self, field_desc):
         '''
         filed_desc
@@ -540,23 +546,9 @@ class Runtime(object):
 class Query(object):
 
     def __init__(self, query_type, runtime, target_model=None):
-        self.sql = Compiler.gen_sql(runtime, query_type, target_model)
-        self.runtime = runtime
         self.query_type = query_type
-
-    def execute(self):
-        cursor = Database.execute(self.sql)
-
-        if self.query_type is QUERY_INSERT:
-            ret = cursor.lastrowid if cursor.rowcount else None
-        elif self.query_type in (QUERY_UPDATE, QUERY_DELETE):
-            ret = cursor.rowcount
-        elif self.query_type is QUERY_SELECT:
-            ret = SelectResult(cursor, self.runtime.model, self.runtime.data['select'])
-
-        self.runtime.reset_data()
-
-        return ret
+        self.sql = Compiler.gen_sql(runtime, self.query_type, target_model)
+        runtime.reset_data()  # ! important: clean runtime right on this query initialized
 
     def __repr__(self):
         return '<%s (%s)>' % (type(self).__name__, self.sql)
@@ -567,23 +559,43 @@ class InsertQuery(Query):
     def __init__(self, runtime, target_model=None):
         super(InsertQuery, self).__init__(QUERY_INSERT, runtime, target_model)
 
+    def execute(self):
+        cursor = Database.execute(self.sql)
+        return cursor.lastrowid if cursor.rowcount else None
+
 
 class UpdateQuery(Query):
 
     def __init__(self, runtime, target_model=None):
         super(UpdateQuery, self).__init__(QUERY_UPDATE, runtime, target_model)
 
+    def execute(self):
+        cursor = Database.execute(self.sql)
+        return cursor.rowcount
 
 class SelectQuery(Query):
 
     def __init__(self, runtime, target_model=None):
+        self.from_model = runtime.model
+        self.select_fields = runtime.data['select']
         super(SelectQuery, self).__init__(QUERY_SELECT, runtime, target_model)
 
+    def __iter__(self):
+        result = self.execute()
+        return result.fetchall()
+
+    def execute(self):
+        cursor = Database.execute(self.sql)
+        return SelectResult(cursor, self.from_model, self.select_fields)
 
 class DeleteQuery(Query):
 
     def __init__(self, runtime, target_model=None):
         super(DeleteQuery, self).__init__(QUERY_DELETE, runtime, target_model)
+
+    def execute(self):
+        cursor = Database.execute(self.sql)
+        return cursor.rowcount
 
 
 class SelectResult(object):
@@ -721,8 +733,13 @@ class Model(object):
         return InsertQuery(cls.runtime)
 
     @classmethod
-    def select(cls, auto_append_primarykey=True, *flst):
-        cls.runtime.set_select(flst, auto_append_primarykey=auto_append_primarykey)
+    def select(cls, *flst):
+        cls.runtime.set_select(flst, auto_append_primarykey=True)
+        return SelectQuery(cls.runtime)
+
+    @classmethod
+    def select_without_primarykey(cls, *flst):
+        cls.runtime.set_select(flst, auto_append_primarykey=False)
         return SelectQuery(cls.runtime)
 
     @classmethod
@@ -762,6 +779,12 @@ class Model(object):
     @classmethod
     def delete(cls):
         return DeleteQuery(cls.runtime)
+
+    @classmethod
+    def findone(cls, *lst, **dct):
+        query = cls.select(*lst, **dct)
+        result = query.execute()
+        return result.findone()
 
     @property
     def _id(self):  # value of primarykey
