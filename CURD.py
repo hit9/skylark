@@ -22,7 +22,7 @@
 # and this permission notice appear in all copies.
 #
 
-__version__ = '0.2.5'
+__version__ = '0.3.0'
 
 
 import sys
@@ -520,14 +520,15 @@ class Query(object):
             ret = cursor.lastrowid if cursor.rowcount else None
         elif self.query_type in (QUERY_UPDATE, QUERY_DELETE):
             ret = cursor.rowcount
-        else self.query_type is QUERY_SELECT:
+        elif self.query_type is QUERY_SELECT:
             ret = SelectResult(cursor, self.runtime.model, self.runtime.data['select'])
 
         self.runtime.reset_data()
 
         return ret
 
-    exec = execute  # alias
+    def __repr__(self):
+        return '<%s (%s)>' % (type(self).__name__, self.sql)
 
 
 class InsertQuery(Query):
@@ -569,15 +570,13 @@ class SelectResult(object):
         # so, this attribute `nfdct` makes a dict {field name: field object}
         # responsing to MySQLdb's behavior
 
-        nfdct = {}
+        nfdct = self.nfdct = {}
 
         for field in self.fields:
             if field.name not in nfdct:
                 nfdct[field.name] = field
             else:
                 nfdct[field.fullname] = field
-
-        self.nfdct = nfdct
 
     def mddct(self, data):  # {model: data dict}
         models = self.model.models
@@ -681,105 +680,55 @@ class Model(object):
         return cls.fields.values()
 
     @classmethod
+    def insert(cls, *lst, **dct):
+        cls.runtime.set_set(lst, dct)
+        return InsertQuery(cls.runtime)
+
+    @classmethod
     def select(cls, *flst):
-        """
-        parameters:
-          flst, list of fields to select out
-        e.g.
-          User.select(User.name, User.email)
-        """
         cls.runtime.set_select(flst)
         return SelectQuery(cls.runtime)
 
     @classmethod
     def where(cls, *lst, **dct):
-        """
-        parameters:
-          lst, expressions, e.g.: User.id > 3
-          dct, datas, e.g.: name="Join"
-
-        e.g.
-          User.where(User.name == "Join", id=4).select()
-          =>
-          select user.id, user.email, user.name from user where user.name = 'Join' and user.id = 4
-        """
         cls.runtime.set_where(lst, dct)
         return cls
 
     @classmethod
     def update(cls, *lst, **dct):
-        """
-        parameter:
-          lst, expressions, e.g. User.name == "Join"
-          dct, datas, e.g. name="Join"
-
-        e.g.
-          User.where(User.id <=5 ).update(name="Join")
-          =>
-          update user set user.name = 'Join' where user.id <= 5
-        """
         cls.runtime.set_set(lst, dct)
         return UpdateQuery(cls.runtime)
 
     @classmethod
     def orderby(cls, field, desc=False):
-        """
-        parameter:
-          field, field to order by
-          desc, if desc, bool
-        e.g.
-          User.where(User.id <= 5).orderby(User.id, desc=True).select()
-        """
         cls.runtime.set_orderby((field, desc))
         return cls
 
     @classmethod
-    def at(cls, _id):
-        """
-        at(_id) is the alias of where(Model.primarykey == _id)
-        """
+    def at(cls, _id):  # TODO: changed to limit
         return cls.where(cls.primarykey == _id)
 
     @classmethod
     def create(cls, *lst, **dct):
-        """
-        parameters:
-          lst, expressions, e.g. User.name == "xiaoming"
-          dct, e.g. name="xiaoming"
-
-        e.g.
-          User.create(name="Join", email="Join@gmail.com")
-          =>
-          insert into user set user.name = 'Join', user.email = 'Join@gmail.com'
-        """
-        cls.runtime.set_set(lst, dct)
-        query = InsertQuery(cls.runtime)
+        query = cls.inert(*lst, **dct)
         _id = query.execute()
 
         if _id is not None:
             dct[cls.primarykey.name] = _id  # add id to dct
-            return cls(*lst, **dct)
+            return cls(*lst, **dct)  # TODO: in_db=True
 
         return None
 
     @classmethod
     def delete(cls):
-        """
-        e.g.
-          User.at(1).delete()
-          =>
-          delete user from user where user.id = 1
-        """
         return DeleteQuery(cls.runtime)
 
     @property
-    def _id(self): # value of primarykey
-        """value of this instance's primarykey"""
+    def _id(self):  # value of primarykey
         cls = self.__class__
         return self.data.get(cls.primarykey.name, None)
 
     def save(self):
-        """save this instance's data to database"""
         model = self.__class__
         _id = self._id
 
@@ -802,7 +751,6 @@ class Model(object):
         return ret
 
     def destroy(self):
-        """delete this object's data in database"""
         if self._id:
             model = self.__class__
             return model.at(self._id).delete()
@@ -831,9 +779,9 @@ class Models(object):
         self.runtime.set_select(lst)
         return SelecyQuery(self.runtime)
 
-    def update(self, *lst, target_model=None):
+    def update(self, *lst):
         self.runtime.set_set(lst, {})
-        return UpdateQuery(self.runtime, target_model)
+        return UpdateQuery(self.runtime)
 
     def delete(self, target_model=None):
         return DeleteQuery(self.runtime, target_model=target_model)
@@ -878,8 +826,8 @@ class JoinModel(Models):
         return super(JoinModel, self).select(*lst)
 
     @brigde_wrapper
-    def update(self, *lst, target_model=None):
-        return super(JoinModel, self).update(*lst, target_model)
+    def update(self, *lst):
+        return super(JoinModel, self).update(*lst)
 
     @brigde_wrapper
     def delete(self, target_model=None):
