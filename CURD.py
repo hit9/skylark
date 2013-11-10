@@ -333,6 +333,8 @@ class Compiler(object):
                 side = side.encode('utf8')  # encode unicode with `utf8`
             escaped_str = MySQLdb.escape_string(side)  # !safety
             return "'%s'" % escaped_str
+        elif isinstance(side, Query):
+            return side.sql
         else:
             raise UnSupportedType("Unsupported type '%s' in one side of some"
                                   " expression" % str(type(side)))
@@ -397,7 +399,11 @@ class Compiler(object):
 
     @staticmethod
     def parse_limit(lst):
+        if not lst:
+            return ''
+
         offset, rows = lst
+
         if offset is None:
             return ' limit %s ' % rows
         else:
@@ -478,20 +484,13 @@ class Runtime(object):
         self.data['orderby'] = list(field_desc)
 
     def set_limit(self, offset_rows):
-        self.data['limit'] = offset_rows
+        self.data['limit'] = list(offset_rows)
 
     def set_select(self, fields):
         flst = list(fields)
-        primarykey = self.model.primarykey
 
-        if flst:
-            # add primarykey(s) to select fields list
-            if self.model.single:
-                flst.append(primarykey)
-            else:
-                flst.extend(primarykey)
-        else:
-            # else, empty args -> select all fields
+        if not flst:
+            # empty args -> select all fields
             flst = self.model.get_fields()
         # remove duplicates
         self.data['select'] = list(set(flst))
