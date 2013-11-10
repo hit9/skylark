@@ -508,33 +508,50 @@ class Runtime(object):
 
 class Query(object):
 
-    def Q(QUERY_TYPE):
-        @staticmethod
-        def _Q(runtime, target_model=None):
-            sql = Compiler.gen_sql(runtime, QUERY_TYPE, target_model)
-            cursor = Database.execute(sql)
+    def __init__(self, query_type, runtime, target_model=None):
+        self.sql = Compiler.gen_sql(runtime, QUERY_TYPE, target_model)
+        self.runtime = runtime
+        self.query_type = query_type
 
-            if QUERY_TYPE is QUERY_INSERT:
-                re = cursor.lastrowid if cursor.rowcount else None
-            elif QUERY_TYPE in (QUERY_UPDATE, QUERY_DELETE):
-                re = cursor.rowcount
-            elif QUERY_TYPE is QUERY_SELECT:
-                re = SelectResult(cursor, runtime.model, runtime.data['select'])
+    def execute(self):
+        cursor = Database.execute(self.sql)
 
-            if QUERY_TYPE is not QUERY_SELECT:  # close cursor on non-select query
-                cursor.close()
-            # dont forget clear runtime infomation after query
-            runtime.reset_data()
-            return re
-        return _Q
+        if self.query_type is QUERY_INSERT:
+            ret = cursor.lastrowid if cursor.rowcount else None
+        elif self.query_type in (QUERY_UPDATE, QUERY_DELETE):
+            ret = cursor.rowcount
+        else self.query_type is QUERY_SELECT:
+            ret = SelectResult(cursor, self.runtime.model, self.runtime.data['select'])
 
-    insert = Q(QUERY_INSERT)
+        self.runtime.reset_data()
 
-    delete = Q(QUERY_DELETE)
+        return ret
 
-    update = Q(QUERY_UPDATE)
+    exec = execute  # alias
 
-    select = Q(QUERY_SELECT)
+
+class InsertQuery(object):
+
+    def __init__(self, runtime, target_model=None):
+        super(InsertQuery, self).__init__(QUERY_INSERT, runtime, target_model)
+
+
+class UpdateQuery(object):
+
+    def __init__(self, runtime, target_model=None):
+        super(UpdateQuery, self).__init__(QUERY_UPDATE, runtime, target_model)
+
+
+class SelectQuery(self):
+
+    def __init__(self, runtime, target_model=None):
+        super(SelectQuery, self).__init__(QUERY_SELECT, runtime, target_model)
+
+
+class DeleteQuery(self):
+
+    def __init__(self, runtime, target_model=None):
+        super(DeleteQuery, self).__init__(QUERY_DELETE, runtime, target_model)
 
 
 class SelectResult(object):
@@ -672,7 +689,7 @@ class Model(object):
           User.select(User.name, User.email)
         """
         cls.runtime.set_select(flst)
-        return Query.select(cls.runtime)
+        return SelectQuery(cls.runtime)
 
     @classmethod
     def where(cls, *lst, **dct):
@@ -702,7 +719,7 @@ class Model(object):
           update user set user.name = 'Join' where user.id <= 5
         """
         cls.runtime.set_set(lst, dct)
-        return Query.update(cls.runtime)
+        return UpdateQuery(cls.runtime)
 
     @classmethod
     def orderby(cls, field, desc=False):
@@ -736,7 +753,8 @@ class Model(object):
           insert into user set user.name = 'Join', user.email = 'Join@gmail.com'
         """
         cls.runtime.set_set(lst, dct)
-        _id = Query.insert(cls.runtime)
+        query = InsertQuery(cls.runtime)
+        _id = query.execute()
 
         if _id is not None:
             dct[cls.primarykey.name] = _id  # add id to dct
@@ -752,7 +770,7 @@ class Model(object):
           =>
           delete user from user where user.id = 1
         """
-        return Query.delete(cls.runtime)
+        return DeleteQuery(cls.runtime)
 
     @property
     def _id(self): # value of primarykey
@@ -767,7 +785,7 @@ class Model(object):
 
         if not _id:  # if insert
             model.runtime.set_set([], self.data)
-            ret = Query.insert(model.runtime)
+            ret = Query.insert(model.runtime)  # TODO; update to query.execute()
 
             if ret is not None:
                 self.data[model.primarykey.name] = ret  # set primarykey value
@@ -811,14 +829,14 @@ class Models(object):
 
     def select(self, *lst):
         self.runtime.set_select(lst)
-        return Query.select(self.runtime)
+        return SelecyQuery(self.runtime)
 
-    def update(self, *lst):
+    def update(self, *lst, target_model=None):
         self.runtime.set_set(lst, {})
-        return Query.update(self.runtime)
+        return UpdateQuery(self.runtime, target_model)
 
     def delete(self, target_model=None):
-        return Query.delete(self.runtime, target_model=target_model)
+        return DeleteQuery(self.runtime, target_model=target_model)
 
     def orderby(self, field, desc=False):
         self.runtime.set_orderby((field, desc))
@@ -860,8 +878,8 @@ class JoinModel(Models):
         return super(JoinModel, self).select(*lst)
 
     @brigde_wrapper
-    def update(self, *lst):
-        return super(JoinModel, self).update(*lst)
+    def update(self, *lst, target_model=None):
+        return super(JoinModel, self).update(*lst, target_model)
 
     @brigde_wrapper
     def delete(self, target_model=None):
