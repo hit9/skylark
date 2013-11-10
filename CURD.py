@@ -927,12 +927,10 @@ def loadSugar():
     # Model[index]
     # e.g. user = User[2]
 
-    def MetaModel_contains(model, index):
-        query = model.at(index).select()
-        result = query.execute()
-        return result.fetchone()
+    def MetaModel_getitem(model, index):
+        return model.at(index).getone()
 
-    MetaModel.__getitem__ = MetaModel_contains
+    MetaModel.__getitem__ = MetaModel_getitem
     # -------------------------------------- }
 
     # -------------------------------------- {

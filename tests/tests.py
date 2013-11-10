@@ -309,3 +309,16 @@ class TestModel(Test):
         users = User.where(User.name=="name1").getall()
         assert len(list(users)) is 1
 
+    def test_in_select(self):
+        self.create_data(4)
+        query = User.where(
+            User.id._in(Post.select_without_primarykey(Post.user_id))).select()
+        result = query.execute()
+        assert result.count == 4L
+
+    def test_not_in_select(self):
+        self.create_data(4)
+        query = User.where(
+            User.id.not_in(Post.select_without_primarykey(Post.user_id))).select()
+        result = query.execute()
+        assert result.count == 0L
