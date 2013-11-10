@@ -371,7 +371,7 @@ class Compiler(object):
             string = tostr(l) + OP_MAPPING[op] + tostr(r)
         elif op is OP_BETWEEN:
             string = tostr(l) + ' between ' + tostr(r[0]) + ' and ' + tostr(r[1])
-        elif op is OP_IN or OP_NOT_IN:
+        elif op in (OP_IN, OP_NOT_IN):
             values_str = ', '.join(tostr(value) for value in r)
             string = (tostr(l) + '%s in (' + values_str + ')') % (
                 ' not' if op is OP_NOT_IN else '')
@@ -885,9 +885,12 @@ def loadSugar():
     # Model[index]
     # e.g. user = User[2]
 
-    MetaModel.__getitem__ = (
-        lambda model, index: model.at(index).select().fetchone()
-    )
+    def MetaModel_contains(model, index):
+        query = model.at(index).select()
+        result = query.execute()
+        return result.fetchone()
+
+    MetaModel.__getitem__ = MetaModel_contains
     # -------------------------------------- }
 
     # -------------------------------------- {
@@ -915,8 +918,11 @@ def loadSugar():
     # e.g. user in User
     # return True or False
     def MetaModel_contains(model, obj):
-        if isinstance(obj, model) and model.where(**obj.data).select().count:
-            return True
+        if isinstance(obj, model):
+            query = model.where(**obj.data).select()
+            result = query.execute()
+            if result.count:
+                return True
         return False
     MetaModel.__contains__ = MetaModel_contains
     # --------------------------------------- }
