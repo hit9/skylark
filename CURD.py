@@ -509,7 +509,7 @@ class Runtime(object):
 class Query(object):
 
     def __init__(self, query_type, runtime, target_model=None):
-        self.sql = Compiler.gen_sql(runtime, QUERY_TYPE, target_model)
+        self.sql = Compiler.gen_sql(runtime, query_type, target_model)
         self.runtime = runtime
         self.query_type = query_type
 
@@ -530,25 +530,25 @@ class Query(object):
     exec = execute  # alias
 
 
-class InsertQuery(object):
+class InsertQuery(Query):
 
     def __init__(self, runtime, target_model=None):
         super(InsertQuery, self).__init__(QUERY_INSERT, runtime, target_model)
 
 
-class UpdateQuery(object):
+class UpdateQuery(Query):
 
     def __init__(self, runtime, target_model=None):
         super(UpdateQuery, self).__init__(QUERY_UPDATE, runtime, target_model)
 
 
-class SelectQuery(self):
+class SelectQuery(Query):
 
     def __init__(self, runtime, target_model=None):
         super(SelectQuery, self).__init__(QUERY_SELECT, runtime, target_model)
 
 
-class DeleteQuery(self):
+class DeleteQuery(Query):
 
     def __init__(self, runtime, target_model=None):
         super(DeleteQuery, self).__init__(QUERY_DELETE, runtime, target_model)
