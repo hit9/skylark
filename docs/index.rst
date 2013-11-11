@@ -70,5 +70,4 @@ Documentaion
     quickstart
     tips
     returns
-    where
     faq

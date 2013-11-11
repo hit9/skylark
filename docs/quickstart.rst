@@ -180,12 +180,15 @@ sample usage::
     >>> user = User.findone(name='Join')
     >>> user.id
     2L
+
     >>> users = User.findall(User.id > 0, name='Join')
     >>> [user.name for user in users]
     [u'Join']
+
     >>> user = User.at(2).getone()
     >>> user.name
     u'Join'
+
     >>> users = User.getall()
     >>> [(user.id, user.name) for user in users]
     [(1L, u'jack'), (2L, u'Join')]
@@ -212,6 +215,106 @@ or :
 
 Both the two methods return affected rows number.
 
+.. _Where:
+
+Where
+-----
+
+Method ``where`` seems to be magic::
+
+    Model.where(*expressions, **data)
+
+
+Expressions
+''''''''''''
+
+A ``Field object``, an operator and another side(string, value etc.) make up an
+expression.
+
+Here are some examples of mappings from expressions to sql strings:
+
+
+=======================       =========================
+Expressions                   SQL string
+=======================       =========================
+User.id < 3                   user.id < 3
+User.id > 3                   user.id > 3
+User.id <= 3                  user.id <= 3
+User.id >= 3                  user.id >= 3
+User.id == 3                  user.id = 3
+User.id != 3                  user.id <> 3
+User.id + 2                   user.id + 2
+User.name.like('a%')          user.name like 'a%'
+User.id._in(1, 2, 3)          user.id in (1, 2, 3)
+User.id.not_in(1, 2)          user.id not in (1, 2)
+User.id.between(3, 6)         user.id between 3 and 6
+expression & expression       expression and expression
+expression | expression       expression or expression
+=======================       =========================
+
+Where Sample Usage
+''''''''''''''''''
+::
+
+    >>> query = User.where(name='Jack').select()
+    >>> query.sql
+    "select user.name, user.email, user.id from user where user.name = 'Jack'"
+
+    >>> query = User.where(User.id.between(3,6)).select()
+    >>> query.sql
+    'select user.name, user.email, user.id from user where user.id between 3 and 6'
+
+
+    >>> query = User.where(User.name.like('%sample%')).select()
+    >>> query.sql
+    "select user.name, user.email, user.id from user where user.name like '%sample%'"
+
+SubQuery
+''''''''
+
+An example of subquery using operator ``_in``::
+
+    >>> query = User.where(User.id._in(
+    ...   Post.select_without_primarykey(Post.user_id)
+    ... )).select()
+    >>> query.sql
+    'select user.name, user.email, user.id from user where user.id in (select post.user_id from post)'
+
+**NOTE**: ``select`` will auto append ``primarykey`` to fields selected, to
+disable this feature, use ``select_without_primarykey`` instead.
+
+.. _orderby:
+
+Order By
+--------
+
+::
+
+    orderby(Field Object, desc=False)
+
+Sample:
+
+::
+
+    >>> query = User.where(User.id < 5).orderby(User.id, desc=True).select()
+    >>> query.sql
+    'select user.name, user.email, user.id from user where user.id < 5 order by user.id desc '
+
+Limit
+-----
+
+::
+
+    limit(rows, offset=None)
+
+Sample:
+
+::
+
+    >>> query = User.limit(2, offset=1).select()
+    >>> query.sql
+    'select user.name, user.email, user.id from user limit 1, 2 '
+
 .. _JoinModel:
 
 JoinModel
@@ -237,7 +340,7 @@ Who has wrote posts ?
 
     >>> for post, user in (Post & User).select():
     ...   print '%s wrote this post: "%s"' % (user.name, post.name)
-    ... 
+    ...
     Jack wrote this post: "Hello wolrd!"
     Amy wrote this post: "I love Python"
     Join wrote this post: "I love GitHub"
