@@ -345,6 +345,7 @@ class TestModel(Test):
         assert result.count == 4L
 
         assert len(tuple(User.limit(9, offset=1).getall())) is 9
+        assert len(tuple(User.limit(100, offset=9).getall())) is 1
 
 
 class TestModels_:
@@ -405,4 +406,124 @@ class TestModels(Test):
         d = tuple(G)
         assert d == tuple(sorted(d, key=lambda x: x[1].name, reverse=True))
 
+    def test_limit(self):
+        query = self.models.where(
+            (Post.user_id == User.id) & (User.id > 1)
+        ).limit(4, offset=2).select()
+        result = query.execute()
+        assert result.count == 1L
 
+    def test_getone(self):
+        post, user = self.models.where(User.id == Post.user_id).getone()
+        assert user.id == post.user_id
+
+    def test_getall(self):
+        g = self.models.where(User.id == Post.user_id).getall()
+        for post, user in g:
+            assert post.user_id == user.id
+
+
+class TestJoinModel(Test):
+
+    def setUp(self):
+        super(TestJoinModel, self).setUp()
+        self.create_data(10)
+
+    def test_select(self):
+        assert (Post & User).select().execute().count == 10L
+        assert (Post & User).where(User.name == "name2").select().execute().count == 1L
+        for post, user in (Post & User).select():
+            assert post.post_id
+            assert user.id
+            assert post.user_id == user.id
+
+    def test_delete(self):
+        assert (Post & User).delete().execute() == 20L
+        assert (Post & User).select().execute().count == 0L
+
+    def test_delete2(self):
+        assert (Post & User).delete(Post).execute() == 10L
+
+    def test_update(self):
+        assert (Post & User).where(
+            User.name <= "name4"
+        ).update(User.name == "hello").execute() == 5L
+        assert (Post & User).where(
+            User.name == "hello"
+        ).update(Post.name == "good").execute() == 5L
+
+    def test_foreignkey_exception(self):
+        try:
+            User & Post
+        except ForeignKeyNotFound:
+            pass
+        else:
+            raise Exception
+
+    def test_findone(self):
+
+        post, user = (Post & User).findone(User.name=="name1")
+        assert user._id and post._id
+        assert user._id == post.user_id
+        assert user.name == "name1"
+
+    def test_findall(self):
+
+        g =  (Post & User).findall(User.name.like("name%"))
+
+        i = 0
+
+        for post, user in g:
+            i+=1
+            assert user.name and post._id
+            assert user.id == post.user_id
+
+        assert i == 10
+
+    def test_getone(self):
+        post, user = (Post & User).getone()
+        assert post.user_id == user.id
+
+    def test_getall(self):
+        g = (Post & User).where(User.id <= 5).getall()
+        assert len(tuple(g)) == 5
+
+# select_result Tests
+
+class TestSelect_result(Test):
+
+    def test_count(self):
+        self.create_data(5)
+        assert User.select().execute().count == 5L
+
+    def test_fetchone(self):
+        self.create_data(4)
+        user = User.at(1).getone()
+        assert user.id == 1L
+
+    def test_iter(self):
+        self.create_data(4)
+        i=0
+        for user in User.where(User.id <= 3).select():
+            i+=1
+            assert user._id
+
+        assert i == 3
+
+    def test_fetchall(self):
+        self.create_data(4)
+        for user in User.select().execute().fetchall():
+            assert user._id
+
+
+class TestRuntime_:
+
+    def test_reset_data(self):
+        query = User.where(User.name == "hello")
+        assert User.runtime.data['where']
+        query = User.where(User.name == "x").select()
+        for runtime_key, runtime_data in User.runtime.data.items():
+            assert not runtime_data
+        query2 = User.at(7).select()
+        for runtime_key, runtime_data in User.runtime.data.items():
+            assert not runtime_data

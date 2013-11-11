@@ -881,6 +881,10 @@ class Models(object):
         self.runtime.set_orderby((field, desc))
         return self
 
+    def limit(self, rows, offset=None):
+        self.runtime.set_limit((offset, rows))
+        return self
+
     def findone(self, *lst):
         query = self.where(*lst).select()
         result = query.execute()
