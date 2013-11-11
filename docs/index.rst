@@ -3,9 +3,11 @@
 CURD - Tiny ORM for MySQL
 =========================
 
-Release: v\ |version| (:ref:`Installation <install>`)
+Release: v\ |version| (:ref:`Installation <install>`) 
 
-Tests status: 
+**NOTE**: v0.3.0 has a lot of **Not-Backward-Compatible** changes.
+
+Tests status:
 
 .. image:: https://travis-ci.org/hit9/CURD.py.png?branch=dev
 
@@ -66,7 +68,6 @@ Documentaion
     :numbered:
 
     quickstart
-    sugar
     tips
     returns
     where

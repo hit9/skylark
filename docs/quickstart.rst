@@ -40,6 +40,9 @@ Better to put all models in a single script,  name it ``models.py`` :
 *Note: sql defination of these two tables is* `here
 <https://github.com/hit9/CURD.py/blob/master/tests/tables.sql>`_.
 
+*You have to create tables in MySQL by hand, CURD.py has no this feature
+`create_tables`*
+
 .. _Create:
 
 Create
@@ -61,14 +64,14 @@ or to use ``save``
     >>> user.name = 'jack'
     >>> user.email = 'jack@gmail.com'
     >>> user.save()
-    3L  # inserted primarykey's value
+    1L  # inserted primarykey's value
 
 or this way :)
 ::
 
-    >>> user=User(name='jack',email='jack@gmail.com')
+    >>> user = User(name='jack',email='jack@gmail.com')
     >>> user.save()
-    4L
+    2L
 
 .. _Update:
 
@@ -85,7 +88,10 @@ Simply, just ``save``
 
 or ::
 
-    >>> User.at(3).update(name='Any')
+    >>> query = User.at(2).update(name='Join')
+    >>> query
+    <UpdateQuery (update user set user.name = 'Join' where user.id = 2)>
+    >>> query.execute()
     1L
 
 tip: ``User.at(id_value)`` is equivalent to ``User.where(User.id == id_value)``, both return class ``User``
@@ -97,21 +103,40 @@ Read
 
 ::
 
-    >>> select_result = User.where(name='Any').select()
-    >>> for user in select_result.fetchall():
-    ...     print user.name,user.email
+    >>> query = User.where(name='Join').select()
+    >>> query
+    <SelectQuery (select user.name, user.email, user.id from user where user.name = 'Join')>
+    >>> result = query.execute()
+    >>> for user in result.fetchall():
+    ...   print user.name, user.email
     ...
-    Any jack@gmail.com
-    Any jack@gmail.com
+    Join jack@gmail.com
 
-The ``name="Any"`` can be replaced by ``User.name == "Any"``
+The ``name="Any"`` can be replaced by ``User.name == "Any"``.
+
+And, we can iter a ``SelectQuery object`` directly, that will execute the
+query::
+
+
+    >>> query = User.where(name='Join').select()
+    >>> for user in User.select():
+    ...   print user.name, user.email
+    ...
+    jack jack@gmail.com
+    Join jack@gmail.com
 
 If we select data by primarykey, we can use ``Model.at(int_var)``::
 
-    >>> user=User.at(1).select().fetchone()
-    >>> user.name
-    u'Jack'
+    >>> query = User.at(1).select()
+    >>> query
+    <SelectQuery (select user.name, user.email, user.id from user where user.id = 1)>
+    >>> result = query.execute()
+    >>> user = result.fetchone()
+    >>> user.name, user.id
+    (u'jack', 1L)
 
+Model.select
+''''''''''''
 
 We want all users:
 
@@ -125,11 +150,10 @@ We only care about their names:
 
     User.where(User.id > 5).select(User.name)
 
+SelectResult Object
+''''''''''''''''''''
 
-Method ``select`` returns a ``SelectResult`` object::
-    
-    >>> User.select()
-    <CURD.SelectResult object at 0xb6c1bb2c>
+Execute a select query will get a ``SelectResult object``,
 
 which has 2 methods to fetch results:
 
@@ -139,8 +163,32 @@ which has 2 methods to fetch results:
 
 and has an attribute ``count``: result rows count::
 
-    >>> User.select().count
-    4L  # rows selected
+
+    >>> query = User.select()
+    >>> result = query.execute()
+    >>> result.count
+    2L  # rows selected
+
+Select Shortcuts
+''''''''''''''''
+
+There are 4 methods to select rows quickly: ``findone()``, ``findall()``,
+``getone()`` and ``getall()``
+
+sample usage::
+
+    >>> user = User.findone(name='Join')
+    >>> user.id
+    2L
+    >>> users = User.findall(User.id > 0, name='Join')
+    >>> [user.name for user in users]
+    [u'Join']
+    >>> user = User.at(2).getone()
+    >>> user.name
+    u'Join'
+    >>> users = User.getall()
+    >>> [(user.id, user.name) for user in users]
+    [(1L, u'jack'), (2L, u'Join')]
 
 .. _Delete:
 
@@ -156,8 +204,11 @@ or :
 
 ::
 
-    >>> User.where(name='Any').delete()
-    2L
+    >>> query = User.at(1).delete()
+    >>> query
+    <DeleteQuery (delete user from user where user.id = 1)>
+    >>> query.execute()
+    1L  # rows affected
 
 Both the two methods return affected rows number.
 
@@ -176,23 +227,28 @@ Now, join them::
     <CURD.JoinModel object at 0xb76f292c>
 
 
-Why not ``User & Post`` ?  The ``&`` operator has direction: it points from main model to foreign model.
+Why not ``User & Post``:
+
+The ``&`` operator has direction, it points from main model to foreign model.
 
 Who has wrote posts ?
 
 ::
 
-    >>> for post, user in (Post & User).select().fetchall():
-    ...     print "%s wrote this post: '%s'" % (user.name, post.name)
-    ...
-    Jack wrote this post: 'Hello World!'
-    Any wrote this post: 'Like Github?'
-    James wrote this post: 'You should try travis!'
-    Rose wrote this post: 'Be a cool programmer!'
+    >>> for post, user in (Post & User).select():
+    ...   print '%s wrote this post: "%s"' % (user.name, post.name)
+    ... 
+    Jack wrote this post: "Hello wolrd!"
+    Amy wrote this post: "I love Python"
+    Join wrote this post: "I love GitHub"
+    Join wrote this post: "Never Give Up"
 
 Of course,there are also ``where``, ``orderby``, ``delete``, ``update`` for joinmodels.
 
 For example, to delete Jack's posts::
 
-    >>> (Post & User).where(User.name=='Jack').delete(Post)
+    >>> query = (Post & User).where(User.name == 'Jack').delete(Post)
+    >>> query
+    <DeleteQuery (delete post from post, user where user.name = 'Jack' and post.user_id = user.id)>
+    >>> query.execute()
     1L

@@ -1,6 +1,7 @@
 from models import User
 
-User.at(3).delete()  # return rows deleted
+query = User.at(3).delete()
+query.execute()  # return rows deleted
 
-user = User.at(2).select().fetchone()
-user.destroy()
+user = User.at(2).getone()
+user.destroy()  # return rows deleted
