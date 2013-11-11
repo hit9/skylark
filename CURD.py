@@ -866,8 +866,12 @@ class Models(object):
         self.runtime.set_where(lst, {})
         return self
 
-    def select(self, auto_append_primarykey=True, *lst):
-        self.runtime.set_select(lst, auto_append_primarykey=auto_append_primarykey)
+    def select(self, *lst):
+        self.runtime.set_select(lst, auto_append_primarykey=True)
+        return SelectQuery(self.runtime)
+
+    def select_without_primarykey(self, *flst):
+        self.runtime.set_select(flst, auto_append_primarykey=False)
         return SelectQuery(self.runtime)
 
     def update(self, *lst):
@@ -929,8 +933,12 @@ class JoinModel(Models):
         return e
 
     @brigde_wrapper
-    def select(self, auto_append_primarykey=True, *lst):
-        return super(JoinModel, self).select(auto_append_primarykey, *lst)
+    def select(self, *lst):
+        return super(JoinModel, self).select(*lst)
+
+    @brigde_wrapper
+    def select_without_primarykey(self, *lst):
+        return super(JoinModel, self).select_without_primarykey(*lst)
 
     @brigde_wrapper
     def update(self, *lst):

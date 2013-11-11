@@ -315,6 +315,15 @@ Sample:
     >>> query.sql
     'select user.name, user.email, user.id from user limit 1, 2 '
 
+Is XXX In the Table?
+---------------------
+
+::
+
+    >>> jack = User(name='Jack')
+    >>> jack in User
+    True  # there's someone called `Jack` in all users
+    
 .. _JoinModel:
 
 JoinModel
