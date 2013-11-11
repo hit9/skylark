@@ -423,7 +423,7 @@ class Compiler(object):
         if offset is None:
             return ' limit %s ' % rows
         else:
-            return ' limit %s, %s ' % lst
+            return ' limit %s, %s ' % (offset, rows)
 
     @staticmethod
     def parse_set(lst):
@@ -880,6 +880,22 @@ class Models(object):
     def orderby(self, field, desc=False):
         self.runtime.set_orderby((field, desc))
         return self
+
+    def findone(self, *lst):
+        query = self.where(*lst).select()
+        result = query.execute()
+        return result.fetchone()
+
+    def findall(self, *lst):
+        query = self.where(*lst).select()
+        result = query.execute()
+        return result.fetchall()
+
+    def getone(self):
+        return self.select().execute().fetchone()
+
+    def getall(self):
+        return self.select().execute().fetchall()
 
 
 class JoinModel(Models):

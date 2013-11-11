@@ -47,7 +47,7 @@ def drop_tables():
 from models import *
 
 sys.path.insert(0, '..')
-from CURD import Compiler
+from CURD import *
 
 
 class Test(object):  # classes inhrite from Test need database connection
@@ -298,6 +298,8 @@ class TestModel(Test):
         self.create_data(3, table=1)
         users = User.findall(User.name.like("name%"))
         assert len(list(users)) is 3
+        users = User.findall(name="name1")
+        assert len(list(users)) is 1
 
     def test_getone(self):
         self.create_data(3, table=1)
@@ -333,3 +335,74 @@ class TestModel(Test):
         assert user1 in User
         user2 = User.create(name=u"中文", email=u"zhongwen@zhihu.com")  # unicode
         assert user2 in User
+
+    def test_limit(self):
+
+        self.create_data(10)
+
+        query = User.limit(4).select()
+        result = query.execute()
+        assert result.count == 4L
+
+        assert len(tuple(User.limit(9, offset=1).getall())) is 9
+
+
+class TestModels_:
+
+    def setUp(self):
+        self.models = Models(User, Post)
+
+    def test_table_name(self):
+        assert self.models.table_name == "user, post"
+
+    def test_primarykey(self):
+        assert self.models.primarykey == [User.id, Post.post_id]
+
+
+class TestModels(Test):
+
+    def setUp(self):
+        super(TestModels, self).setUp()
+        self.create_data(4)
+        self.models = Models(Post, User)
+
+    def test_where(self):
+        assert self.models.where(User.id == Post.user_id).select().execute().count == 4L
+        assert self.models.where(
+            User.id == Post.user_id, User.id == 1
+        ).select().execute().count == 1L
+
+    def test_select(self):
+        for post, user in self.models.where(
+            User.id == Post.user_id
+        ).select():
+            assert user.id == post.user_id
+
+        post, user = self.models.where(
+            Post.post_id == User.id
+        ).getone()
+
+        assert user.id == post.post_id
+
+    def test_update(self):
+        assert self.models.where(
+            User.id == Post.user_id
+        ).update(User.name == "new").execute() == 4L
+
+    def test_delete(self):
+        assert self.models.where(User.id == Post.user_id).delete().execute() == 8L
+        assert self.models.where(User.id == Post.user_id).select().execute().count == 0L
+
+    def test_delete2(self):
+        assert self.models.where(User.id == Post.user_id).delete(Post).execute() == 4L
+        assert User.select().execute().count == 4L
+        assert Post.select().execute().count == 0L
+
+    def test_orderby(self):
+        G = self.models.where(
+            Post.post_id == User.id
+        ).orderby(User.name, 1).getall()
+        d = tuple(G)
+        assert d == tuple(sorted(d, key=lambda x: x[1].name, reverse=True))
+
+
