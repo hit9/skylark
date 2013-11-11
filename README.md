@@ -4,7 +4,7 @@ CURD.py
 Tiny Python ORM for MySQL. 
 [![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
 
-latest version: v0.2.5
+latest version: v0.3.0
 
 Only support C, U, R, D, responsing to its name:
 
@@ -19,6 +19,7 @@ Only support C, U, R, D, responsing to its name:
 - Multiple Tables
 
 **NOTE**: CURD.py may not be stable before version v1.0
+**NOTE**: CURD.py v0.3.0 has a lot of Not-Backward-Compatible changes.
 
 Sample Code
 -----------
