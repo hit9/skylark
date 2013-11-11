@@ -692,6 +692,14 @@ class MetaModel(type):  # metaclass for `Model`
     def __and__(self, join):
         return JoinModel(self, join)
 
+    def __contains__(self, obj):
+        if isinstance(obj, self):
+            query = self.where(**obj.data).select()
+            result = query.execute()
+            if result.count:
+                return True
+        return False
+
 
 class Model(object):
     """
@@ -911,83 +919,3 @@ class JoinModel(Models):
     @brigde_wrapper
     def delete(self, target_model=None):
         return super(JoinModel, self).delete(target_model)
-
-
-#
-# Sugar Part - Syntactic_sugar.
-#
-# Use Mix-in to add new and cool features to CURD.py
-# Enable Sugar: from CURD import Sugar
-#
-# Sugars are written in method loadSugar
-
-def loadSugar():
-
-    # -------------------------------------- {
-    # Model[index]
-    # e.g. user = User[2]
-
-    def MetaModel_getitem(model, index):
-        return model.at(index).getone()
-
-    MetaModel.__getitem__ = MetaModel_getitem
-    # -------------------------------------- }
-
-    # -------------------------------------- {
-    def MetaModel_getslice(model, start, end):
-        # model[start, end]
-        # e.g. users = User[1:3]
-        # Produce: select * from user limit start, end-start
-
-        offset = start
-
-        if end < 0x7fffffff:
-            rows = end - start
-        else:  # get all rows
-            rows = 0x7fffffff
-
-        query = model.limit(rows, offset=offset).select()
-        results = query.execute()
-        return results.fetchall()
-
-    MetaModel.__getslice__ = MetaModel_getslice
-    # --------------------------------------- }
-
-    # --------------------------------------- {
-    # object in model
-    # e.g. user in User
-    # return True or False
-    def MetaModel_contains(model, obj):
-        if isinstance(obj, model):
-            result = model.where(**obj.data).select().execute()
-            if result.count:
-                return True
-        return False
-    MetaModel.__contains__ = MetaModel_contains
-    # --------------------------------------- }
-
-
-# module wrapper for sugar
-class ModuleWrapper(ModuleType):
-
-    def __init__(self, module):
-        #
-        # I hate this way to wrap module, auctually i just need
-        # some way like this:
-        # from CURD import Sugar
-        # this line(above) will run some code
-        #
-        self.module = module
-
-    def __getattr__(self, name):
-
-        try:
-            return getattr(self.module, name)
-        except:
-            if name == "Sugar":
-                loadSugar()
-                return
-            raise AttributeError
-
-
-sys.modules[__name__] = ModuleWrapper(sys.modules[__name__])

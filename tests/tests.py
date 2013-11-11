@@ -323,3 +323,13 @@ class TestModel(Test):
             User.id.not_in(Post.select_without_primarykey(Post.user_id))).select()
         result = query.execute()
         assert result.count == 0L
+
+    def test_obj_in_model(self):
+
+        self.create_data(4)
+        user = User(name="name1", email="email1")
+        assert user in User
+        user1 = User.create(name="测试", email="ceshi@zhihu.com")
+        assert user1 in User
+        user2 = User.create(name=u"中文", email=u"zhongwen@zhihu.com")  # unicode
+        assert user2 in User
