@@ -328,6 +328,14 @@ class Compiler(object):
         OP_LIKE: ' like '
     }
 
+    # sql patterns
+    SQL_PATTERNS = {
+        QUERY_INSERT: 'insert into {target}{set}',
+        QUERY_UPDATE: 'update {target}{set}{where}',
+        QUERY_SELECT: 'select {select} from {from}{where}{orderby}{limit}',
+        QUERY_DELETE: 'delete {target} from {from}{where}'
+    }
+
     expr_cache = {}  # dict to cache parsed expr
 
     @staticmethod
@@ -463,14 +471,17 @@ class Compiler(object):
         _select = Compiler.parse_select(data['select'])
         _limit = Compiler.parse_limit(data['limit'])
 
-        if query_type is QUERY_INSERT:
-            SQL = 'insert into ' + target_table + _set
-        elif query_type is QUERY_UPDATE:
-            SQL = 'update ' + target_table + _set + _where
-        elif query_type is QUERY_SELECT:
-            SQL = 'select ' + _select + ' from ' + from_table + _where + _orderby + _limit
-        elif query_type is QUERY_DELETE:
-            SQL = 'delete ' + target_table + ' from ' + from_table + _where
+        pattern = Compiler.SQL_PATTERNS[query_type]
+
+        SQL = pattern.format(**{
+            'target': target_table,
+            'set': _set,
+            'from': from_table,
+            'where': _where,
+            'select': _select,
+            'limit': _limit,
+            'orderby': _orderby
+        })
 
         return SQL
 

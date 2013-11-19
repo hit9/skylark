@@ -1,3 +1,11 @@
+version 0.3.1
+-------------
+
+Added:
+
+- Ability to use SQL functions: count, max, min, sum
+
+
 version 0.3.0 (**not backward compatiable**)
 --------------------------------------------
 
