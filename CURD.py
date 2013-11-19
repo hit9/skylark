@@ -22,11 +22,8 @@
 # and this permission notice appear in all copies.
 #
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
-
-import sys
-from types import ModuleType
 
 import MySQLdb
 import MySQLdb.cursors
