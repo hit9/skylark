@@ -50,6 +50,12 @@ QUERY_UPDATE = 21
 QUERY_SELECT = 22
 QUERY_DELETE = 23
 
+# supported sql functions
+FUNC_COUNT = 31
+FUNC_SUM = 32
+FUNC_MAX = 33
+FUNC_MIN = 34
+
 
 # exceptions
 
@@ -311,6 +317,46 @@ class ForeignKey(Field):
         self.point_to = point_to
 
 
+class Function(object):
+    """
+    Function object. e.g. `count`, `max`, `sum` in SQL
+    """
+
+    FUNC_MAPPINGS = {
+        FUNC_COUNT: 'count',
+        FUNC_MAX: 'max',
+        FUNC_SUM: 'sum',
+        FUNC_MIN: 'min',
+    }
+
+    def __init__(self, field, func_type):
+        self.field = field
+        self.func_type = func_type
+        # the name appeared in SQL string
+        self.fullname = '%s(%s)' % (Function.FUNC_MAPPINGS[self.func_type],
+                                    field.fullname)
+
+    def __repr__(self):
+        return '<Function %r>' % self.fullname
+
+
+class Fn(object):
+
+    def fn(func_type):
+        @classmethod
+        def _fn(cls, field):
+            return Function(field, func_type)
+        return _fn
+
+    count = fn(FUNC_COUNT)
+
+    sum = fn(FUNC_SUM)
+
+    max = fn(FUNC_MAX)
+
+    min = fn(FUNC_MIN)
+
+
 class Compiler(object):
     """Compile expressions and sequence of methods to SQL strings"""
 
@@ -341,7 +387,7 @@ class Compiler(object):
     @staticmethod
     def __parse_expr_one_side(side):
 
-        if isinstance(side, Field):
+        if isinstance(side, (Field, Function)):
             return side.fullname
         elif isinstance(side, Expr):
             return Compiler.parse_expr(side)
@@ -559,7 +605,7 @@ class Query(object):
         runtime.reset_data()  # ! important: clean runtime right on this query initialized
 
     def __repr__(self):
-        return '<%s (%s)>' % (type(self).__name__, self.sql)
+        return '<%s %r>' % (type(self).__name__, self.sql)
 
 
 class InsertQuery(Query):
