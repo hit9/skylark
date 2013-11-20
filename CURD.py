@@ -59,6 +59,7 @@ FUNC_MIN = 34
 FUNC_AVG = 35
 # scalar functions
 FUNC_UCASE = 41
+FUNC_LCASE = 42
 
 
 # exceptions
@@ -333,6 +334,7 @@ class Function(object):
         FUNC_MIN: 'min',
         FUNC_AVG: 'avg',
         FUNC_UCASE: 'ucase',
+        FUNC_LCASE: 'lcase',
     }
 
     def __init__(self, field, func_type):
@@ -371,6 +373,8 @@ class Fn(object):
     avg = fn(FUNC_AVG)
 
     ucase = fn(FUNC_UCASE)
+
+    lcase = fn(FUNC_LCASE)
 
 
 class Compiler(object):
