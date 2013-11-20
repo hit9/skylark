@@ -696,8 +696,6 @@ class SelectResult(object):
             return dct
 
     def __instance_from_db(self, model, data):
-        if data is None: # if data is None, return None
-            return None
         instance = model(**data)
         instance.set_in_db(True)
         return instance
@@ -705,6 +703,9 @@ class SelectResult(object):
     def fetchone(self):
         '''Fetch a single row each time'''
         data = self.cursor.fetchone()
+
+        if data is None:
+            return None
 
         if self.model.single:
             return self.__instance_from_db(self.model,
