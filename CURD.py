@@ -55,6 +55,7 @@ FUNC_COUNT = 31
 FUNC_SUM = 32
 FUNC_MAX = 33
 FUNC_MIN = 34
+FUNC_AVG = 35
 
 
 # exceptions
@@ -327,6 +328,7 @@ class Function(object):
         FUNC_MAX: 'max',
         FUNC_SUM: 'sum',
         FUNC_MIN: 'min',
+        FUNC_AVG: 'avg',
     }
 
     def __init__(self, field, func_type):
@@ -361,6 +363,8 @@ class Fn(object):
     max = fn(FUNC_MAX)
 
     min = fn(FUNC_MIN)
+
+    avg = fn(FUNC_AVG)
 
 
 class Compiler(object):
@@ -936,6 +940,8 @@ class Model(object):
     max = fn(FUNC_MAX)
 
     min = fn(FUNC_MIN)
+
+    avg = fn(FUNC_AVG)
 
 
 class Models(object):
