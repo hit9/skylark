@@ -920,7 +920,6 @@ class Model(object):
         # TODO:need raise an exception?
 
     # SQL Function shortcuts
-
     def fn(func_type):
         @classmethod
         def _fn(cls, field=None):
