@@ -915,6 +915,29 @@ class Model(object):
             return type(self).at(self._id).delete().execute()
         # TODO:need raise an exception?
 
+    # SQL Function shortcuts
+
+    def fn(func_type):
+        @classmethod
+        def _fn(cls, field=None):
+            if field is None:
+                field = cls.primarykey
+            func = Function(field, func_type)
+            query = cls.select_without_primarykey(func)
+            result = query.execute()
+            instance = result.fetchone()
+            return instance.data.get(func.name)
+        return _fn
+
+    count = fn(FUNC_COUNT)
+
+    sum = fn(FUNC_SUM)
+
+    max = fn(FUNC_MAX)
+
+    min = fn(FUNC_MIN)
+
+
 class Models(object):
     """Mutiple models"""
 
