@@ -710,12 +710,13 @@ class SelectResult(object):
             return dct
 
     def __instance_from_db(self, model, data):
-        instance = model(**data)
+        instance = model()
         instance.set_in_db(True)
         # set functions as attributes
         for func in self.flst:
-            if isinstance(func, Function):
-                setattr(instance, func.name, data[func.name])
+            if isinstance(func, Function) and func.model is model:
+                setattr(instance, func.name, data.pop(func.name))
+        instance.data.update(data)
         return instance
 
     def fetchone(self):
