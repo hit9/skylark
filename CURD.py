@@ -51,11 +51,14 @@ QUERY_SELECT = 22
 QUERY_DELETE = 23
 
 # supported sql functions
+# total fuctioned fuctions
 FUNC_COUNT = 31
 FUNC_SUM = 32
 FUNC_MAX = 33
 FUNC_MIN = 34
 FUNC_AVG = 35
+# scalar functions
+FUNC_UCASE = 41
 
 
 # exceptions
@@ -329,6 +332,7 @@ class Function(object):
         FUNC_SUM: 'sum',
         FUNC_MIN: 'min',
         FUNC_AVG: 'avg',
+        FUNC_UCASE: 'ucase',
     }
 
     def __init__(self, field, func_type):
@@ -365,6 +369,8 @@ class Fn(object):
     min = fn(FUNC_MIN)
 
     avg = fn(FUNC_AVG)
+
+    ucase = fn(FUNC_UCASE)
 
 
 class Compiler(object):
@@ -702,6 +708,10 @@ class SelectResult(object):
     def __instance_from_db(self, model, data):
         instance = model(**data)
         instance.set_in_db(True)
+        # set functions as attributes
+        for func in self.flst:
+            if isinstance(func, Function):
+                setattr(instance, func.name, data[func.name])
         return instance
 
     def fetchone(self):
@@ -929,7 +939,7 @@ class Model(object):
             query = cls.select_without_primarykey(func)
             result = query.execute()
             instance = result.fetchone()
-            return instance.data.get(func.name)
+            return getattr(instance, func.name)
         return _fn
 
     count = fn(FUNC_COUNT)
