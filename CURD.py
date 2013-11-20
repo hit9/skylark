@@ -51,7 +51,7 @@ QUERY_SELECT = 22
 QUERY_DELETE = 23
 
 # supported sql functions
-# total fuctioned fuctions
+# aggregate functions
 FUNC_COUNT = 31
 FUNC_SUM = 32
 FUNC_MAX = 33
