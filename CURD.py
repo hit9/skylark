@@ -22,11 +22,8 @@
 # and this permission notice appear in all copies.
 #
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
-
-import sys
-from types import ModuleType
 
 import MySQLdb
 import MySQLdb.cursors
@@ -52,6 +49,17 @@ QUERY_INSERT = 20
 QUERY_UPDATE = 21
 QUERY_SELECT = 22
 QUERY_DELETE = 23
+
+# supported sql functions
+# aggregate functions
+FUNC_COUNT = 31
+FUNC_SUM = 32
+FUNC_MAX = 33
+FUNC_MIN = 34
+FUNC_AVG = 35
+# scalar functions
+FUNC_UCASE = 41
+FUNC_LCASE = 42
 
 
 # exceptions
@@ -314,6 +322,61 @@ class ForeignKey(Field):
         self.point_to = point_to
 
 
+class Function(object):
+    """
+    Function object. e.g. `count`, `max`, `sum` in SQL
+    """
+
+    FUNC_MAPPINGS = {
+        FUNC_COUNT: 'count',
+        FUNC_MAX: 'max',
+        FUNC_SUM: 'sum',
+        FUNC_MIN: 'min',
+        FUNC_AVG: 'avg',
+        FUNC_UCASE: 'ucase',
+        FUNC_LCASE: 'lcase',
+    }
+
+    def __init__(self, field, func_type):
+        self.field = field
+        self.func_type = func_type
+        # the name appeared in SQL string
+        self.fullname = '%s(%s)' % (Function.FUNC_MAPPINGS[self.func_type],
+                                    field.fullname)
+
+        # the name in the python codes
+        self.name = '%s_of_%s' % (Function.FUNC_MAPPINGS[self.func_type],
+                                  field.name)
+
+        self.model = self.field.model
+
+    def __repr__(self):
+        return '<Function %r>' % self.fullname
+
+
+class Fn(object):
+
+    def fn(func_type):
+        @classmethod
+        def _fn(cls, field):
+            return Function(field, func_type)
+        return _fn
+
+    count = fn(FUNC_COUNT)
+
+    sum = fn(FUNC_SUM)
+
+    max = fn(FUNC_MAX)
+
+    min = fn(FUNC_MIN)
+
+    avg = fn(FUNC_AVG)
+
+    ucase = fn(FUNC_UCASE)
+
+    lcase = fn(FUNC_LCASE)
+
+
 class Compiler(object):
     """Compile expressions and sequence of methods to SQL strings"""
 
@@ -331,12 +394,20 @@ class Compiler(object):
         OP_LIKE: ' like '
     }
 
+    # sql patterns
+    SQL_PATTERNS = {
+        QUERY_INSERT: 'insert into {target}{set}',
+        QUERY_UPDATE: 'update {target}{set}{where}',
+        QUERY_SELECT: 'select {select} from {from}{where}{orderby}{limit}',
+        QUERY_DELETE: 'delete {target} from {from}{where}'
+    }
+
     expr_cache = {}  # dict to cache parsed expr
 
     @staticmethod
     def __parse_expr_one_side(side):
 
-        if isinstance(side, Field):
+        if isinstance(side, (Field, Function)):
             return side.fullname
         elif isinstance(side, Expr):
             return Compiler.parse_expr(side)
@@ -466,14 +537,17 @@ class Compiler(object):
         _select = Compiler.parse_select(data['select'])
         _limit = Compiler.parse_limit(data['limit'])
 
-        if query_type is QUERY_INSERT:
-            SQL = 'insert into ' + target_table + _set
-        elif query_type is QUERY_UPDATE:
-            SQL = 'update ' + target_table + _set + _where
-        elif query_type is QUERY_SELECT:
-            SQL = 'select ' + _select + ' from ' + from_table + _where + _orderby + _limit
-        elif query_type is QUERY_DELETE:
-            SQL = 'delete ' + target_table + ' from ' + from_table + _where
+        pattern = Compiler.SQL_PATTERNS[query_type]
+
+        SQL = pattern.format(**{
+            'target': target_table,
+            'set': _set,
+            'from': from_table,
+            'where': _where,
+            'select': _select,
+            'limit': _limit,
+            'orderby': _orderby
+        })
 
         return SQL
 
@@ -551,7 +625,7 @@ class Query(object):
         runtime.reset_data()  # ! important: clean runtime right on this query initialized
 
     def __repr__(self):
-        return '<%s (%s)>' % (type(self).__name__, self.sql)
+        return '<%s %r>' % (type(self).__name__, self.sql)
 
 
 class InsertQuery(Query):
@@ -600,63 +674,76 @@ class DeleteQuery(Query):
 
 class SelectResult(object):
 
-    def __init__(self, cursor, model, fields):
+    def __init__(self, cursor, model, flst):
         self.model = model
-        self.fields = fields  # fields select out
+        self.flst = flst  # fields or functions select
         self.cursor = cursor
 
-        # field name dont duplicate:
-        # if `user.name`, `post.name` both in the field list, return data dict
-        # keys will contain `user.name` and `post.name` both, but if `user.name`
-        # in field list and `post.name` doesn't, the returned data dict keys
-        # will only contain the key `name`
-        # so, this attribute `nfdct` makes a dict {field name: field object}
-        # responsing to MySQLdb's behavior
+        self.ntof = {}
 
-        nfdct = self.nfdct = {}
+    def format(self, data):
+        if self.model.single:
+            # function's fullname in data to name
+            for f in self.flst:
+                if isinstance(f, Function):
+                    data[f.name] = data.pop(f.fullname)
+            return data
+        else:
+            ntof = self.ntof
+            if not ntof:  # initialize ntof once
+                for f in self.flst:
+                    if isinstance(f, Field):
+                        if f.name not in ntof:
+                            ntof[f.name] = f
+                        else:
+                            ntof[f.fullname] = f
+                    elif isinstance(f, Function):
+                        ntof[f.fullname] = f
 
-        for field in self.fields:
-            if field.name not in nfdct:
-                nfdct[field.name] = field
-            else:
-                nfdct[field.fullname] = field
+            dct = dict((m, {}) for m in self.model.models)
 
-    def mddct(self, data):  # {model: data dict}
-        models = self.model.models
-        b = dict((m, {}) for m in models)
+            for key, value in data.iteritems():
+                f = ntof[key]
+                data_dct = dct[f.model]
+                data_dct[f.name] = value
 
-        for field_name, value in data.iteritems():
-            field = self.nfdct[field_name]
-            data_dct = b[field.model]
-            data_dct[field.name] = value
-        return b
+            return dct
 
     def __instance_from_db(self, model, data):
-        instance = model(**data)
+        instance = model()
         instance.set_in_db(True)
+        # set functions as attributes
+        for func in self.flst:
+            if isinstance(func, Function) and func.model is model:
+                setattr(instance, func.name, data.pop(func.name))
+        instance.data.update(data)
         return instance
 
-    def fetchone(self):  # fetch one row each time
+    def fetchone(self):
         '''Fetch a single row each time'''
-        dct = self.cursor.fetchone()
+        data = self.cursor.fetchone()
+
+        if data is None:
+            return None
 
         if self.model.single:
-            return self.__instance_from_db(self.model, dct) if dct else None
+            return self.__instance_from_db(self.model,
+                                               self.format(data))
         else:
-            b = self.mddct(dct)
-            return tuple(self.__instance_from_db(m, b[m]) for m in self.model.models)
+            dct = self.format(data)
+            return tuple(self.__instance_from_db(m, dct[m]) for m in self.model.models)
 
     def fetchall(self):
         '''Fetch all rows at a time'''
-        data = self.cursor.fetchall()
+        rows = self.cursor.fetchall()
 
         if self.model.single:
-            for dct in data:
-                yield self.__instance_from_db(self.model, dct)
+            for data in rows:
+                yield self.__instance_from_db(self.model, self.format(data))
         else:
-            for dct in data:
-                b = self.mddct(dct)
-                yield tuple(self.__instance_from_db(m, b[m]) for m in self.model.models)
+            for data in rows:
+                dct = self.format(data)
+                yield tuple(self.__instance_from_db(m, dct[m]) for m in self.model.models)
 
     @property
     def count(self):
@@ -846,6 +933,30 @@ class Model(object):
         if self._in_db:
             return type(self).at(self._id).delete().execute()
         # TODO:need raise an exception?
+
+    # SQL Function shortcuts
+    def fn(func_type):
+        @classmethod
+        def _fn(cls, field=None):
+            if field is None:
+                field = cls.primarykey
+            func = Function(field, func_type)
+            query = cls.select_without_primarykey(func)
+            result = query.execute()
+            instance = result.fetchone()
+            return getattr(instance, func.name)
+        return _fn
+
+    count = fn(FUNC_COUNT)
+
+    sum = fn(FUNC_SUM)
+
+    max = fn(FUNC_MAX)
+
+    min = fn(FUNC_MIN)
+
+    avg = fn(FUNC_AVG)
+
 
 class Models(object):
     """Mutiple models"""

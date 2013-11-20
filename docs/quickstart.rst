@@ -364,3 +364,75 @@ For example, to delete Jack's posts::
     <DeleteQuery (delete post from post, user where user.name = 'Jack' and post.user_id = user.id)>
     >>> query.execute()
     1L
+
+SQL Functions
+-------------
+
+This feature was added in v0.3.1.
+
+An example::
+
+    >>> from CURD import Fn
+    >>> query = User.select(Fn.count(User.id))
+    >>> query
+    <SelectQuery 'select count(user.id), user.id from user'>
+    >>> result = query.execute()
+    >>> user = result.fetchone()
+    >>> user.count_of_id
+    4L
+
+In the code above, we use ``Fn.count`` to make a ``Function`` object::
+
+    >>> Fn.count(User.id)
+    <Function 'count(user.id)'>
+
+and then use ``user.count_of_id`` to get rows count.
+
+So far, CURD.py supports 5 aggregate functions: 
+
+- ``count``
+- ``sum``
+- ``max``
+- ``min``
+- ``avg``
+  
+and 2 scalar functions
+
+- ``ucase``
+- ``lcase``
+
+All these functions are used in the way above, here is function ``ucase``'s
+example::
+
+    >>> for user in User.select(Fn.ucase(User.name)):
+    ...   print user.ucase_of_name
+    ... 
+    JOIN
+    JACK
+    AMY
+    JACK
+
+
+Shortcuts
+''''''''''
+
+In most cases, we don't mix functions and fields in the same query, for
+instances, we just need the count of a table's rows.
+
+We can just do it this way::
+
+    >>> User.count()
+    4L
+
+Similarly, all aggregate functions have this feature::
+
+    >>> User.count()
+    4L
+    >>> User.max(User.id)
+    6L
+    >>> User.min(User.id)
+    3L
+    >>> User.sum(User.id)
+    Decimal('18')
+    >>> User.avg(User.id)
+    Decimal('4.5000')

@@ -5,7 +5,8 @@ CURD - Tiny ORM for MySQL
 
 Release: v\ |version| (:ref:`Installation <install>`) 
 
-**NOTE**: v0.3.0 has a lot of **Not-Backward-Compatible** changes.
+**NOTE**: version 0.3.0 has a lot of **Not-Backward-Compatible** changes
+compared to version 0.2.5.
 
 Tests status:
 

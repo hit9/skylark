@@ -120,6 +120,23 @@ class TestField_:
         assert Post.user_id.point_to is User.id
 
 
+class TestFunction_:
+
+    def test_name(self):
+        assert Fn.count(User.id).name == 'count_of_id'
+        assert Fn.count(Post.post_id).name == 'count_of_post_id'
+
+    def test_fullname(self):
+        assert Fn.max(User.id).fullname == 'max(user.id)'
+        assert Fn.count(User.id).fullname == 'count(user.id)'
+        assert Fn.count(Post.post_id).fullname == 'count(post.post_id)'
+
+    def test_model(self):
+        assert Fn.min(User.id).model is User
+        assert Fn.lcase(Post.name).model is Post
+
+
+
 class TestExpr_:
 
     def test_op(self):
@@ -232,6 +249,12 @@ class TestModel(Test):
         assert user._id == 1L
         for user in User.select(User.name):
             assert user._id and user.name
+
+    def test_select_without_primaryeky(self):
+        self.create_data(4, table=1)
+        for user in User.select_without_primarykey(User.name):
+            assert user.name
+            assert 'id' not in user.data
 
     def test_delete(self):
         self.create_data(4, table=1)
@@ -348,6 +371,27 @@ class TestModel(Test):
         assert len(tuple(User.limit(100, offset=9).getall())) is 1
 
 
+    def test_subquery(self):
+
+        self.create_data(10)
+
+        query = User.where(User.id._in(
+            Post.select_without_primarykey(Post.user_id)
+        )).select()
+
+        result = query.execute()
+
+        assert result.count == 10L
+
+        query = User.where(User.id.not_in(
+            Post.select_without_primarykey(Post.user_id)
+        )).select()
+
+        result = query.execute()
+
+        assert result.count == 0L
+
+
 class TestModels_:
 
     def setUp(self):
@@ -384,6 +428,15 @@ class TestModels(Test):
         ).getone()
 
         assert user.id == post.post_id
+
+    def test_select_without_primaryeky(self):
+        for post, user in self.models.where(
+            User.id == Post.user_id
+        ).select_without_primarykey(User.name, Post.name):
+            assert 'id' not in user.data
+            assert 'post_id' not in post.data
+            assert user.name
+            assert post.name
 
     def test_update(self):
         assert self.models.where(
@@ -527,3 +580,75 @@ class TestRuntime_:
         query2 = User.at(7).select()
         for runtime_key, runtime_data in User.runtime.data.items():
             assert not runtime_data
+
+
+class TestFunctions(Test):
+
+    def test_count(self):
+        self.create_data(4)
+        query = User.select(Fn.count(User.id))
+        result = query.execute()
+        assert result.count == 1L
+        assert result.fetchone().count_of_id == 4L
+
+        query = (Post & User).select(Fn.count(User.id), Fn.count(Post.post_id))
+        result = query.execute()
+        assert result.count == 1L
+        post, user = result.fetchone()
+        assert post.count_of_post_id == 4L
+        assert user.count_of_id == 4L
+
+    def test_max_min(self):
+        self.create_data(4)
+        query = User.select(Fn.max(User.id))
+        result = query.execute()
+        assert result.count == 1L
+        user = result.fetchone()
+        assert user.max_of_id == 4L
+
+        query = User.select(Fn.min(User.id))
+        result = query.execute()
+        result = query.execute()
+        assert result.count == 1L
+        user = result.fetchone()
+        assert user.min_of_id == 1L
+
+        query = (Post & User).select(Fn.max(User.id), Fn.min(Post.post_id))
+        result = query.execute()
+        assert result.count == 1L
+        post, user = result.fetchone()
+        assert post.min_of_post_id == 1L
+        assert user.max_of_id == 4L
+
+    def test_sum(self):
+        self.create_data(4)
+
+        query = User.select_without_primarykey(Fn.sum(User.id))
+        result = query.execute()
+        user = result.fetchone()
+        assert user.sum_of_id == 10L
+
+        query = (Post & User).select_without_primarykey(Fn.sum(User.id), Fn.sum(Post.post_id))
+        result = query.execute()
+        assert result.count == 1L
+        post, user = result.fetchone()
+        assert post.sum_of_post_id == 10L
+        assert user.sum_of_id == 10L
+
+    def test_lcase_ucase(self):
+        self.create_data(4, table=1)
+
+        query = User.select_without_primarykey(Fn.ucase(User.name), User.name)
+        for user in query:
+            assert user.name.upper() == user.ucase_of_name
+
+        query = User.select_without_primarykey(Fn.lcase(User.name), User.name)
+        for user in query:
+            assert user.name.lower() == user.lcase_of_name
+
+    def test_shortcuts(self):
+        self.create_data(4, table=1)
+        assert User.count() == 4L
+        assert User.sum(User.id) == 10L
+        assert User.max(User.id) == 4L
+        assert User.min(User.id) == 1L

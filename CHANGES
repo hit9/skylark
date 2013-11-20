@@ -1,3 +1,13 @@
+version 0.3.1
+-------------
+
+Added:
+
+- Ability to use SQL functions
+
+Supported SQL functions: `count`, `sum`, `max`, `min`, `lcase`, `ucase`
+
+
 version 0.3.0 (**not backward compatiable**)
 --------------------------------------------
 
