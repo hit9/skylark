@@ -396,10 +396,10 @@ class Compiler(object):
 
     # sql patterns
     SQL_PATTERNS = {
-        QUERY_INSERT: 'insert into %(target)s%(set)s',
-        QUERY_UPDATE: 'update %(target)s%(set)s%(where)s',
-        QUERY_SELECT: 'select %(select)s from %(from)s%(where)s%(orderby)s%(limit)s',
-        QUERY_DELETE: 'delete %(target)s from %(from)s%(where)s'
+        QUERY_INSERT: 'insert into {target}{set}',
+        QUERY_UPDATE: 'update {target}{set}{where}',
+        QUERY_SELECT: 'select {select} from {from}{where}{orderby}{limit}',
+        QUERY_DELETE: 'delete {target} from {from}{where}'
     }
 
     expr_cache = {}  # dict to cache parsed expr
@@ -539,7 +539,7 @@ class Compiler(object):
 
         pattern = Compiler.SQL_PATTERNS[query_type]
 
-        SQL = pattern % {
+        SQL = pattern.format(**{
             'target': target_table,
             'set': _set,
             'from': from_table,
@@ -547,7 +547,7 @@ class Compiler(object):
             'select': _select,
             'limit': _limit,
             'orderby': _orderby
-        }
+        })
 
         return SQL
 
