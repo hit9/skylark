@@ -71,11 +71,6 @@ class CURDException(Exception):
     pass
 
 
-class UnSupportedType(CURDException):
-    """This value's type is unsupported now"""
-    pass
-
-
 class ForeignKeyNotFound(CURDException):
     """Foreign key not found in main model"""
     pass
