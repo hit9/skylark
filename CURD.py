@@ -27,8 +27,6 @@ __version__ = '0.3.2'
 
 import MySQLdb
 import MySQLdb.cursors
-from datetime import datetime
-
 
 # marks for operators
 OP_LT = 1
@@ -61,6 +59,9 @@ FUNC_AVG = 35
 # scalar functions
 FUNC_UCASE = 41
 FUNC_LCASE = 42
+
+# CURD.py FLAGS
+DATA_ENCODING = 'utf8'  # your python code encoding
 
 
 # exceptions
@@ -408,24 +409,18 @@ class Compiler(object):
     @staticmethod
     def __parse_expr_one_side(side):
 
-        if isinstance(side, (Field, Function)):
+        if isinstance(side, (Field, Function)):  # field
             return side.fullname
-        elif isinstance(side, Expr):
+        elif isinstance(side, Expr):  # expressions
             return Compiler.parse_expr(side)
-        elif isinstance(side, (int, long, float)):  # a number
-            return str(side)
-        elif isinstance(side, basestring):
-            if isinstance(side, unicode):
-                side = side.encode('utf8')  # encode unicode with `utf8`
-            escaped_str = MySQLdb.escape_string(side)  # !safety
-            return "'%s'" % escaped_str
-        elif isinstance(side, Query):
+        elif isinstance(side, Query):  # sub query
             return side.sql
-        elif isinstance(side, datetime):
-            return "'%s'" % side.strftime('%Y-%m-%d %H:%M:%S')  # cast to string
-        else:
-            raise UnSupportedType("Unsupported type '%s' in one side of some"
-                                  " expression" % str(type(side)))
+        elif isinstance(side, unicode):  # encode it
+            side = side.encode(DATA_ENCODING)
+            return Compiler.__parse_expr_one_side(side)
+        else:  # use MySQLdb's `string_literal` to format Python
+               # objects to SQL string literal
+            return Database.get_conn().string_literal(side)
 
     @staticmethod
     def parse_expr(expr):
