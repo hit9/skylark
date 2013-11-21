@@ -22,11 +22,12 @@
 # and this permission notice appear in all copies.
 #
 
-__version__ = '0.3.1'
+__version__ = '0.3.2'
 
 
 import MySQLdb
 import MySQLdb.cursors
+from datetime import datetime
 
 
 # marks for operators
@@ -420,6 +421,8 @@ class Compiler(object):
             return "'%s'" % escaped_str
         elif isinstance(side, Query):
             return side.sql
+        elif isinstance(side, datetime):
+            return "'%s'" % side.strftime('%Y-%m-%d %H:%M:%S')  # cast to string
         else:
             raise UnSupportedType("Unsupported type '%s' in one side of some"
                                   " expression" % str(type(side)))
