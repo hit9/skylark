@@ -21,6 +21,26 @@ is better than ::
 
 The same tip with ``update``.
 
+How to count result rows
+------------------------
+
+Dont count select results this way::
+
+    >>> users = User.getall()
+    >>> len(tuple(users))
+    4
+
+Use ``result.count`` instead::
+
+    >>> result = User.select().execute()
+    >>> result.count
+    4L
+
+If you just want to know how many rows are in table ``user``,
+just count, don't do a select query::
+
+    >>> User.count()
+    4L
 
 Test whether an except record is in the table
 ---------------------------------------------
