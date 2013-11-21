@@ -1,3 +1,15 @@
+version 0.3.2
+-------------
+
+Added:
+
+- support for datetime
+
+sample::
+
+    >>> Post.at(1).update(update_at=datetime.now())
+    <UpdateQuery "update post set post.update_at = '2013-11-21 16:45:57' where post.post_id = 1">
+
 version 0.3.1
 -------------
 

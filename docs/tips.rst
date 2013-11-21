@@ -51,6 +51,24 @@ Is there someone called 'Jack' in database? ::
     if jack in User:
         print "Yes!"
 
+Use datetime object in queries
+-------------------------------
+
+CURD.py now support numbers, strings and datetime objects as values to
+insert(or update) into table.
+
+::
+
+    >>> Post.at(1).update(datetime=datetime.now())
+    <UpdateQuery "update post set post.datetime = '2013-11-21 16:55:16' where post.id = 1">
+
+
+This field will be select as datetime objects as well::
+
+    >>> post = Post.at(1).getone()
+    >>> post.datetime
+    datetime.datetime(2013, 11, 11, 11, 11, 11)
+
 mix your methods into Model
 ---------------------------
 
