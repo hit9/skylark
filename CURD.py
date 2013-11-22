@@ -427,6 +427,18 @@ class Compiler(object):
     def datetime2str(data):
         return string_literal(data.strftime('%Y-%m-%d %H:%M:%S'))
 
+    def date2str(data):
+        return string_literal(data.strftime('%Y-%m-%d'))
+
+    def time2str(data):
+        return string_literal(data.strftime('%H:%M:%S'))
+
+    def timedelta2str(data):
+        seconds = int(v.seconds) % 60
+        minutes = int(v.seconds / 60) % 60
+        hours = int(v.seconds / 3600) % 24
+        return string_literal('%d %d:%d:%d' % (v.days, hours, minutes, seconds))
+
     conversions = {
         types.IntType: thing2str,
         types.LongType: thing2str,
@@ -438,9 +450,11 @@ class Compiler(object):
         types.StringType: thing2str,
         types.BooleanType: bool2str,
         types.UnicodeType: unicode2str,
-        datetime: datetime2str
+        datetime: datetime2str,
+        date: date2str,
+        time: time2str,
+        timedelta: timedelta2str,
     }
-
 
     @staticmethod
     def __parse_expr_one_side(side):
