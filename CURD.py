@@ -25,8 +25,11 @@
 __version__ = '0.3.2'
 
 
+import types
 import MySQLdb
 import MySQLdb.cursors
+from datetime import datetime, time, date, timedelta
+from _mysql import string_literal, NULL, escape_sequence, escape_dict, escape
 
 # marks for operators
 OP_LT = 1
@@ -68,6 +71,11 @@ DATA_ENCODING = 'utf8'  # your python code encoding
 
 class CURDException(Exception):
     """There was an ambiguous exception occurred"""
+    pass
+
+
+class UnSupportedType(CURDException):
+    """This value's type is unsupported now"""
     pass
 
 
@@ -401,6 +409,39 @@ class Compiler(object):
 
     expr_cache = {}  # dict to cache parsed expr
 
+    def thing2str(data):
+        return string_literal(data)
+
+    def float2str(data):
+        return '%.15g' % data
+
+    def None2Null(data):
+        return NULL
+
+    def bool2str(data):
+        return str(int(data))
+
+    def unicode2str(data):
+        return string_literal(data.encode(DATA_ENCODING))
+
+    def datetime2str(data):
+        return string_literal(data.strftime('%Y-%m-%d %H:%M:%S'))
+
+    conversions = {
+        types.IntType: thing2str,
+        types.LongType: thing2str,
+        types.FloatType: float2str,
+        types.NoneType: None2Null,
+        types.TupleType: escape_sequence,
+        types.ListType: escape_sequence,
+        types.DictType: escape_dict,
+        types.StringType: thing2str,
+        types.BooleanType: bool2str,
+        types.UnicodeType: unicode2str,
+        datetime: datetime2str
+    }
+
+
     @staticmethod
     def __parse_expr_one_side(side):
 
@@ -410,12 +451,11 @@ class Compiler(object):
             return Compiler.parse_expr(side)
         elif isinstance(side, Query):  # sub query
             return side.sql
-        elif isinstance(side, unicode):  # encode it
-            side = side.encode(DATA_ENCODING)
-            return Compiler.__parse_expr_one_side(side)
-        else:  # use MySQLdb's `string_literal` to format Python
-               # objects to SQL string literal
-            return Database.get_conn().string_literal(side)
+        elif type(side) in Compiler.conversions:
+            return Compiler.conversions[type(side)](side)
+        else:
+            raise UnSupportedType("Unsupported type '%s' in one side of some"
+                                  " expression" % str(type(side)))
 
     @staticmethod
     def parse_expr(expr):
