@@ -61,6 +61,11 @@ CURD.py only supports 4 types of queries: C, U, R, D, responsing to its name.
 
 - Multiple Tables
 
+Plat
+----
+
+Python 2.6+, OS Independent
+
 Documentaion
 ------------
 
