@@ -1,3 +1,16 @@
+version 0.3.3
+--------------
+
+Types supporting:
+
+- string, unicode
+- numbers: float, int, long
+- datetime: datetime, date, time, timedelta
+- bool
+- Nonetype
+- sequence: list, tuple
+- dict
+
 version 0.3.2
 -------------
 

@@ -164,17 +164,17 @@ class TestExpr_:
         expr9 = User.id._in(1, 2, 3)
         expr10 = User.name.like("%Join%")
         expr11 = User.id.not_in(1, 2, 3)
-        assert tostr(expr1) == "user.id < 4"
-        assert tostr(expr2) == "user.id <= 4"
-        assert tostr(expr3) == "user.id > 4"
-        assert tostr(expr4) == "user.id >= 4"
-        assert tostr(expr5) == "user.id <> 4"
-        assert tostr(expr6) == "user.id = 4"
-        assert tostr(expr7) == "user.id + 4"
-        assert tostr(expr8) == "user.id between 3 and 4"
-        assert tostr(expr9) == "user.id in (1, 2, 3)"
+        assert tostr(expr1) == "user.id < '4'"
+        assert tostr(expr2) == "user.id <= '4'"
+        assert tostr(expr3) == "user.id > '4'"
+        assert tostr(expr4) == "user.id >= '4'"
+        assert tostr(expr5) == "user.id <> '4'"
+        assert tostr(expr6) == "user.id = '4'"
+        assert tostr(expr7) == "user.id + '4'"
+        assert tostr(expr8) == "user.id between '3' and '4'"
+        assert tostr(expr9) == "user.id in ('1', '2', '3')"
         assert tostr(expr10) == "user.name like '%Join%'"
-        assert tostr(expr11) == "user.id not in (1, 2, 3)"
+        assert tostr(expr11) == "user.id not in ('1', '2', '3')"
 
     def test_parser_cache(self):
 

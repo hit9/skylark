@@ -8,4 +8,5 @@ CURD.py.egg-info
 docs/_build
 .ropeproject
 venv
+venv-3.2
 testx

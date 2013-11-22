@@ -8,7 +8,7 @@ FAQ
 Unicode Issue
 -------------
 
-CURD.py will encode unicode strings to utf8 asiic string before compiling
+CURD.py will encode unicode with utf8 encoding by default, before compiling
 out a new SQL::
 
     >>> User.where(name=u'小明').select(User.id)
@@ -18,6 +18,9 @@ compiler makes a SQL::
 
     select user.id from user where user.name = '小明';
 
+If you don't want utf8, set this var::
+
+    CURD.DATA_ENCODING = 'gbk'  # set to gbk for example
 
 SQL Injection Problem?
 -----------------------

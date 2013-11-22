@@ -4,7 +4,7 @@ CURD.py
 Tiny Python ORM for MySQL.
 [![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
 
-latest version: v0.3.2
+latest version: v0.3.3
 
 Only support C, U, R, D, responsing to its name:
 
@@ -45,8 +45,8 @@ Install
 
     $ pip install CURD.py
 
-Documents
----------
+Documentation
+-------------
 
 Documentaion is already on http://curdpy.readthedocs.org/
 

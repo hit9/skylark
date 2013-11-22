@@ -22,13 +22,14 @@
 # and this permission notice appear in all copies.
 #
 
-__version__ = '0.3.2'
+__version__ = '0.3.3'
 
 
+import types
 import MySQLdb
 import MySQLdb.cursors
-from datetime import datetime
-
+from datetime import datetime, time, date, timedelta
+from _mysql import string_literal, NULL, escape_sequence, escape_dict
 
 # marks for operators
 OP_LT = 1
@@ -61,6 +62,9 @@ FUNC_AVG = 35
 # scalar functions
 FUNC_UCASE = 41
 FUNC_LCASE = 42
+
+# CURD.py FLAGS
+DATA_ENCODING = 'utf8'  # your python code encoding
 
 
 # exceptions
@@ -405,24 +409,64 @@ class Compiler(object):
 
     expr_cache = {}  # dict to cache parsed expr
 
+    def thing2str(data):
+        return string_literal(data)
+
+    def float2str(data):
+        return '%.15g' % data
+
+    def None2Null(data):
+        return NULL
+
+    def bool2str(data):
+        return str(int(data))
+
+    def unicode2str(data):
+        return string_literal(data.encode(DATA_ENCODING))
+
+    def datetime2str(data):
+        return string_literal(data.strftime('%Y-%m-%d %H:%M:%S'))
+
+    def date2str(data):
+        return string_literal(data.strftime('%Y-%m-%d'))
+
+    def time2str(data):
+        return string_literal(data.strftime('%H:%M:%S'))
+
+    def timedelta2str(data):
+        seconds = int(data.seconds) % 60
+        minutes = int(data.seconds / 60) % 60
+        hours = int(data.seconds / 3600) % 24
+        return string_literal('%d %d:%d:%d' % (data.days, hours, minutes, seconds))
+
+    conversions = {
+        types.IntType: thing2str,
+        types.LongType: thing2str,
+        types.FloatType: float2str,
+        types.NoneType: None2Null,
+        types.TupleType: escape_sequence,
+        types.ListType: escape_sequence,
+        types.DictType: escape_dict,
+        types.StringType: thing2str,
+        types.BooleanType: bool2str,
+        types.UnicodeType: unicode2str,
+        datetime: datetime2str,
+        date: date2str,
+        time: time2str,
+        timedelta: timedelta2str,
+    }
+
     @staticmethod
     def __parse_expr_one_side(side):
 
-        if isinstance(side, (Field, Function)):
+        if isinstance(side, (Field, Function)):  # field
             return side.fullname
-        elif isinstance(side, Expr):
+        elif isinstance(side, Expr):  # expressions
             return Compiler.parse_expr(side)
-        elif isinstance(side, (int, long, float)):  # a number
-            return str(side)
-        elif isinstance(side, basestring):
-            if isinstance(side, unicode):
-                side = side.encode('utf8')  # encode unicode with `utf8`
-            escaped_str = MySQLdb.escape_string(side)  # !safety
-            return "'%s'" % escaped_str
-        elif isinstance(side, Query):
+        elif isinstance(side, Query):  # sub query
             return side.sql
-        elif isinstance(side, datetime):
-            return "'%s'" % side.strftime('%Y-%m-%d %H:%M:%S')  # cast to string
+        elif type(side) in Compiler.conversions:
+            return Compiler.conversions[type(side)](side)
         else:
             raise UnSupportedType("Unsupported type '%s' in one side of some"
                                   " expression" % str(type(side)))
