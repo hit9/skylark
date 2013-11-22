@@ -74,7 +74,8 @@ Documentaion
     :numbered:
 
     quickstart
-    tips
     returns
     types
+    tips
+    database
     faq

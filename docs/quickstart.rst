@@ -14,6 +14,8 @@ Database Configuration
 
     Database.config(db='mydb', user='root', passwd='')
 
+See :ref:`db_configuration` for detail configuration.
+
 .. _DefineModel:
 
 Define Model
@@ -37,11 +39,9 @@ Better to put all models in a single script,  name it ``models.py`` :
 
 .. literalinclude:: sample/models.py
 
-*Note: sql defination of these two tables is* `here
-<https://github.com/hit9/CURD.py/blob/master/tests/tables.sql>`_.
+* *Note: sql defination of these two tables is* `here <https://github.com/hit9/CURD.py/blob/master/tests/tables.sql>`_.
 
-*You have to create tables in MySQL by hand, CURD.py has no this feature
-`create_tables`*
+* *You have to create tables in MySQL by hand, CURD.py has no feature `create_tables`*
 
 .. _Create:
 
@@ -224,34 +224,6 @@ Method ``where`` seems to be magic::
 
     Model.where(*expressions, **data)
 
-
-Expressions
-''''''''''''
-
-A ``Field object``, an operator and another side(string, value etc.) make up an
-expression.
-
-Here are some examples of mappings from expressions to sql strings:
-
-
-=======================       =========================
-Expressions                   SQL string
-=======================       =========================
-User.id < 3                   user.id < 3
-User.id > 3                   user.id > 3
-User.id <= 3                  user.id <= 3
-User.id >= 3                  user.id >= 3
-User.id == 3                  user.id = 3
-User.id != 3                  user.id <> 3
-User.id + 2                   user.id + 2
-User.name.like('a%')          user.name like 'a%'
-User.id._in(1, 2, 3)          user.id in (1, 2, 3)
-User.id.not_in(1, 2)          user.id not in (1, 2)
-User.id.between(3, 6)         user.id between 3 and 6
-expression & expression       expression and expression
-expression | expression       expression or expression
-=======================       =========================
-
 Where Sample Usage
 ''''''''''''''''''
 ::
@@ -269,6 +241,8 @@ Where Sample Usage
     >>> query.sql
     "select user.name, user.email, user.id from user where user.name like '%sample%'"
 
+All available expressions are here: :ref:`expressions`
+
 SubQuery
 ''''''''
 
@@ -282,6 +256,7 @@ An example of subquery using operator ``_in``::
 
 **NOTE**: ``select`` will auto append ``primarykey`` to fields selected, to
 disable this feature, use ``select_without_primarykey`` instead.
+
 
 .. _orderby:
 
@@ -323,7 +298,7 @@ Is XXX In the Table?
     >>> jack = User(name='Jack')
     >>> jack in User
     True  # there's someone called `Jack` in all users
-    
+
 .. _JoinModel:
 
 JoinModel
@@ -388,14 +363,14 @@ In the code above, we use ``Fn.count`` to make a ``Function`` object::
 
 and then use ``user.count_of_id`` to get rows count.
 
-So far, CURD.py supports 5 aggregate functions: 
+So far, CURD.py supports 5 aggregate functions:
 
 - ``count``
 - ``sum``
 - ``max``
 - ``min``
 - ``avg``
-  
+
 and 2 scalar functions
 
 - ``ucase``
@@ -406,7 +381,7 @@ example::
 
     >>> for user in User.select(Fn.ucase(User.name)):
     ...   print user.ucase_of_name
-    ... 
+    ...
     JOIN
     JACK
     AMY
