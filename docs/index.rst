@@ -71,4 +71,5 @@ Documentaion
     quickstart
     tips
     returns
+    types
     faq

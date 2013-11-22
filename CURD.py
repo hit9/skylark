@@ -22,14 +22,14 @@
 # and this permission notice appear in all copies.
 #
 
-__version__ = '0.3.2'
+__version__ = '0.3.3'
 
 
 import types
 import MySQLdb
 import MySQLdb.cursors
 from datetime import datetime, time, date, timedelta
-from _mysql import string_literal, NULL, escape_sequence, escape_dict, escape
+from _mysql import string_literal, NULL, escape_sequence, escape_dict
 
 # marks for operators
 OP_LT = 1
@@ -434,10 +434,10 @@ class Compiler(object):
         return string_literal(data.strftime('%H:%M:%S'))
 
     def timedelta2str(data):
-        seconds = int(v.seconds) % 60
-        minutes = int(v.seconds / 60) % 60
-        hours = int(v.seconds / 3600) % 24
-        return string_literal('%d %d:%d:%d' % (v.days, hours, minutes, seconds))
+        seconds = int(data.seconds) % 60
+        minutes = int(data.seconds / 60) % 60
+        hours = int(data.seconds / 3600) % 24
+        return string_literal('%d %d:%d:%d' % (data.days, hours, minutes, seconds))
 
     conversions = {
         types.IntType: thing2str,
