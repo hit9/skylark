@@ -81,4 +81,5 @@ Documentaion
     tips
     database
     faq
+    cases
     changes
