@@ -248,13 +248,13 @@ class TestModel(Test):
         user = result.fetchone()
         assert user._id == 1L
         for user in User.select(User.name):
-            assert user._id and user.name
-
-    def test_select_without_primaryeky(self):
-        self.create_data(4, table=1)
-        for user in User.select_without_primarykey(User.name):
             assert user.name
-            assert 'id' not in user.data
+
+    # def test_select_without_primaryeky(self):
+    #     self.create_data(4, table=1)
+    #     for user in User.select_without_primarykey(User.name):
+    #         assert user.name
+    #         assert 'id' not in user.data
 
     def test_delete(self):
         self.create_data(4, table=1)
@@ -286,7 +286,7 @@ class TestModel(Test):
 
     def test_orderby(self):
         self.create_data(3, table=1)
-        users = User.orderby(User.id, desc=True).select(User.name).execute().fetchall()
+        users = User.orderby(User.id, desc=True).select(User.id, User.name).execute().fetchall()
         user1, user2, user3 = tuple(users)
         assert user1.id > user2.id > user3.id
 
@@ -298,19 +298,28 @@ class TestModel(Test):
         assert user.save()
         assert User.at(1).select().execute().fetchone().name == "li"
 
+        user = User(name='test!', email='haha@haha.com')
+        id = user.save()
+        assert id == 2L
+        assert User.at(2).getone().name == 'test!'
+        user.name = 'run a test!'
+        rows_affected = user.save()
+        assert rows_affected == 1L
+        assert User.at(2).select(User.name).execute().fetchone().name == 'run a test!'
+
     def test_modelobj_destroy(self):
         self.create_data(3, table=1)
         user = User.at(1).select().execute().fetchone()
         assert user.destroy()
         assert User.at(1).select().execute().fetchone() is None
 
-    def test_select_without_primaryeky(self):
-        self.create_data(3, table=1)
-        user = User.at(1).select_without_primarykey(User.name).execute().fetchone()
-        try:
-            name = user.name
-        except KeyError:
-            pass
+    # def test_select_without_primaryeky(self):
+    #     self.create_data(3, table=1)
+    #     user = User.at(1).select_without_primarykey(User.name).execute().fetchone()
+    #     try:
+    #         name = user.name
+    #     except KeyError:
+    #         pass
 
     def test_findone(self):
         self.create_data(3, table=1)
@@ -338,14 +347,14 @@ class TestModel(Test):
     def test_in_select(self):
         self.create_data(4)
         query = User.where(
-            User.id._in(Post.select_without_primarykey(Post.user_id))).select()
+            User.id._in(Post.select(Post.user_id))).select()
         result = query.execute()
         assert result.count == 4L
 
     def test_not_in_select(self):
         self.create_data(4)
         query = User.where(
-            User.id.not_in(Post.select_without_primarykey(Post.user_id))).select()
+            User.id.not_in(Post.select(Post.user_id))).select()
         result = query.execute()
         assert result.count == 0L
 
@@ -376,7 +385,7 @@ class TestModel(Test):
         self.create_data(10)
 
         query = User.where(User.id._in(
-            Post.select_without_primarykey(Post.user_id)
+            Post.select(Post.user_id)
         )).select()
 
         result = query.execute()
@@ -384,7 +393,7 @@ class TestModel(Test):
         assert result.count == 10L
 
         query = User.where(User.id.not_in(
-            Post.select_without_primarykey(Post.user_id)
+            Post.select(Post.user_id)
         )).select()
 
         result = query.execute()
@@ -429,14 +438,14 @@ class TestModels(Test):
 
         assert user.id == post.post_id
 
-    def test_select_without_primaryeky(self):
-        for post, user in self.models.where(
-            User.id == Post.user_id
-        ).select_without_primarykey(User.name, Post.name):
-            assert 'id' not in user.data
-            assert 'post_id' not in post.data
-            assert user.name
-            assert post.name
+    # def test_select_without_primaryeky(self):
+    #     for post, user in self.models.where(
+    #         User.id == Post.user_id
+    #     ).select_without_primarykey(User.name, Post.name):
+    #         assert 'id' not in user.data
+    #         assert 'post_id' not in post.data
+    #         assert user.name
+    #         assert post.name
 
     def test_update(self):
         assert self.models.where(
@@ -623,12 +632,12 @@ class TestFunctions(Test):
     def test_sum(self):
         self.create_data(4)
 
-        query = User.select_without_primarykey(Fn.sum(User.id))
+        query = User.select(Fn.sum(User.id))
         result = query.execute()
         user = result.fetchone()
         assert user.sum_of_id == 10L
 
-        query = (Post & User).select_without_primarykey(Fn.sum(User.id), Fn.sum(Post.post_id))
+        query = (Post & User).select(Fn.sum(User.id), Fn.sum(Post.post_id))
         result = query.execute()
         assert result.count == 1L
         post, user = result.fetchone()
@@ -638,11 +647,11 @@ class TestFunctions(Test):
     def test_lcase_ucase(self):
         self.create_data(4, table=1)
 
-        query = User.select_without_primarykey(Fn.ucase(User.name), User.name)
+        query = User.select(Fn.ucase(User.name), User.name)
         for user in query:
             assert user.name.upper() == user.ucase_of_name
 
-        query = User.select_without_primarykey(Fn.lcase(User.name), User.name)
+        query = User.select(Fn.lcase(User.name), User.name)
         for user in query:
             assert user.name.lower() == user.lcase_of_name
 
