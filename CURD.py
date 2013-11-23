@@ -464,7 +464,7 @@ class Compiler(object):
         elif isinstance(side, Expr):  # expressions
             return Compiler.parse_expr(side)
         elif isinstance(side, Query):  # sub query
-            return side.sql
+            return '(%s)' % side.sql
         elif type(side) in Compiler.conversions:
             return Compiler.conversions[type(side)](side)
         else:
