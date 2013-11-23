@@ -90,7 +90,7 @@ or ::
 
     >>> query = User.at(2).update(name='Join')
     >>> query
-    <UpdateQuery (update user set user.name = 'Join' where user.id = 2)>
+    <UpdateQuery "update user set user.name = 'Join' where user.id = '2'">
     >>> query.execute()
     1L
 
@@ -105,7 +105,7 @@ Read
 
     >>> query = User.where(name='Join').select()
     >>> query
-    <SelectQuery (select user.name, user.email, user.id from user where user.name = 'Join')>
+    <SelectQuery "select user.id, user.name, user.email from user where user.name = 'Join'">
     >>> result = query.execute()
     >>> for user in result.fetchall():
     ...   print user.name, user.email
@@ -129,7 +129,7 @@ If we select data by primarykey, we can use ``Model.at(int_var)``::
 
     >>> query = User.at(1).select()
     >>> query
-    <SelectQuery (select user.name, user.email, user.id from user where user.id = 1)>
+    <SelectQuery "select user.id, user.name, user.email from user where user.id = '1'">
     >>> result = query.execute()
     >>> user = result.fetchone()
     >>> user.name, user.id
@@ -177,19 +177,19 @@ There are 4 methods to select rows quickly: ``findone()``, ``findall()``,
 
 sample usage::
 
-    >>> user = User.findone(name='Join')
+    >>> user = User.findone(name='Join')  # <=> User.where(name='Join').select().execute().fetchone()
     >>> user.id
     2L
 
-    >>> users = User.findall(User.id > 0, name='Join')
+    >>> users = User.findall(User.id > 0, name='Join') # <=> User.where(User.id > 0 name='Join').select().execute().fetchall()
     >>> [user.name for user in users]
     [u'Join']
 
-    >>> user = User.at(2).getone()
+    >>> user = User.at(2).getone() # <=> User.where(id=2).select().execute().fetchone()
     >>> user.name
     u'Join'
 
-    >>> users = User.getall()
+    >>> users = User.getall() # <=> User.select().execute().fetchall()
     >>> [(user.id, user.name) for user in users]
     [(1L, u'jack'), (2L, u'Join')]
 
@@ -209,7 +209,7 @@ or :
 
     >>> query = User.at(1).delete()
     >>> query
-    <DeleteQuery (delete user from user where user.id = 1)>
+    <DeleteQuery "delete user from user where user.id = '1'">
     >>> query.execute()
     1L  # rows affected
 
@@ -222,7 +222,7 @@ Where
 
 Method ``where`` seems to be magic::
 
-    Model.where(*expressions, **data)
+    Model.where(*expressions, **data)  # returns this `Model` itself
 
 Where Sample Usage
 ''''''''''''''''''
@@ -234,8 +234,7 @@ Where Sample Usage
 
     >>> query = User.where(User.id.between(3,6)).select()
     >>> query.sql
-    'select user.name, user.email, user.id from user where user.id between 3 and 6'
-
+    "select user.id, user.name, user.email from user where user.id between '3' and '6'"
 
     >>> query = User.where(User.name.like('%sample%')).select()
     >>> query.sql
@@ -249,15 +248,13 @@ SubQuery
 An example of subquery using operator ``_in``::
 
     >>> query = User.where(User.id._in(
-    ...   Post.select_without_primarykey(Post.user_id)
+    ...   Post.select(Post.user_id)
     ... )).select()
     >>> query.sql
-    'select user.name, user.email, user.id from user where user.id in (select post.user_id from post)'
-
-**NOTE**: ``select`` will auto append ``primarykey`` to fields selected, to
-disable this feature, use ``select_without_primarykey`` instead.
-
-
+    'select user.id, user.name, user.email from user where user.id in ((select post.user_id from post))'
+    >>> [(user.id, user.name) for user in query]  # run this query
+    [(3L, u'Join'), (5L, u'Amy')]
+    
 .. _orderby:
 
 Order By
@@ -273,7 +270,7 @@ Sample:
 
     >>> query = User.where(User.id < 5).orderby(User.id, desc=True).select()
     >>> query.sql
-    'select user.name, user.email, user.id from user where user.id < 5 order by user.id desc '
+    "select user.id, user.name, user.email from user where user.id < '5' order by user.id desc "
 
 Limit
 -----
@@ -288,9 +285,9 @@ Sample:
 
     >>> query = User.limit(2, offset=1).select()
     >>> query.sql
-    'select user.name, user.email, user.id from user limit 1, 2 '
-
-Is XXX In the Table?
+    'select user.id, user.name, user.email from user limit 1, 2 '
+    
+Is X In the Table?
 ---------------------
 
 ::
@@ -336,7 +333,7 @@ For example, to delete Jack's posts::
 
     >>> query = (Post & User).where(User.name == 'Jack').delete(Post)
     >>> query
-    <DeleteQuery (delete post from post, user where user.name = 'Jack' and post.user_id = user.id)>
+    <DeleteQuery "delete post from post, user where user.name = 'Jack' and post.user_id = user.id">
     >>> query.execute()
     1L
 
@@ -350,7 +347,7 @@ An example::
     >>> from CURD import Fn
     >>> query = User.select(Fn.count(User.id))
     >>> query
-    <SelectQuery 'select count(user.id), user.id from user'>
+    <SelectQuery 'select count(user.id) from user'>
     >>> result = query.execute()
     >>> user = result.fetchone()
     >>> user.count_of_id
@@ -379,20 +376,15 @@ and 2 scalar functions
 All these functions are used in the way above, here is function ``ucase``'s
 example::
 
-    >>> for user in User.select(Fn.ucase(User.name)):
-    ...   print user.ucase_of_name
-    ...
-    JOIN
-    JACK
-    AMY
-    JACK
+    >>> [user.ucase_of_name for user in  User.select(Fn.ucase(User.name))]
+    [u'JOIN', u'JACK', u'AMY', u'JACK']
 
 
 Shortcuts
 ''''''''''
 
 In most cases, we don't mix functions and fields in the same query, for
-instances, we just need the count of a table's rows.
+instance, we just need the count of a table's rows.
 
 We can just do it this way::
 

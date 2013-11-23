@@ -4,7 +4,7 @@ CURD.py
 Tiny Python ORM for MySQL.
 [![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
 
-latest version: v0.3.3
+latest version: v0.3.4
 
 Only support C, U, R, D, responsing to its name:
 
@@ -65,9 +65,14 @@ FAQ
   export PATH=$PATH:/usr/local/mysql/bin
   ```
 
-2. Attention: CURD.py only works with tables which primarykey is generate by MySQL(Such as autoincement priamarykey integer).
+2. CURD.py only works with tables which has primarykey.
 
 License
 -------
 
 [LICENSE-BSD](https://github.com/hit9/CURD.py/blob/master/LICENSE-BSD)
+
+Changes
+-------
+
+See [CHANGES](CHANGES)

@@ -1,3 +1,17 @@
+version 0.3.4
+-------------
+
+**not backward compatiable changes:**
+
+Reomved:
+
+- Removed method ``select_without_primarykey``
+
+Changes:
+
+- method ``select`` now won't select primarykeys automatically
+- subquery parsing result now was wrapped with ``()``
+
 version 0.3.3
 --------------
 

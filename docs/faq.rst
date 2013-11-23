@@ -8,39 +8,38 @@ FAQ
 Unicode Issue
 -------------
 
-CURD.py will encode unicode with utf8 encoding by default, before compiling
-out a new SQL::
+Before compiling out a new SQL, CURD.py will encode unicode with ``utf8`` by default::
 
     >>> User.where(name=u'小明').select(User.id)
 
-the ``u'小明'`` above will be encode with ``utf8`` at first, and then CURD's 
+the ``u'小明'`` above will be encoded with ``utf8`` at first, and then CURD's 
 compiler makes a SQL::
 
     select user.id from user where user.name = '小明';
 
-If you don't want utf8, set this var::
+If you don't want ``utf8``, set this var::
 
-    CURD.DATA_ENCODING = 'gbk'  # set to gbk for example
+    CURD.DATA_ENCODING = 'gbk'  # set to `gbk` for example
 
 SQL Injection Problem?
 -----------------------
 
 No, strings are escaped before insertion.
 
-mysql_config not found
------------------------
+Installation trouble: mysql_config not found
+---------------------------------------------
 
 I meet problem installing CURD.py: ``mysql_config not found``
 
-That's MySQL-python's issue, solution:
+Actually, that's MySQL-python's issue, solution:
 
-for ubuntu users::
+- for ubuntu users::
 
-    $ apt-get install libmysqlclient-dev
+     $ apt-get install libmysqlclient-dev
 
-for mac users::
+- for mac users::
 
-    $ export PATH=$PATH:/usr/local/mysql/bin
+     $ export PATH=$PATH:/usr/local/mysql/bin
 
 Available Scope
 ---------------

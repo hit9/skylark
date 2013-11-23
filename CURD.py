@@ -22,7 +22,7 @@
 # and this permission notice appear in all copies.
 #
 
-__version__ = '0.3.3'
+__version__ = '0.3.4'
 
 
 import types
@@ -464,7 +464,7 @@ class Compiler(object):
         elif isinstance(side, Expr):  # expressions
             return Compiler.parse_expr(side)
         elif isinstance(side, Query):  # sub query
-            return side.sql
+            return '(%s)' % side.sql
         elif type(side) in Compiler.conversions:
             return Compiler.conversions[type(side)](side)
         else:
@@ -626,17 +626,10 @@ class Runtime(object):
     def set_limit(self, offset_rows):
         self.data['limit'] = list(offset_rows)
 
-    def set_select(self, fields, auto_append_primarykey=True):
+    def set_select(self, fields):
         flst = list(fields)
-        primarykey = self.model.primarykey
 
-        if flst:
-            if auto_append_primarykey:
-                if self.model.single:
-                    flst.append(primarykey)
-                else:
-                    flst.extend(primarykey)
-        else:
+        if not flst:
             # else, empty args -> select all fields
             flst = self.model.get_fields()
         # remove duplicates
@@ -876,12 +869,7 @@ class Model(object):
 
     @classmethod
     def select(cls, *flst):
-        cls.runtime.set_select(flst, auto_append_primarykey=True)
-        return SelectQuery(cls.runtime)
-
-    @classmethod
-    def select_without_primarykey(cls, *flst):
-        cls.runtime.set_select(flst, auto_append_primarykey=False)
+        cls.runtime.set_select(flst)
         return SelectQuery(cls.runtime)
 
     @classmethod
@@ -988,7 +976,7 @@ class Model(object):
             if field is None:
                 field = cls.primarykey
             func = Function(field, func_type)
-            query = cls.select_without_primarykey(func)
+            query = cls.select(func)
             result = query.execute()
             instance = result.fetchone()
             return getattr(instance, func.name)
@@ -1025,11 +1013,7 @@ class Models(object):
         return self
 
     def select(self, *lst):
-        self.runtime.set_select(lst, auto_append_primarykey=True)
-        return SelectQuery(self.runtime)
-
-    def select_without_primarykey(self, *flst):
-        self.runtime.set_select(flst, auto_append_primarykey=False)
+        self.runtime.set_select(lst)
         return SelectQuery(self.runtime)
 
     def update(self, *lst):
@@ -1093,10 +1077,6 @@ class JoinModel(Models):
     @brigde_wrapper
     def select(self, *lst):
         return super(JoinModel, self).select(*lst)
-
-    @brigde_wrapper
-    def select_without_primarykey(self, *lst):
-        return super(JoinModel, self).select_without_primarykey(*lst)
 
     @brigde_wrapper
     def update(self, *lst):

@@ -33,6 +33,8 @@ Links
 * `documentation <http://curdpy.readthedocs.org/>`_
 * `GitHub Repo <https://github.com/hit9/CURD.py>`_
 
+**NOTICE**: CURD.py may not be stable before version 1.0
+
 """
 
 from setuptools import setup
@@ -40,7 +42,7 @@ from setuptools import setup
 
 setup(
     name='CURD.py',
-    version='0.3.3',
+    version='0.3.4',
     author='hit9',
     author_email='nz2324@126.com',
     description=('Tiny Python ORM for MySQL'),

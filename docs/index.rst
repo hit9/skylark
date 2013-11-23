@@ -5,6 +5,8 @@ CURD - Tiny ORM for MySQL
 
 Release: v\ |version| (:ref:`Installation <install>`) 
 
+**NOTE**: CURD.py may not be stable before version 1.0
+
 **NOTE**: version 0.3.0 has a lot of **Not-Backward-Compatible** changes
 compared to version 0.2.5.
 
@@ -79,3 +81,5 @@ Documentaion
     tips
     database
     faq
+    cases
+    changes

@@ -19,37 +19,55 @@ is better than ::
     user = User.at(2).getone()
     user.destroy()  # this queried 2 times
 
-The same tip with ``update``.
+The same tip with ``update``::
+
+    >>> user = User.at(7).getone()
+    >>> user.name = 'ANewNAme'
+    >>> user.save()  # if you just want to update this row
+    1L
+    >>> User.at(7).update(name='ANewNAme').execute()  # this way is better
+    1L
 
 How to count result rows
 ------------------------
 
-Dont count select results this way::
+Don't count select results this way::
 
     >>> users = User.getall()
-    >>> len(tuple(users))
+    >>> len(tuple(users))  # Don't use Python to count
     4
 
 Use ``result.count`` instead::
 
     >>> result = User.select().execute()
-    >>> result.count
+    >>> result.count  # but use the information comes from mysql
     4L
+
+The ``count`` stores the result's rows number, it comes from mysql,
+that's why we use ``result.count`` but not ``result.count()``, it's
+data already there but not data to query.
+
+Use SQL functions shortcuts
+---------------------------
 
 If you just want to know how many rows are in table ``user``,
 just count, don't do a select query::
 
-    >>> User.count()
+    >>> User.count()  # clean and fast
+    4L
+    >>> query = User.select()  # if you just want to count table `user`
+    >>> result = query.execute()  # this way is BAD
+    >>> result.count
     4L
 
-Test whether an except record is in the table
+Test if an except record is in the table
 ---------------------------------------------
 
 Is there someone called 'Jack' in database? ::
 
-    jack = User(name='Jack')
-    if jack in User:
-        print "Yes!"
+    >>> jack = User(name='Jack')
+    >>> jack in User
+    True
 
 Use datetime object in queries
 -------------------------------
@@ -59,37 +77,42 @@ insert(or update) into table.
 
 ::
 
-    >>> Post.at(1).update(datetime=datetime.now())
-    <UpdateQuery "update post set post.datetime = '2013-11-21 16:55:16' where post.id = 1">
+    >>> Post.at(1).update(update_at=datetime.now())
+    <UpdateQuery "update post set post.update_at = '2013-11-21 16:55:16' where post.id = '1'">
 
 
-This field will be select as datetime objects as well::
+This field can be select as datetime objects as well::
 
     >>> post = Post.at(1).getone()
-    >>> post.datetime
+    >>> post.update_at
     datetime.datetime(2013, 11, 11, 11, 11, 11)
+
+Using Python's ``datetime`` to handle time values is much better than using
+strings.
 
 mix your methods into Model
 ---------------------------
 
 To get the user whose id is 3 (suppose id is the primary key)::
 
-    user = User.at(3).getone()
-
-Too long ?
+    >>> User.at(3).getone()
+    <models.User object at 0xb7040d6c>
 
 A shorter one::
 
-    def getitem(model,index):
-        return model.at(index).getone()
-    MetaModel.__getitem__ = getitem
+    >>> from CURD import MetaModel
+    >>> MetaModel.__getitem__ = lambda model, index: model.at(index).getone()
+    >>> User[3]
+    <models.User object at 0xb62eb78c>
 
-use ``[]`` to do this::
-
-    user=User[1]
+Of course, the "Mix-in" is not CURD.py's own skill, python developers play with
+it everywhere.
 
 Put all models in one script in your app
 ----------------------------------------
+
+When we are building web apps with CURD.py, it's good to pull all models into
+one script.
 
 in models' file: models.py:
 
