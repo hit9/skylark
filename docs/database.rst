@@ -40,12 +40,17 @@ Get Database Connection
 CURD.py will reuse the exist connection in singleton pattern, if you need the connection object::
 
     >>> Database.get_conn()
-    <_mysql.connection open to 'localhost' at 9823e6c>
+    <_mysql.connection open to 'localhost' at 882e174>
+    >>> Database.get_conn()  # the same connection object
+    <_mysql.connection open to 'localhost' at 882e174>
+    >>> Database.get_conn().close()
+    >>> Database.get_conn()  # opened a new connection
+    <_mysql.connection open to 'localhost' at 8878c4c>
 
 Execute Raw Query
 -----------------
 
-If you are dealing tasks outside CURD.py's ability, and need to run a raw query::
+If you are dealing tasks outside of CURD.py's abilities, and need to run a raw query::
 
     >>> Database.execute('show tables')
     <MySQLdb.cursors.DictCursor object at 0xb6c86fac>  # return cursor object
