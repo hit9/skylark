@@ -22,7 +22,7 @@
 # and this permission notice appear in all copies.
 #
 
-__version__ = '0.3.3'
+__version__ = '0.3.4'
 
 
 import types
