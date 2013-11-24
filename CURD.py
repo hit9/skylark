@@ -84,6 +84,11 @@ class ForeignKeyNotFound(CURDException):
     pass
 
 
+class PrimaryKeyValueNotFound(CURDException):
+    """Primarykey value not found in this instance"""
+    pass
+
+
 class Database(object):
     """Database connection manager"""
 
@@ -956,6 +961,9 @@ class Model(object):
             # only update changed data
             dct = dict(set(self.data.items()) - set(self._cache.items()))
 
+            if self._id is None:
+                raise PrimaryKeyValueNotFound  # need its primarykey value to track this instance
+
             if dct:
                 query = model.at(self._id).update(**dct)
                 rows_affected = query.execute()
@@ -966,8 +974,9 @@ class Model(object):
 
     def destroy(self):
         if self._in_db:
+            if self._id is None:
+                raise PrimaryKeyValueNotFound  #! need primarykey to track this instance
             return type(self).at(self._id).delete().execute()
-        # TODO:need raise an exception?
 
     # SQL Function shortcuts
     def fn(func_type):
