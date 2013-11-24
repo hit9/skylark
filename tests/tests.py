@@ -307,11 +307,24 @@ class TestModel(Test):
         assert rows_affected == 1L
         assert User.at(2).select(User.name).execute().fetchone().name == 'run a test!'
 
+        user = User.at(1).select(User.name).execute().fetchone()
+        try:
+            user.name = 'hello!'
+            user.save()
+        except PrimaryKeyValueNotFound:
+            pass
+
     def test_modelobj_destroy(self):
         self.create_data(3, table=1)
         user = User.at(1).select().execute().fetchone()
         assert user.destroy()
         assert User.at(1).select().execute().fetchone() is None
+
+        user = User.at(2).select(User.name).execute().fetchone()
+        try:
+            user.destroy()
+        except PrimaryKeyValueNotFound:
+            pass
 
     # def test_select_without_primaryeky(self):
     #     self.create_data(3, table=1)
