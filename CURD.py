@@ -277,6 +277,9 @@ class Field(Leaf):
         # describe the attribute
         setattr(model, name, FieldDescriptor(self))
 
+    def __repr__(self):
+        return '<%s %r>' % (type(self).__name__, self.fullname)
+
     def like(self, pattern):
         """
         e.g. User.name.like("Amy%")
