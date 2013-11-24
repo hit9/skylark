@@ -19,10 +19,10 @@ For instance, our membership management system only accepts fresh names::
     else:
       user.save()  # insert
 
-Pagenation
+Pagination
 ----------
 
-This is a old old old programming task::
+This is an old old old programming task::
 
     >>> query = Post.where(
     ...   is_published=True  # Select published post only
