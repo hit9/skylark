@@ -79,7 +79,8 @@ Documentaion
     returns
     types
     tips
-    database
-    faq
     cases
+    database
+    exceptions
+    faq
     changes
