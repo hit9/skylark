@@ -38,6 +38,11 @@ Sample Code
 >>> query = User.where(name='Tom').delete()
 >>> query.execute()  # delete
 1L
+>>> user = User.create(name='Kate', email='kate@gmail.com')  # anthor insert
+>>> user.data
+{'email': 'kate@gmail.com', 'name': 'Kate', 'id': 2L}
+>>> user.destroy()  # anthor delete
+1L
 ```
 
 More examples are in [docs/sample/](http://github.com/hit9/CURD.py/tree/master/docs/sample).
