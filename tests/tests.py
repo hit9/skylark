@@ -477,14 +477,14 @@ class TestModels(Test):
 
         assert user.id == post.post_id
 
-    # def test_select_without_primaryeky(self):
-    #     for post, user in self.models.where(
-    #         User.id == Post.user_id
-    #     ).select_without_primarykey(User.name, Post.name):
-    #         assert 'id' not in user.data
-    #         assert 'post_id' not in post.data
-    #         assert user.name
-    #         assert post.name
+    def test_groupby(self):
+        query = self.models.groupby(User.name).select()
+        result = query.execute()
+        assert result.count == 4L
+
+        query = self.models.groupby(User.name, Post.name).select()
+        result = query.execute()
+        assert result.count == 16L
 
     def test_update(self):
         assert self.models.where(

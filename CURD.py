@@ -1026,6 +1026,10 @@ class Models(object):
         self.runtime.set_orderby((field, desc))
         return self
 
+    def groupby(self, *lst):
+        self.runtime.set_groupby(lst)
+        return self
+
     def limit(self, rows, offset=None):
         self.runtime.set_limit((offset, rows))
         return self
