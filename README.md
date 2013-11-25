@@ -26,17 +26,17 @@ Sample Code
 -----------
 
 ```python
->>> from models import *
+>>> from models import User
 >>> user = User(name='Tom', email='tom@gmail.com')
->>> user.save()
+>>> user.save()  # insert
 1L
 >>> user.email = 'tom@github.com'
->>> user.save()
+>>> user.save()  # update
 1L
 >>> [user.name for user in User.select()]
-[u'Tom']
+[u'Tom']  # select
 >>> query = User.where(name='Tom').delete()
->>> query.execute()
+>>> query.execute()  # delete
 1L
 ```
 
