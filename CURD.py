@@ -499,11 +499,11 @@ class Compiler(object):
         if op in OP_MAPPING:
             string = tostr(l) + OP_MAPPING[op] + tostr(r)
         elif op is OP_BETWEEN:
-            string = tostr(l) + ' between ' + tostr(r[0]) + ' and ' + tostr(r[1])
+            string = '%s between %s and %s' % (tostr(l), tostr(r[0]), tostr(r[1]))
         elif op in (OP_IN, OP_NOT_IN):
-            values_str = ', '.join(tostr(value) for value in r)
-            string = (tostr(l) + '%s in (' + values_str + ')') % (
-                ' not' if op is OP_NOT_IN else '')
+            string = '%s%s in (%s)' % (tostr(l),
+                                       ' not' if op is OP_NOT_IN else '',
+                                       ', '.join(tostr(value) for value in r))
 
         # set cache
         cache[expr] = string
