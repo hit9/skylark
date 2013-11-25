@@ -424,7 +424,7 @@ class Compiler(object):
     SQL_PATTERNS = {
         QUERY_INSERT: 'insert into {target}{set}',
         QUERY_UPDATE: 'update {target}{set}{where}',
-        QUERY_SELECT: 'select {select} from {from}{where}{orderby}{limit}',
+        QUERY_SELECT: 'select {select} from {from}{where}{groupby}{orderby}{limit}',
         QUERY_DELETE: 'delete {target} from {from}{where}'
     }
 
@@ -539,6 +539,13 @@ class Compiler(object):
             return ' order by %s' % field.fullname
 
     @staticmethod
+    def parse_groupby(lst):
+        '''parse groupby to string'''
+        if not lst:
+            return ''
+        return ' group by %s' % (', '.join(f.fullname for f in lst))
+
+    @staticmethod
     def parse_where(lst):
         '''parse where expressions to string'''
         if not lst:
@@ -548,8 +555,8 @@ class Compiler(object):
 
     @staticmethod
     def parse_select(lst):
-        '''parse select fields to string'''
-        return ', '.join(field.fullname for field in lst)
+        '''parse selects to string'''
+        return ', '.join(f.fullname for f in lst)
 
     @staticmethod
     def parse_limit(lst):
@@ -603,6 +610,7 @@ class Compiler(object):
         _orderby = Compiler.parse_orderby(data['orderby'])
         _select = Compiler.parse_select(data['select'])
         _limit = Compiler.parse_limit(data['limit'])
+        _groupby = Compiler.parse_groupby(data['groupby'])
 
         pattern = Compiler.SQL_PATTERNS[query_type]
 
@@ -613,7 +621,8 @@ class Compiler(object):
             'where': _where,
             'select': _select,
             'limit': _limit,
-            'orderby': _orderby
+            'orderby': _orderby,
+            'groupby': _groupby
         })
 
         return SQL
@@ -624,7 +633,7 @@ class Runtime(object):
 
     def __init__(self, model=None):
         self.model = model
-        self.data = {}.fromkeys(('where', 'set', 'orderby', 'select', 'limit'), None)
+        self.data = {}.fromkeys(('where', 'set', 'orderby', 'select', 'limit', 'groupby'), None)
         # reset runtime data
         self.reset_data()
 
@@ -637,6 +646,9 @@ class Runtime(object):
 
     def set_orderby(self, field_desc):
         self.data['orderby'] = list(field_desc)
+
+    def set_groupby(self, lst):
+        self.data['groupby'] = list(lst)
 
     def set_limit(self, offset_rows):
         self.data['limit'] = list(offset_rows)
@@ -863,6 +875,11 @@ class Model(object):
     @classmethod
     def orderby(cls, field, desc=False):
         cls.runtime.set_orderby((field, desc))
+        return cls
+
+    @classmethod
+    def groupby(cls, *lst):
+        cls.runtime.set_groupby(lst)
         return cls
 
     @classmethod
