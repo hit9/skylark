@@ -505,7 +505,6 @@ class Compiler(object):
             string = (tostr(l) + '%s in (' + values_str + ')') % (
                 ' not' if op is OP_NOT_IN else '')
 
-
         # set cache
         cache[expr] = string
 
@@ -516,23 +515,23 @@ class Compiler(object):
     @staticmethod
     def parse_orderby(lst):
         '''parse orderby tuple to string'''
-        if not lst:  # empty list
+        if not lst:
             return ''
 
-        orderby_str = ' order by ' + lst[0].fullname
+        field, desc = lst
 
-        if lst[1]:
-            orderby_str += ' desc '
-
-        return orderby_str
+        if desc:
+            return ' order by %s desc' % field.fullname
+        else:
+            return ' order by %s' % field.fullname
 
     @staticmethod
     def parse_where(lst):
         '''parse where expressions to string'''
         if not lst:
             return ''
-        return ' where ' + ' and '.join(
-            Compiler.parse_expr(expr) for expr in lst)
+        return ' where %s' % (' and '.join(
+            Compiler.parse_expr(expr) for expr in lst))
 
     @staticmethod
     def parse_select(lst):
@@ -547,16 +546,16 @@ class Compiler(object):
         offset, rows = lst
 
         if offset is None:
-            return ' limit %s ' % rows
+            return ' limit %s' % rows
         else:
-            return ' limit %s, %s ' % (offset, rows)
+            return ' limit %s, %s' % (offset, rows)
 
     @staticmethod
     def parse_set(lst):
         '''parse set expressions to string'''
-        return ' set ' + ', '.join(
+        return ' set %s' % (', '.join(
             Compiler.parse_expr(expr) for expr in lst
-        )
+        ))
 
     @staticmethod
     def gen_sql(runtime, query_type, target_model=None):
@@ -639,10 +638,9 @@ class Runtime(object):
     def set_where(self, lst, dct):
         lst = list(lst)
 
-        if self.model.single:  # muti models cannot use dct as arg
+        if self.model.single:  # Models objects cannot use dct as arg
             fields = self.model.fields
             lst.extend(fields[k] == v for k, v in dct.iteritems())
-
         self.data['where'] = lst
 
     def set_set(self, lst, dct):
@@ -652,7 +650,6 @@ class Runtime(object):
             fields = self.model.fields
             primarykey = self.model.primarykey
             lst.extend(fields[k] == v for k, v in dct.iteritems())
-
         self.data['set'] = lst
 
 
