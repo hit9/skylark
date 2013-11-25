@@ -26,16 +26,18 @@ Sample Code
 -----------
 
 ```python
-from CURD import Database, Model, Field
-
-Database.config(user='root', passwd='', db='mytest')
-
-class User(Model):
-    name = Field()
-    email = Field()
-
-user = User(name='Join', email='Join@gmail.com')
-user.save()
+>>> from models import *
+>>> user = User(name='Tom', email='tom@gmail.com')
+>>> user.save()
+1L
+>>> user.email = 'tom@github.com'
+>>> user.save()
+1L
+>>> [user.name for user in User.select()]
+[u'Tom']
+>>> query = User.where(name='Tom').delete()
+>>> query.execute()
+1L
 ```
 
 More examples are in [docs/sample/](http://github.com/hit9/CURD.py/tree/master/docs/sample).
