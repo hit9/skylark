@@ -195,8 +195,10 @@ class Database(object):
         """
         cls.configs['db'] = db
 
-        if cls.conn and cls.conn.open:  # reconnect to db
-            cls.connect()
+        if cls.conn and cls.conn.open:
+            cls.conn.select_db(db)
+
+    select_db = change  # alias
 
 
 class Leaf(object):
