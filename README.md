@@ -4,7 +4,7 @@ CURD.py
 Tiny Python ORM for MySQL.
 [![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
 
-latest version: v0.3.4
+latest version: v0.3.5
 
 Only support C, U, R, D, responsing to its name:
 
@@ -26,16 +26,23 @@ Sample Code
 -----------
 
 ```python
-from CURD import Database, Model, Field
-
-Database.config(user='root', passwd='', db='mytest')
-
-class User(Model):
-    name = Field()
-    email = Field()
-
-user = User(name='Join', email='Join@gmail.com')
-user.save()
+>>> from models import User
+>>> user = User(name='Tom', email='tom@gmail.com')
+>>> user.save()  # insert
+1L
+>>> user.email = 'tom@github.com'
+>>> user.save()  # update
+1L
+>>> [user.name for user in User.select()]
+[u'Tom']  # select
+>>> query = User.where(name='Tom').delete()
+>>> query.execute()  # delete
+1L
+>>> user = User.create(name='Kate', email='kate@gmail.com')  # anthor insert
+>>> user.data
+{'email': 'kate@gmail.com', 'name': 'Kate', 'id': 2L}
+>>> user.destroy()  # anthor delete
+1L
 ```
 
 More examples are in [docs/sample/](http://github.com/hit9/CURD.py/tree/master/docs/sample).

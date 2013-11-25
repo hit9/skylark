@@ -3,6 +3,13 @@
 Changes
 ========
 
+version 0.3.5
+-------------
+
+No changes in API
+
+- typofix
+
 version 0.3.4
 -------------
 

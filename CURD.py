@@ -22,12 +22,11 @@
 # and this permission notice appear in all copies.
 #
 
-__version__ = '0.3.4'
+__version__ = '0.3.5'
 
 
 import types
 import MySQLdb
-import MySQLdb.cursors
 from datetime import datetime, time, date, timedelta
 from _mysql import string_literal, NULL, escape_sequence, escape_dict
 
@@ -146,9 +145,7 @@ class Database(object):
         """
         Connect to database, this method will new a connect object
         """
-        cls.conn = MySQLdb.connect(
-            cursorclass=MySQLdb.cursors.DictCursor, **cls.configs
-        )
+        cls.conn = MySQLdb.connect(**cls.configs)
         cls.conn.autocommit(cls.autocommit)
 
     @classmethod
@@ -499,12 +496,11 @@ class Compiler(object):
         if op in OP_MAPPING:
             string = tostr(l) + OP_MAPPING[op] + tostr(r)
         elif op is OP_BETWEEN:
-            string = tostr(l) + ' between ' + tostr(r[0]) + ' and ' + tostr(r[1])
+            string = '%s between %s and %s' % (tostr(l), tostr(r[0]), tostr(r[1]))
         elif op in (OP_IN, OP_NOT_IN):
-            values_str = ', '.join(tostr(value) for value in r)
-            string = (tostr(l) + '%s in (' + values_str + ')') % (
-                ' not' if op is OP_NOT_IN else '')
-
+            string = '%s%s in (%s)' % (tostr(l),
+                                       ' not' if op is OP_NOT_IN else '',
+                                       ', '.join(tostr(value) for value in r))
 
         # set cache
         cache[expr] = string
@@ -516,23 +512,23 @@ class Compiler(object):
     @staticmethod
     def parse_orderby(lst):
         '''parse orderby tuple to string'''
-        if not lst:  # empty list
+        if not lst:
             return ''
 
-        orderby_str = ' order by ' + lst[0].fullname
+        field, desc = lst
 
-        if lst[1]:
-            orderby_str += ' desc '
-
-        return orderby_str
+        if desc:
+            return ' order by %s desc' % field.fullname
+        else:
+            return ' order by %s' % field.fullname
 
     @staticmethod
     def parse_where(lst):
         '''parse where expressions to string'''
         if not lst:
             return ''
-        return ' where ' + ' and '.join(
-            Compiler.parse_expr(expr) for expr in lst)
+        return ' where %s' % (' and '.join(
+            Compiler.parse_expr(expr) for expr in lst))
 
     @staticmethod
     def parse_select(lst):
@@ -547,16 +543,16 @@ class Compiler(object):
         offset, rows = lst
 
         if offset is None:
-            return ' limit %s ' % rows
+            return ' limit %s' % rows
         else:
-            return ' limit %s, %s ' % (offset, rows)
+            return ' limit %s, %s' % (offset, rows)
 
     @staticmethod
     def parse_set(lst):
         '''parse set expressions to string'''
-        return ' set ' + ', '.join(
+        return ' set %s' % (', '.join(
             Compiler.parse_expr(expr) for expr in lst
-        )
+        ))
 
     @staticmethod
     def gen_sql(runtime, query_type, target_model=None):
@@ -617,18 +613,13 @@ class Runtime(object):
         self.reset_data()
 
     def reset_data(self):
-        '''reset runtime data'''
         dct = dict((key, []) for key in self.data.keys())
         self.data.update(dct)
 
     def __repr__(self):
-        return '''<Runtime %r>''' % self.data
+        return '<Runtime %r>' % self.data
 
     def set_orderby(self, field_desc):
-        '''
-        filed_desc
-          tuple, tuple of (field, desc), desc is a boolean
-        '''
         self.data['orderby'] = list(field_desc)
 
     def set_limit(self, offset_rows):
@@ -638,20 +629,15 @@ class Runtime(object):
         flst = list(fields)
 
         if not flst:
-            # else, empty args -> select all fields
-            flst = self.model.get_fields()
-        # remove duplicates
-        self.data['select'] = list(set(flst))
+            flst = self.model.get_fields()  # select all
+        self.data['select'] = list(set(flst))  # remove duplicates
 
     def set_where(self, lst, dct):
-        # lst: list of expressions, dct: dict if {filed=>value}
         lst = list(lst)
 
-        # turn dct to list of expressions
-        if self.model.single:  # muti models cannt use dct arg
+        if self.model.single:  # Models objects cannot use dct as arg
             fields = self.model.fields
             lst.extend(fields[k] == v for k, v in dct.iteritems())
-
         self.data['where'] = lst
 
     def set_set(self, lst, dct):
@@ -661,7 +647,6 @@ class Runtime(object):
             fields = self.model.fields
             primarykey = self.model.primarykey
             lst.extend(fields[k] == v for k, v in dct.iteritems())
-
         self.data['set'] = lst
 
 
@@ -699,7 +684,7 @@ class SelectQuery(Query):
 
     def __init__(self, runtime, target_model=None):
         self.from_model = runtime.model
-        self.select_fields = runtime.data['select']
+        self.selects = runtime.data['select']
         super(SelectQuery, self).__init__(QUERY_SELECT, runtime, target_model)
 
     def __iter__(self):
@@ -708,7 +693,7 @@ class SelectQuery(Query):
 
     def execute(self):
         cursor = Database.execute(self.sql)
-        return SelectResult(cursor, self.from_model, self.select_fields)
+        return SelectResult(cursor, self.from_model, self.selects)
 
 class DeleteQuery(Query):
 
@@ -727,71 +712,40 @@ class SelectResult(object):
         self.flst = flst  # fields or functions select
         self.cursor = cursor
 
-        self.ntof = {}
-
-    def format(self, data):
-        if self.model.single:
-            # function's fullname in data to name
-            for f in self.flst:
-                if isinstance(f, Function):
-                    data[f.name] = data.pop(f.fullname)
-            return data
-        else:
-            ntof = self.ntof
-            if not ntof:  # initialize ntof once
-                for f in self.flst:
-                    if isinstance(f, Field):
-                        if f.name not in ntof:
-                            ntof[f.name] = f
-                        else:
-                            ntof[f.fullname] = f
-                    elif isinstance(f, Function):
-                        ntof[f.fullname] = f
-
-            dct = dict((m, {}) for m in self.model.models)
-
-            for key, value in data.iteritems():
-                f = ntof[key]
-                data_dct = dct[f.model]
-                data_dct[f.name] = value
-
-            return dct
-
-    def __instance_from_db(self, model, data):
+    def __instance_from_db(self, model, row):
         instance = model()
         instance.set_in_db(True)
-        # set functions as attributes
-        for func in self.flst:
-            if isinstance(func, Function) and func.model is model:
-                setattr(instance, func.name, data.pop(func.name))
-        instance.data.update(data)
+
+        for idx, f in enumerate(self.flst):
+            if f.model is model:
+                if isinstance(f, Field):
+                    instance.data[f.name] = row[idx]
+                elif isinstance(f, Function):
+                    setattr(instance, f.name, row[idx])
         return instance
 
     def fetchone(self):
         '''Fetch a single row each time'''
-        data = self.cursor.fetchone()
+        row = self.cursor.fetchone()
 
-        if data is None:
+        if row is None:
             return None
 
         if self.model.single:
-            return self.__instance_from_db(self.model,
-                                               self.format(data))
+            return self.__instance_from_db(self.model, row)
         else:
-            dct = self.format(data)
-            return tuple(self.__instance_from_db(m, dct[m]) for m in self.model.models)
+            return tuple(self.__instance_from_db(m, row) for m in self.model.models)
 
     def fetchall(self):
         '''Fetch all rows at a time'''
         rows = self.cursor.fetchall()
 
         if self.model.single:
-            for data in rows:
-                yield self.__instance_from_db(self.model, self.format(data))
+            for row in rows:
+                yield self.__instance_from_db(self.model, row)
         else:
-            for data in rows:
-                dct = self.format(data)
-                yield tuple(self.__instance_from_db(m, dct[m]) for m in self.model.models)
+            for row in rows:
+                yield tuple(self.__instance_from_db(m, row) for m in self.model.models)
 
     @property
     def count(self):
