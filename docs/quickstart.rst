@@ -14,12 +14,14 @@ Database Configuration
 
     Database.config(db='mydb', user='root', passwd='')
 
-See :ref:`db_configuration` for detail configuration.
+Connection to mysql will be auto established when you execute queries.
+
+See :ref:`db_configuration` for detailed configurations.
 
 .. _DefineModel:
 
-Define Model
-------------
+Model Definition
+----------------
 
 ::
 
@@ -29,8 +31,10 @@ Define Model
         # default primarykey: `id`, to figure out primarykey :
         #   myid = PrimaryKey()
 
+We defined a model: ``User``, which has 3 fields:``name``, ``email`` and ``id`` (*`id` is the default primarykey*)
 
-All models are inherited from Model.
+All models should inherit Model.
+
 We take **the lower case of model's classname as table's name**
 
 Better to put all models in a single script,  name it ``models.py`` :
@@ -39,9 +43,9 @@ Better to put all models in a single script,  name it ``models.py`` :
 
 .. literalinclude:: sample/models.py
 
-* *Note: sql defination of these two tables is* `here <https://github.com/hit9/CURD.py/blob/master/tests/tables.sql>`_.
-
 * *You have to create tables in MySQL by hand, CURD.py has no feature `create_tables`*
+
+* *Note: sql defination of these two tables is* `here <https://github.com/hit9/CURD.py/blob/master/tests/tables.sql>`_.
 
 .. _Create:
 
@@ -254,7 +258,7 @@ An example of subquery using operator ``_in``::
     'select user.id, user.name, user.email from user where user.id in ((select post.user_id from post))'
     >>> [(user.id, user.name) for user in query]  # run this query
     [(3L, u'Join'), (5L, u'Amy')]
-    
+
 .. _orderby:
 
 Order By
@@ -286,7 +290,7 @@ Sample:
     >>> query = User.limit(2, offset=1).select()
     >>> query.sql
     'select user.id, user.name, user.email from user limit 1, 2 '
-    
+
 Is X In the Table?
 ---------------------
 

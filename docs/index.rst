@@ -23,17 +23,25 @@ CURD.py is a tiny orm for mysql database, written in Python.
 Sample
 ------
 
-Codes works with CURD.py looks like
+::
 
-.. literalinclude:: sample/sample.py
-
-1. In this code, first we imported the ``CURD`` module and configure the Database class.
-
-2. Next we define a model: ``User``, which has 3 fields:``name``, ``email`` and ``id`` (*Note:id is the default primary key*)
-
-3. Then, we create an instance of ``User``.
-
-4. Finally we insert one record into database by calling method ``save``
+    >>> from models import User
+    >>> user = User(name='Tom', email='tom@gmail.com')
+    >>> user.save()  # insert
+    1L
+    >>> user.email = 'tom@github.com'
+    >>> user.save()  # update
+    1L
+    >>> [user.name for user in User.select()]
+    [u'Tom']  # select
+    >>> query = User.where(name='Tom').delete()
+    >>> query.execute()  # delete
+    1L
+    >>> user = User.create(name='Kate', email='kate@gmail.com')  # anthor insert
+    >>> user.data
+    {'email': 'kate@gmail.com', 'name': 'Kate', 'id': 2L}
+    >>> user.destroy()  # anthor delete
+    1L
 
 More sample codes `here
 <https://github.com/hit9/CURD.py/tree/master/docs/sample>`_.

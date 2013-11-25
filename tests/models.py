@@ -2,7 +2,7 @@ import sys
 
 sys.path.insert(0, '..')
 
-from CURD import Database, Model, Field, PrimaryKey, ForeignKey
+from CURD import Database, Model, Field, PrimaryKey, ForeignKey, Fn
 
 
 class User(Model):

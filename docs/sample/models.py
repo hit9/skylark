@@ -1,4 +1,4 @@
-from CURD import Database, Model, Field, PrimaryKey, ForeignKey
+from CURD import Database, Model, Field, PrimaryKey, ForeignKey, Fn
 
 
 class User(Model):
