@@ -617,18 +617,13 @@ class Runtime(object):
         self.reset_data()
 
     def reset_data(self):
-        '''reset runtime data'''
         dct = dict((key, []) for key in self.data.keys())
         self.data.update(dct)
 
     def __repr__(self):
-        return '''<Runtime %r>''' % self.data
+        return '<Runtime %r>' % self.data
 
     def set_orderby(self, field_desc):
-        '''
-        filed_desc
-          tuple, tuple of (field, desc), desc is a boolean
-        '''
         self.data['orderby'] = list(field_desc)
 
     def set_limit(self, offset_rows):
@@ -638,17 +633,13 @@ class Runtime(object):
         flst = list(fields)
 
         if not flst:
-            # else, empty args -> select all fields
-            flst = self.model.get_fields()
-        # remove duplicates
-        self.data['select'] = list(set(flst))
+            flst = self.model.get_fields()  # select all
+        self.data['select'] = list(set(flst))  # remove duplicates
 
     def set_where(self, lst, dct):
-        # lst: list of expressions, dct: dict if {filed=>value}
         lst = list(lst)
 
-        # turn dct to list of expressions
-        if self.model.single:  # muti models cannt use dct arg
+        if self.model.single:  # muti models cannot use dct as arg
             fields = self.model.fields
             lst.extend(fields[k] == v for k, v in dct.iteritems())
 
