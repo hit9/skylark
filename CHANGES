@@ -1,3 +1,10 @@
+version 0.3.6
+-------------
+
+Added:
+
+- support for ``group by``
+
 version 0.3.5
 -------------
 
