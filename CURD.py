@@ -184,6 +184,20 @@ class Database(object):
         cursor.execute(sql)
         return cursor
 
+    @classmethod
+    def change(cls, db):
+        """
+        Change database.
+
+        parameters
+          db
+            string, database to use
+        """
+        cls.configs['db'] = db
+
+        if cls.conn and cls.conn.open:  # reconnect to db
+            cls.connect()
+
 
 class Leaf(object):
 

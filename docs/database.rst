@@ -53,4 +53,4 @@ Execute Raw Query
 If you are dealing tasks outside of CURD.py's abilities, and need to run a raw query::
 
     >>> Database.execute('show tables')
-    <MySQLdb.cursors.DictCursor object at 0xb6c86fac>  # return cursor object
+    <MySQLdb.cursors.Cursor object at 0xb703efcc>
