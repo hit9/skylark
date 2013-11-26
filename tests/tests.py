@@ -255,12 +255,6 @@ class TestModel(Test):
         for user in User.select(User.name):
             assert user.name
 
-    # def test_select_without_primaryeky(self):
-    #     self.create_data(4, table=1)
-    #     for user in User.select_without_primarykey(User.name):
-    #         assert user.name
-    #         assert 'id' not in user.data
-
     def test_delete(self):
         self.create_data(4, table=1)
         assert User.at(1).delete().execute() == 1L
@@ -331,6 +325,17 @@ class TestModel(Test):
 
         assert user.count_of_id == 3L
         assert user.name == 'tom'
+
+    def test_distinct(self):
+        for x in range(2):
+            User.create(name='jack', email='jack@github.com')
+
+        for x in range(3):
+            User.create(name='tom', email='jack@github.com')
+
+        query = User.distinct().select(User.name)
+        result = query.execute()
+        assert result.count == 2L
 
     def test_modelobj_save(self):
         user = User(name="jack", email="jack@github.com")
@@ -502,6 +507,24 @@ class TestModels(Test):
         result = query.execute()
         assert result.count == 16L
 
+    def test_having(self):
+        query = self.models.groupby(User.name).having(Fn.count(User.id) >= 1).select()
+        result = query.execute()
+        assert result.count == 4L
+
+        query = self.models.groupby(User.name).having(Fn.count(User.id) > 10).select()
+        result = query.execute()
+        assert result.count == 0
+
+        query = self.models.groupby(User.name).having(Fn.count(User.id) == 4).select()
+        result = query.execute()
+        assert result.count == 4L
+
+    def test_distinct(self):
+
+        query = self.models.distinct().select(User.name)
+        result = query.execute()
+        assert result.count == 4L
 
     def test_update(self):
         assert self.models.where(
