@@ -317,6 +317,21 @@ Sample:
     >>> query.sql
     'select user.id, user.name, user.email from user limit 1, 2 '
 
+Distinct
+--------
+
+::
+
+    distinct()
+
+Sample::
+
+    >>> for user in User.distinct().select(User.name):
+    ...   user.name
+    ... 
+    u'jack'
+    u'tom'
+
 Is X In the Table?
 ---------------------
 
