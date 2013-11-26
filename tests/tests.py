@@ -316,6 +316,22 @@ class TestModel(Test):
         assert result.count == 1L
         assert result.fetchone().count_of_id == 5L
 
+    def test_having(self):
+        for x in range(2):
+            User.create(name='jack', email='jack@github.com')
+
+        for x in range(3):
+            User.create(name='tom', email='jack@github.com')
+
+        query = User.groupby(User.name).having(Fn.count(User.id) > 2).select(Fn.count(User.id), User.name)
+        result = query.execute()
+        assert result.count == 1L
+
+        user = result.fetchone()
+
+        assert user.count_of_id == 3L
+        assert user.name == 'tom'
+
     def test_modelobj_save(self):
         user = User(name="jack", email="jack@github.com")
         assert user.save()
@@ -485,6 +501,7 @@ class TestModels(Test):
         query = self.models.groupby(User.name, Post.name).select()
         result = query.execute()
         assert result.count == 16L
+
 
     def test_update(self):
         assert self.models.where(
