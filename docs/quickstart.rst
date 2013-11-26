@@ -259,6 +259,32 @@ An example of subquery using operator ``_in``::
     >>> [(user.id, user.name) for user in query]  # run this query
     [(3L, u'Join'), (5L, u'Amy')]
 
+Group By
+---------
+
+::
+
+    groupby(*Field Objects)
+
+Sample::
+
+    >>> query = User.groupby(User.name).select(User.id, User.name)
+    >>> query.sql
+    'select user.name, user.id from user group by user.name'
+
+Having
+------
+
+::
+
+    having(*Expression Objects)
+
+Sample::
+
+    >>> query = User.groupby(User.name).having(Fn.count(User.id) > 3).select(User.id, User.name)
+    >>> query.sql
+    "select user.name, user.id from user group by user.name having count(user.id) > '3'"
+
 .. _orderby:
 
 Order By
@@ -290,6 +316,21 @@ Sample:
     >>> query = User.limit(2, offset=1).select()
     >>> query.sql
     'select user.id, user.name, user.email from user limit 1, 2 '
+
+Distinct
+--------
+
+::
+
+    distinct()
+
+Sample::
+
+    >>> for user in User.distinct().select(User.name):
+    ...   user.name
+    ... 
+    u'jack'
+    u'tom'
 
 Is X In the Table?
 ---------------------

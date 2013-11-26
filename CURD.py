@@ -22,7 +22,7 @@
 # and this permission notice appear in all copies.
 #
 
-__version__ = '0.3.5'
+__version__ = '0.3.6'
 
 
 import types
@@ -184,6 +184,22 @@ class Database(object):
         cursor.execute(sql)
         return cursor
 
+    @classmethod
+    def change(cls, db):
+        """
+        Change database.
+
+        parameters
+          db
+            string, database to use
+        """
+        cls.configs['db'] = db
+
+        if cls.conn and cls.conn.open:
+            cls.conn.select_db(db)
+
+    select_db = change  # alias
+
 
 class Leaf(object):
 
@@ -332,7 +348,7 @@ class ForeignKey(Field):
         self.point_to = point_to
 
 
-class Function(object):
+class Function(Leaf):
     """
     Function object. e.g. `count`, `max`, `sum` in SQL
     """
@@ -408,7 +424,7 @@ class Compiler(object):
     SQL_PATTERNS = {
         QUERY_INSERT: 'insert into {target}{set}',
         QUERY_UPDATE: 'update {target}{set}{where}',
-        QUERY_SELECT: 'select {select} from {from}{where}{orderby}{limit}',
+        QUERY_SELECT: 'select{distinct} {select} from {from}{where}{groupby}{having}{orderby}{limit}',
         QUERY_DELETE: 'delete {target} from {from}{where}'
     }
 
@@ -511,7 +527,6 @@ class Compiler(object):
 
     @staticmethod
     def parse_orderby(lst):
-        '''parse orderby tuple to string'''
         if not lst:
             return ''
 
@@ -523,8 +538,21 @@ class Compiler(object):
             return ' order by %s' % field.fullname
 
     @staticmethod
+    def parse_groupby(lst):
+        if not lst:
+            return ''
+        return ' group by %s' % (', '.join(f.fullname for f in lst))
+
+    @staticmethod
+    def parse_having(lst):
+        if not lst:
+            return ''
+        return ' having %s' % (' and '.join(
+            Compiler.parse_expr(expr) for expr in lst
+        ))
+
+    @staticmethod
     def parse_where(lst):
-        '''parse where expressions to string'''
         if not lst:
             return ''
         return ' where %s' % (' and '.join(
@@ -532,8 +560,7 @@ class Compiler(object):
 
     @staticmethod
     def parse_select(lst):
-        '''parse select fields to string'''
-        return ', '.join(field.fullname for field in lst)
+        return ', '.join(f.fullname for f in lst)
 
     @staticmethod
     def parse_limit(lst):
@@ -549,10 +576,13 @@ class Compiler(object):
 
     @staticmethod
     def parse_set(lst):
-        '''parse set expressions to string'''
         return ' set %s' % (', '.join(
             Compiler.parse_expr(expr) for expr in lst
         ))
+
+    @staticmethod
+    def parse_distinct(boolean):
+        return ' distinct' if boolean else ''
 
     @staticmethod
     def gen_sql(runtime, query_type, target_model=None):
@@ -587,6 +617,9 @@ class Compiler(object):
         _orderby = Compiler.parse_orderby(data['orderby'])
         _select = Compiler.parse_select(data['select'])
         _limit = Compiler.parse_limit(data['limit'])
+        _groupby = Compiler.parse_groupby(data['groupby'])
+        _having = Compiler.parse_having(data['having'])
+        _distinct = Compiler.parse_distinct(data['distinct'])
 
         pattern = Compiler.SQL_PATTERNS[query_type]
 
@@ -597,7 +630,10 @@ class Compiler(object):
             'where': _where,
             'select': _select,
             'limit': _limit,
-            'orderby': _orderby
+            'orderby': _orderby,
+            'groupby': _groupby,
+            'having': _having,
+            'distinct': _distinct,
         })
 
         return SQL
@@ -608,12 +644,15 @@ class Runtime(object):
 
     def __init__(self, model=None):
         self.model = model
-        self.data = {}.fromkeys(('where', 'set', 'orderby', 'select', 'limit'), None)
+        self.data = {}.fromkeys(
+            ('where', 'set', 'orderby', 'select', 'limit', 'groupby', 'having', 'distinct'),
+            None)
         # reset runtime data
         self.reset_data()
 
     def reset_data(self):
         dct = dict((key, []) for key in self.data.keys())
+        dct['distinct'] = False
         self.data.update(dct)
 
     def __repr__(self):
@@ -621,6 +660,12 @@ class Runtime(object):
 
     def set_orderby(self, field_desc):
         self.data['orderby'] = list(field_desc)
+
+    def set_groupby(self, lst):
+        self.data['groupby'] = list(lst)
+
+    def set_having(self, lst):
+        self.data['having'] = list(lst)
 
     def set_limit(self, offset_rows):
         self.data['limit'] = list(offset_rows)
@@ -648,6 +693,9 @@ class Runtime(object):
             primarykey = self.model.primarykey
             lst.extend(fields[k] == v for k, v in dct.iteritems())
         self.data['set'] = lst
+
+    def set_distinct(self, boolean):
+        self.data['distinct'] = boolean
 
 
 class Query(object):
@@ -835,28 +883,9 @@ class Model(object):
         return SelectQuery(cls.runtime)
 
     @classmethod
-    def where(cls, *lst, **dct):
-        cls.runtime.set_where(lst, dct)
-        return cls
-
-    @classmethod
     def update(cls, *lst, **dct):
         cls.runtime.set_set(lst, dct)
         return UpdateQuery(cls.runtime)
-
-    @classmethod
-    def orderby(cls, field, desc=False):
-        cls.runtime.set_orderby((field, desc))
-        return cls
-
-    @classmethod
-    def limit(cls, rows, offset=None):
-        cls.runtime.set_limit((offset, rows))
-        return cls
-
-    @classmethod
-    def at(cls, _id):  # TODO: changed to limit
-        return cls.where(cls.primarykey == _id)
 
     @classmethod
     def create(cls, *lst, **dct):
@@ -871,6 +900,40 @@ class Model(object):
     @classmethod
     def delete(cls):
         return DeleteQuery(cls.runtime)
+
+    @classmethod
+    def where(cls, *lst, **dct):
+        cls.runtime.set_where(lst, dct)
+        return cls
+
+    @classmethod
+    def at(cls, _id):
+        return cls.where(cls.primarykey == _id)
+
+    @classmethod
+    def orderby(cls, field, desc=False):
+        cls.runtime.set_orderby((field, desc))
+        return cls
+
+    @classmethod
+    def groupby(cls, *lst):
+        cls.runtime.set_groupby(lst)
+        return cls
+
+    @classmethod
+    def having(cls, *lst):
+        cls.runtime.set_having(lst)
+        return cls
+
+    @classmethod
+    def limit(cls, rows, offset=None):
+        cls.runtime.set_limit((offset, rows))
+        return cls
+
+    @classmethod
+    def distinct(cls):
+        cls.runtime.set_distinct(True)
+        return cls
 
     #  ------------------ {{{select shortcuts
 
@@ -935,7 +998,6 @@ class Model(object):
                 raise PrimaryKeyValueNotFound  #! need primarykey to track this instance
             return type(self).at(self._id).delete().execute()
 
-    # SQL Function shortcuts
     def fn(func_type):
         @classmethod
         def _fn(cls, field=None):
@@ -960,11 +1022,10 @@ class Model(object):
 
 
 class Models(object):
-    """Mutiple models"""
 
     def __init__(self, *models):
 
-        self.models = list(models)  # cast to list
+        self.models = list(models)
         self.single = False
         self.runtime = Runtime(self)
         self.table_name = ", ".join([m.table_name for m in self.models])
@@ -973,10 +1034,6 @@ class Models(object):
     def get_fields(self):
         lst = [m.get_fields() for m in self.models]
         return sum(lst, [])
-
-    def where(self, *lst):
-        self.runtime.set_where(lst, {})
-        return self
 
     def select(self, *lst):
         self.runtime.set_select(lst)
@@ -989,12 +1046,28 @@ class Models(object):
     def delete(self, target_model=None):
         return DeleteQuery(self.runtime, target_model=target_model)
 
+    def where(self, *lst):
+        self.runtime.set_where(lst, {})
+        return self
+
     def orderby(self, field, desc=False):
         self.runtime.set_orderby((field, desc))
         return self
 
+    def groupby(self, *lst):
+        self.runtime.set_groupby(lst)
+        return self
+
+    def having(self, *lst):
+        self.runtime.set_having(lst)
+        return self
+
     def limit(self, rows, offset=None):
         self.runtime.set_limit((offset, rows))
+        return self
+
+    def distinct(self):
+        self.runtime.set_distinct(True)
         return self
 
     def findone(self, *lst):
@@ -1016,12 +1089,11 @@ class Models(object):
 
 class JoinModel(Models):
 
-    def __init__(self, main, join):  # main's foreignkey is join's primarykey
+    def __init__(self, main, join):
         super(JoinModel, self).__init__(main, join)
 
-        self.bridge = None # the foreignkey point to join
+        self.bridge = None
 
-        # try to find the foreignkey
         for field in main.get_fields():
             if field.is_foreignkey and field.point_to is join.primarykey:
                 self.bridge = field
@@ -1029,11 +1101,11 @@ class JoinModel(Models):
         if not self.bridge:
             raise ForeignKeyNotFound(
                 "Foreign key references to "
-                "'%s' not found in '%s'" % (join.__name__, main.__name__))
+                "'%s' not found in '%s'" % (join.__name__, main.__name__)
+            )
 
     def brigde_wrapper(func):
         def e(self, *arg, **kwarg):
-            # build brigde
             self.runtime.data['where'].append(
                 self.bridge == self.bridge.point_to
             )

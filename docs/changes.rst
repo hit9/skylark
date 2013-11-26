@@ -3,6 +3,15 @@
 Changes
 ========
 
+version 0.3.6
+--------------
+
+Added:
+
+- Having
+- Group By
+- Distinct
+
 version 0.3.5
 -------------
 
