@@ -424,7 +424,7 @@ class Compiler(object):
     SQL_PATTERNS = {
         QUERY_INSERT: 'insert into {target}{set}',
         QUERY_UPDATE: 'update {target}{set}{where}',
-        QUERY_SELECT: 'select {select} from {from}{where}{groupby}{having}{orderby}{limit}',
+        QUERY_SELECT: 'select{distinct} {select} from {from}{where}{groupby}{having}{orderby}{limit}',
         QUERY_DELETE: 'delete {target} from {from}{where}'
     }
 
@@ -581,6 +581,10 @@ class Compiler(object):
         ))
 
     @staticmethod
+    def parse_distinct(boolean):
+        return ' distinct' if boolean else ''
+
+    @staticmethod
     def gen_sql(runtime, query_type, target_model=None):
         '''
         Generate SQL from runtime information.
@@ -615,6 +619,7 @@ class Compiler(object):
         _limit = Compiler.parse_limit(data['limit'])
         _groupby = Compiler.parse_groupby(data['groupby'])
         _having = Compiler.parse_having(data['having'])
+        _distinct = Compiler.parse_distinct(data['distinct'])
 
         pattern = Compiler.SQL_PATTERNS[query_type]
 
@@ -628,6 +633,7 @@ class Compiler(object):
             'orderby': _orderby,
             'groupby': _groupby,
             'having': _having,
+            'distinct': _distinct,
         })
 
         return SQL
@@ -638,12 +644,15 @@ class Runtime(object):
 
     def __init__(self, model=None):
         self.model = model
-        self.data = {}.fromkeys(('where', 'set', 'orderby', 'select', 'limit', 'groupby', 'having'), None)
+        self.data = {}.fromkeys(
+            ('where', 'set', 'orderby', 'select', 'limit', 'groupby', 'having', 'distinct'),
+            None)
         # reset runtime data
         self.reset_data()
 
     def reset_data(self):
         dct = dict((key, []) for key in self.data.keys())
+        dct['distinct'] = False
         self.data.update(dct)
 
     def __repr__(self):
@@ -684,6 +693,9 @@ class Runtime(object):
             primarykey = self.model.primarykey
             lst.extend(fields[k] == v for k, v in dct.iteritems())
         self.data['set'] = lst
+
+    def set_distinct(self, boolean):
+        self.data['distinct'] = boolean
 
 
 class Query(object):
@@ -871,14 +883,32 @@ class Model(object):
         return SelectQuery(cls.runtime)
 
     @classmethod
+    def update(cls, *lst, **dct):
+        cls.runtime.set_set(lst, dct)
+        return UpdateQuery(cls.runtime)
+
+    @classmethod
+    def create(cls, *lst, **dct):
+        query = cls.insert(*lst, **dct)
+        id = query.execute()
+        if id is not None:
+            dct[cls.primarykey.name] = id  # add id to dct
+            instance = cls(*lst, **dct)
+            instance.set_in_db(True)
+            return instance
+
+    @classmethod
+    def delete(cls):
+        return DeleteQuery(cls.runtime)
+
+    @classmethod
     def where(cls, *lst, **dct):
         cls.runtime.set_where(lst, dct)
         return cls
 
     @classmethod
-    def update(cls, *lst, **dct):
-        cls.runtime.set_set(lst, dct)
-        return UpdateQuery(cls.runtime)
+    def at(cls, _id):
+        return cls.where(cls.primarykey == _id)
 
     @classmethod
     def orderby(cls, field, desc=False):
@@ -901,22 +931,9 @@ class Model(object):
         return cls
 
     @classmethod
-    def at(cls, _id):  # TODO: changed to limit
-        return cls.where(cls.primarykey == _id)
-
-    @classmethod
-    def create(cls, *lst, **dct):
-        query = cls.insert(*lst, **dct)
-        id = query.execute()
-        if id is not None:
-            dct[cls.primarykey.name] = id  # add id to dct
-            instance = cls(*lst, **dct)
-            instance.set_in_db(True)
-            return instance
-
-    @classmethod
-    def delete(cls):
-        return DeleteQuery(cls.runtime)
+    def distinct(cls):
+        cls.runtime.set_distinct(True)
+        return cls
 
     #  ------------------ {{{select shortcuts
 
@@ -981,7 +998,6 @@ class Model(object):
                 raise PrimaryKeyValueNotFound  #! need primarykey to track this instance
             return type(self).at(self._id).delete().execute()
 
-    # SQL Function shortcuts
     def fn(func_type):
         @classmethod
         def _fn(cls, field=None):
@@ -1006,11 +1022,10 @@ class Model(object):
 
 
 class Models(object):
-    """Mutiple models"""
 
     def __init__(self, *models):
 
-        self.models = list(models)  # cast to list
+        self.models = list(models)
         self.single = False
         self.runtime = Runtime(self)
         self.table_name = ", ".join([m.table_name for m in self.models])
@@ -1019,10 +1034,6 @@ class Models(object):
     def get_fields(self):
         lst = [m.get_fields() for m in self.models]
         return sum(lst, [])
-
-    def where(self, *lst):
-        self.runtime.set_where(lst, {})
-        return self
 
     def select(self, *lst):
         self.runtime.set_select(lst)
@@ -1034,6 +1045,10 @@ class Models(object):
 
     def delete(self, target_model=None):
         return DeleteQuery(self.runtime, target_model=target_model)
+
+    def where(self, *lst):
+        self.runtime.set_where(lst, {})
+        return self
 
     def orderby(self, field, desc=False):
         self.runtime.set_orderby((field, desc))
@@ -1049,6 +1064,10 @@ class Models(object):
 
     def limit(self, rows, offset=None):
         self.runtime.set_limit((offset, rows))
+        return self
+
+    def distinct(self):
+        self.runtime.set_distinct(True)
         return self
 
     def findone(self, *lst):
@@ -1070,12 +1089,11 @@ class Models(object):
 
 class JoinModel(Models):
 
-    def __init__(self, main, join):  # main's foreignkey is join's primarykey
+    def __init__(self, main, join):
         super(JoinModel, self).__init__(main, join)
 
-        self.bridge = None # the foreignkey point to join
+        self.bridge = None
 
-        # try to find the foreignkey
         for field in main.get_fields():
             if field.is_foreignkey and field.point_to is join.primarykey:
                 self.bridge = field
@@ -1083,11 +1101,11 @@ class JoinModel(Models):
         if not self.bridge:
             raise ForeignKeyNotFound(
                 "Foreign key references to "
-                "'%s' not found in '%s'" % (join.__name__, main.__name__))
+                "'%s' not found in '%s'" % (join.__name__, main.__name__)
+            )
 
     def brigde_wrapper(func):
         def e(self, *arg, **kwarg):
-            # build brigde
             self.runtime.data['where'].append(
                 self.bridge == self.bridge.point_to
             )
