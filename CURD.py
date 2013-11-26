@@ -22,7 +22,7 @@
 # and this permission notice appear in all copies.
 #
 
-__version__ = '0.3.5'
+__version__ = '0.3.6'
 
 
 import types
@@ -348,7 +348,7 @@ class ForeignKey(Field):
         self.point_to = point_to
 
 
-class Function(object):
+class Function(Leaf):
     """
     Function object. e.g. `count`, `max`, `sum` in SQL
     """
@@ -424,7 +424,7 @@ class Compiler(object):
     SQL_PATTERNS = {
         QUERY_INSERT: 'insert into {target}{set}',
         QUERY_UPDATE: 'update {target}{set}{where}',
-        QUERY_SELECT: 'select {select} from {from}{where}{groupby}{orderby}{limit}',
+        QUERY_SELECT: 'select {select} from {from}{where}{groupby}{having}{orderby}{limit}',
         QUERY_DELETE: 'delete {target} from {from}{where}'
     }
 
@@ -527,7 +527,6 @@ class Compiler(object):
 
     @staticmethod
     def parse_orderby(lst):
-        '''parse orderby tuple to string'''
         if not lst:
             return ''
 
@@ -540,14 +539,20 @@ class Compiler(object):
 
     @staticmethod
     def parse_groupby(lst):
-        '''parse groupby to string'''
         if not lst:
             return ''
         return ' group by %s' % (', '.join(f.fullname for f in lst))
 
     @staticmethod
+    def parse_having(lst):
+        if not lst:
+            return ''
+        return ' having %s' % (' and '.join(
+            Compiler.parse_expr(expr) for expr in lst
+        ))
+
+    @staticmethod
     def parse_where(lst):
-        '''parse where expressions to string'''
         if not lst:
             return ''
         return ' where %s' % (' and '.join(
@@ -555,7 +560,6 @@ class Compiler(object):
 
     @staticmethod
     def parse_select(lst):
-        '''parse selects to string'''
         return ', '.join(f.fullname for f in lst)
 
     @staticmethod
@@ -572,7 +576,6 @@ class Compiler(object):
 
     @staticmethod
     def parse_set(lst):
-        '''parse set expressions to string'''
         return ' set %s' % (', '.join(
             Compiler.parse_expr(expr) for expr in lst
         ))
@@ -611,6 +614,7 @@ class Compiler(object):
         _select = Compiler.parse_select(data['select'])
         _limit = Compiler.parse_limit(data['limit'])
         _groupby = Compiler.parse_groupby(data['groupby'])
+        _having = Compiler.parse_having(data['having'])
 
         pattern = Compiler.SQL_PATTERNS[query_type]
 
@@ -622,7 +626,8 @@ class Compiler(object):
             'select': _select,
             'limit': _limit,
             'orderby': _orderby,
-            'groupby': _groupby
+            'groupby': _groupby,
+            'having': _having,
         })
 
         return SQL
@@ -633,7 +638,7 @@ class Runtime(object):
 
     def __init__(self, model=None):
         self.model = model
-        self.data = {}.fromkeys(('where', 'set', 'orderby', 'select', 'limit', 'groupby'), None)
+        self.data = {}.fromkeys(('where', 'set', 'orderby', 'select', 'limit', 'groupby', 'having'), None)
         # reset runtime data
         self.reset_data()
 
@@ -649,6 +654,9 @@ class Runtime(object):
 
     def set_groupby(self, lst):
         self.data['groupby'] = list(lst)
+
+    def set_having(self, lst):
+        self.data['having'] = list(lst)
 
     def set_limit(self, offset_rows):
         self.data['limit'] = list(offset_rows)
@@ -883,6 +891,11 @@ class Model(object):
         return cls
 
     @classmethod
+    def having(cls, *lst):
+        cls.runtime.set_having(lst)
+        return cls
+
+    @classmethod
     def limit(cls, rows, offset=None):
         cls.runtime.set_limit((offset, rows))
         return cls
@@ -1028,6 +1041,10 @@ class Models(object):
 
     def groupby(self, *lst):
         self.runtime.set_groupby(lst)
+        return self
+
+    def having(self, *lst):
+        self.runtime.set_having(lst)
         return self
 
     def limit(self, rows, offset=None):
