@@ -5,6 +5,7 @@ Added:
 
 - support for ``group by``
 - support for ``having``
+- support for keyword ``distinct``
 
 version 0.3.5
 -------------
