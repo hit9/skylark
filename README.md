@@ -38,10 +38,10 @@ Sample Code
 >>> query = User.where(name='Tom').delete()
 >>> query.execute()  # delete
 1L
->>> user = User.create(name='Kate', email='kate@gmail.com')  # anthor insert
+>>> user = User.create(name='Kate', email='kate@gmail.com')  # another insert
 >>> user.data
 {'email': 'kate@gmail.com', 'name': 'Kate', 'id': 2L}
->>> user.destroy()  # anthor delete
+>>> user.destroy()  # another delete
 1L
 ```
 

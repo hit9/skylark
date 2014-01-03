@@ -9,16 +9,23 @@ Sample Usage
 
 .. code:: python
 
-    from CURD import Database, Model, Field
-
-    Database.config(user='root', passwd='', db='mytest')
-
-    class User(Model):
-        name = Field()
-        email = Field()
-
-    user = User(name='Join', email='Join@gmail.com')
-    user.save()
+    >>> from models import User
+    >>> user = User(name='Tom', email='tom@gmail.com')
+    >>> user.save()  # insert
+    1L
+    >>> user.email = 'tom@github.com'
+    >>> user.save()  # update
+    1L
+    >>> [user.name for user in User.select()]
+    [u'Tom']  # select
+    >>> query = User.where(name='Tom').delete()
+    >>> query.execute()  # delete
+    1L
+    >>> user = User.create(name='Kate', email='kate@gmail.com')  # another insert
+    >>> user.data
+    {'email': 'kate@gmail.com', 'name': 'Kate', 'id': 2L}
+    >>> user.destroy()  # another delete
+    1L
 
 Installation
 ````````````
@@ -42,7 +49,7 @@ from setuptools import setup
 
 setup(
     name='CURD.py',
-    version='0.3.6',
+    version='0.4.0',
     author='hit9',
     author_email='nz2324@126.com',
     description=('Tiny Python ORM for MySQL'),
@@ -53,7 +60,7 @@ setup(
     install_requires = ['MySQL-python'],
     long_description=__doc__,
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 3 - Alpha',
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
