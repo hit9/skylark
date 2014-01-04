@@ -17,7 +17,7 @@
     CURD.py
     ~~~~~~~
 
-    Tiny ORM for MySQL.
+    Tiny Python ORM for MySQL.
 
     :copyright: (c) 2014 by Chao Wang (Hit9).
     :license: BSD.

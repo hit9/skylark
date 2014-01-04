@@ -1,7 +1,7 @@
 .. _index:
 
-CURD - Tiny ORM for MySQL
-=========================
+CURD - Tiny Python ORM for MySQL
+================================
 
 Release: v\ |version| (:ref:`Installation <install>`) 
 

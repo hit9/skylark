@@ -2,7 +2,6 @@ CURD.py
 =======
 
 Tiny Python ORM for MySQL.
-[![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
 
 latest version: v0.4.0
 
@@ -61,6 +60,13 @@ FAQ
 - [FAQ](http://curdpy.readthedocs.org/en/latest/faq.html)
 
 - [ISSUES TRACKER](https://github.com/hit9/CURD.py/issues)
+
+Tests
+-----
+
+- Status: [![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
+
+- [How to Run Tests](https://github.com/hit9/CURD.py/blob/dev/tests/README.rst)
 
 License
 -------
