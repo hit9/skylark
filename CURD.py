@@ -204,6 +204,11 @@ class Database(object):
         parameters:
           db
             string, database to use
+
+        sample::
+
+            >>> Database.change('mydb')
+            >>> Database.select_db('mydb')  # alias
         """
         cls.configs['db'] = db
 
@@ -333,7 +338,7 @@ class Field(Leaf):
         sample::
             >>> User.age.between(13, 17)
         """
-        return Expr(self, (left, left), OP_BETWEEN)
+        return Expr(self, (left, right), OP_BETWEEN)
 
     def _in(self, *values):
         """
@@ -1318,3 +1323,107 @@ class Model(object):
     min = fn(FUNC_MIN)
 
     avg = fn(FUNC_AVG)
+
+
+class Models(object):
+
+    def __init__(self, *models):
+
+        self.models = list(models)
+        self.single = False
+        self.runtime = Runtime(self)
+        self.table_name = ", ".join([m.table_name for m in self.models])
+        self.primarykey = [m.primarykey for m in self.models]
+
+    def get_fields(self):
+        lst = [m.get_fields() for m in self.models]
+        return sum(lst, [])
+
+    def select(self, *lst):
+        self.runtime.set_select(lst)
+        return SelectQuery(self.runtime)
+
+    def update(self, *lst):
+        self.runtime.set_set(lst, {})
+        return UpdateQuery(self.runtime)
+
+    def delete(self, target_model=None):
+        return DeleteQuery(self.runtime, target_model=target_model)
+
+    def where(self, *lst):
+        self.runtime.set_where(lst, {})
+        return self
+
+    def orderby(self, field, desc=False):
+        self.runtime.set_orderby((field, desc))
+        return self
+
+    def groupby(self, *lst):
+        self.runtime.set_groupby(lst)
+        return self
+
+    def having(self, *lst):
+        self.runtime.set_having(lst)
+        return self
+
+    def limit(self, rows, offset=None):
+        self.runtime.set_limit((offset, rows))
+        return self
+
+    def distinct(self):
+        self.runtime.set_distinct(True)
+        return self
+
+    def findone(self, *lst):
+        query = self.where(*lst).select()
+        result = query.execute()
+        return result.fetchone()
+
+    def findall(self, *lst):
+        query = self.where(*lst).select()
+        result = query.execute()
+        return result.fetchall()
+
+    def getone(self):
+        return self.select().execute().fetchone()
+
+    def getall(self):
+        return self.select().execute().fetchall()
+
+
+class JoinModel(Models):
+
+    def __init__(self, main, join):
+        super(JoinModel, self).__init__(main, join)
+
+        self.bridge = None
+
+        for field in main.get_fields():
+            if field.is_foreignkey and field.point_to is join.primarykey:
+                self.bridge = field
+
+        if not self.bridge:
+            raise ForeignKeyNotFound(
+                "Foreign key references to "
+                "'%s' not found in '%s'" % (join.__name__, main.__name__)
+            )
+
+    def brigde_wrapper(func):
+        def e(self, *arg, **kwarg):
+            self.runtime.data['where'].append(
+                self.bridge == self.bridge.point_to
+            )
+            return func(self, *arg, **kwarg)
+        return e
+
+    @brigde_wrapper
+    def select(self, *lst):
+        return super(JoinModel, self).select(*lst)
+
+    @brigde_wrapper
+    def update(self, *lst):
+        return super(JoinModel, self).update(*lst)
+
+    @brigde_wrapper
+    def delete(self, target_model=None):
+        return super(JoinModel, self).delete(target_model)
