@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 CURD.py
 -------
@@ -16,8 +18,8 @@ Sample Usage
     >>> user.email = 'tom@github.com'
     >>> user.save()  # update
     1L
-    >>> [user.name for user in User.select()]
-    [u'Tom']  # select
+    >>> [user.name for user in User.select()]  # select
+    [u'Tom']
     >>> query = User.where(name='Tom').delete()
     >>> query.execute()  # delete
     1L
@@ -37,8 +39,8 @@ Installation
 Links
 `````
 
-* `documentation <http://curdpy.readthedocs.org/>`_
-* `GitHub Repo <https://github.com/hit9/CURD.py>`_
+* `Documentation <http://curdpy.readthedocs.org/>`_
+* `Code on Github <https://github.com/hit9/CURD.py>`_
 
 **NOTICE**: CURD.py may not be stable before version 1.0
 
