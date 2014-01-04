@@ -715,10 +715,11 @@ class Runtime(object):
 
     def set_where(self, lst, dct):
         lst = list(lst)
-s
+
         if self.model.single:  # Models objects cannot use dct as arg
             fields = self.model.fields
             lst.extend(fields[k] == v for k, v in dct.iteritems())
+
         self.data['where'] = lst
 
     def set_set(self, lst, dct):
@@ -903,7 +904,7 @@ class Model(object):
         name to value mappings, e.g. User(name="Join")
 
     sample instantiation::
-        >>>  user = User(name='jack', age=13, email='jack@gmail.com')
+        >>> user = User(name='jack', age=13, email='jack@gmail.com')
         >>> user = User(User.name == 'jack', age=13)
 
     instance attributes:
@@ -946,7 +947,9 @@ class Model(object):
           InsertQuery object.
 
         sample::
-            >>> query = User.insert(name='jack')
+
+            >>> User.insert(name='jack')
+            <InsertQuery "insert into user set user.name = 'jack'">
         """
         cls.runtime.set_set(lst, dct)
         return InsertQuery(cls.runtime)
@@ -957,50 +960,135 @@ class Model(object):
 
         parameters:
           flst
-            list, Field or Function objects, i.e.::
-                >>> User.select(User.id)
-                >>> User.select(Fn.max(User.id))
+            list, Field or Function objects.
 
         return:
           SelectQuery object.
 
         sample::
-            >>> query = User.select(User.id)
-            >>> query = User.where(User.id > 3).select()
+
+            >>> User.select(User.id)
+            <SelectQuery 'select user.id from user'>
+            >>> User.where(User.id > 3).select()
+            <SelectQuery "select user.email, user.id, user.name from user where user.id > '3'">
         """
         cls.runtime.set_select(flst)
         return SelectQuery(cls.runtime)
 
     @classmethod
     def update(cls, *lst, **dct):
+        """Create a `update` query.
+
+        parameters:
+          lst
+            list, Expr objects.
+          dct
+            dict, data mappings.
+
+        return:
+          UpdateQuery object.
+
+        sample::
+
+            >>> User.at(3).update(name='amy')
+            <UpdateQuery "update user set user.name = 'amy' where user.id = '3'">
+
+        """
         cls.runtime.set_set(lst, dct)
         return UpdateQuery(cls.runtime)
 
     @classmethod
     def create(cls, *lst, **dct):
+        """Insert one new record into database and return the instance.
+
+        parameters:
+          lst
+            list, Expr objects
+          dct
+            dict, data mappings
+
+        return value:
+          - on success: model's instance
+          - on failure: None
+
+        sample::
+
+            >>> User.create(name='jack')
+            <models.User object at 0xb70e0d6c>
+        """
         query = cls.insert(*lst, **dct)
         id = query.execute()
+
         if id is not None:
             dct[cls.primarykey.name] = id  # add id to dct
             instance = cls(*lst, **dct)
             instance.set_in_db(True)
             return instance
 
+        return None
+
     @classmethod
     def delete(cls):
+        """Create a `delete` query.
+
+        return:
+          DeleteQuery object.
+
+        sample::
+
+            >>> User.at(1).delete()
+            <DeleteQuery "delete user from user where user.id = '1'">
+        """
         return DeleteQuery(cls.runtime)
 
     @classmethod
     def where(cls, *lst, **dct):
+        """The `where claause` in sql.
+
+        parameters:
+          lst
+            list, Expr objects
+          dct
+            dict, data mappings
+
+        sample::
+
+            >>> User.where(User.name.like('%a')).select(User.id)
+            <SelectQuery "select user.id from user where user.name like '%a'">
+            >>> User.where(User.id <= 15).select(User.id)
+            <SelectQuery "select user.id from user where user.id <= '15'">
+            >>> User.where(name='jack').select(User.id)
+            <SelectQuery "select user.id from user where user.name = 'jack'">
+        """
         cls.runtime.set_where(lst, dct)
         return cls
 
     @classmethod
     def at(cls, _id):
+        """Equal to `where(model.primarykey == _id)`.
+
+        sample::
+
+            >>> User.at(5).select(User.id)
+            <SelectQuery "select user.id from user where user.id = '5'">
+        """
         return cls.where(cls.primarykey == _id)
 
     @classmethod
     def orderby(cls, field, desc=False):
+        """The `order by field [desc]` in sql.
+
+        parameters:
+          field
+            Field object, the field to order by
+          desc
+            boolean, if desc? default: False
+
+        sample::
+
+            >>> User.orderby(User.id, desc=True).select()
+            <SelectQuery 'select user.email, user.id, user.name from user order by user.id desc '>
+        """
         cls.runtime.set_orderby((field, desc))
         return cls
 
