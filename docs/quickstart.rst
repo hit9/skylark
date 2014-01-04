@@ -45,7 +45,7 @@ Better to put all models in a single script,  name it ``models.py`` :
 
 * You have to create tables in MySQL by hand, CURD.py has no feature ``create_tables``
 
-* Note: sql defination of these two tables is* `here <https://github.com/hit9/CURD.py/blob/master/tests/tables.sql>`_.
+* Note: sql defination of these two tables is `here <https://github.com/hit9/CURD.py/blob/master/tests/tables.sql>`_.
 
 .. _Create:
 
