@@ -1,19 +1,10 @@
-# coding=utf8
-#  ____ _   _ ____  ____
-# / ___| | | |  _ \|  _ \  _ __  _   _
-#| |   | | | | |_) | | | || '_ \| | | |
-#| |___| |_| |  _ <| |_| || |_) | |_| |
-# \____|\___/|_| \_\____(_) .__/ \__, |
+# -*- coding: utf-8 -*-
+#   ____ _   _ ____  ____
+#  / ___| | | |  _ \|  _ \  _ __  _   _
+# | |   | | | | |_) | | | || '_ \| | | |
+# | |___| |_| |  _ <| |_| || |_) | |_| |
+#  \____|\___/|_| \_\____(_) .__/ \__, |
 #                         |_|    |___/
-#
-#   Tiny Python ORM for MySQL
-#
-#   E-mail: nz2324@126.com
-#
-#   URL: https://github.com/hit9/CURD.py
-#
-#   License: BSD
-#
 #
 # Permission to use, copy, modify,
 # and distribute this software for any purpose with
@@ -22,7 +13,18 @@
 # and this permission notice appear in all copies.
 #
 
-__version__ = '0.3.6'
+"""
+    CURD.py
+    ~~~~~~~
+
+    Tiny Python ORM for MySQL.
+
+    :copyright: (c) 2014 by Chao Wang (Hit9).
+    :license: BSD.
+"""
+
+
+__version__ = '0.4.0'
 
 
 import types
@@ -30,7 +32,7 @@ import MySQLdb
 from datetime import datetime, time, date, timedelta
 from _mysql import string_literal, NULL, escape_sequence, escape_dict
 
-# marks for operators
+# operators
 OP_LT = 1
 OP_LE = 2
 OP_GT = 3
@@ -45,28 +47,27 @@ OP_BETWEEN = 11
 OP_IN = 12
 OP_NOT_IN = 13
 
-# marks for query types
+# query types
 QUERY_INSERT = 20
 QUERY_UPDATE = 21
 QUERY_SELECT = 22
 QUERY_DELETE = 23
 
 # supported sql functions
-# aggregate functions
+# {{{ -------- aggregate functions
 FUNC_COUNT = 31
 FUNC_SUM = 32
 FUNC_MAX = 33
 FUNC_MIN = 34
 FUNC_AVG = 35
-# scalar functions
+# ---------- }}}
+# {{{ ------- scalar functions
 FUNC_UCASE = 41
 FUNC_LCASE = 42
+# ---------- }}}
 
-# CURD.py FLAGS
-DATA_ENCODING = 'utf8'  # your python code encoding
+DATA_ENCODING = 'utf8'  # user python code encoding
 
-
-# exceptions
 
 class CURDException(Exception):
     """There was an ambiguous exception occurred"""
@@ -79,17 +80,29 @@ class UnSupportedType(CURDException):
 
 
 class ForeignKeyNotFound(CURDException):
-    """Foreign key not found in main model"""
+    """Foreign key was not found in main model"""
     pass
 
 
 class PrimaryKeyValueNotFound(CURDException):
-    """Primarykey value not found in this instance"""
+    """Primarykey value was not found in this instance"""
     pass
 
 
 class Database(object):
-    """Database connection manager"""
+    """Database connection manager.
+
+    attributes:
+
+      configs
+        dict object, current configuration for connection with default values
+
+      autocommit
+        boolean,  disables or enables the default autocommit mode for the current session, default: True
+
+      conn
+        mysql connection object, the `<_mysql.connection object>`.
+    """
 
     # configuration for connection with default values
     configs = {
@@ -101,10 +114,10 @@ class Database(object):
         'charset': 'utf8'
     }
 
-    # It is strongly recommended that you set this True
+    # It is strongly recommended that you set this `True`
     autocommit = True
 
-    # MySQL connection object
+    # mysql connection object
     conn = None
 
     @classmethod
@@ -142,30 +155,28 @@ class Database(object):
 
     @classmethod
     def connect(cls):
-        """
-        Connect to database, this method will new a connect object
+        """Connect to database with current `Database.configs`, always creates
+        a new connection to mysql.
+
+        CURD.py will auto establish a singleton connection once running a query
+        , you don't have to call this method to connect to database manually.
         """
         cls.conn = MySQLdb.connect(**cls.configs)
         cls.conn.autocommit(cls.autocommit)
 
     @classmethod
     def get_conn(cls):
-        """
-        Get MySQL connection object.
+        """Get current MySQL connection object.
 
-        if the conn is open and working
-          return it.
-        else
-          new another one and return it.
+        If current connection is open and working normally, return this
+        connection object; else, creates a new connection and return it.
         """
 
-        # singleton
         if not cls.conn or not cls.conn.open:
             cls.connect()
 
         try:
-            # ping to test if this conn is working
-            cls.conn.ping()
+            cls.conn.ping()  # ping to test if the current conn is working
         except MySQLdb.OperationalError:
             cls.connect()
 
@@ -173,12 +184,19 @@ class Database(object):
 
     @classmethod
     def execute(cls, sql):
-        """
-        Execute one sql
+        """Execute a single raw query.
 
-        parameters
+        parameters:
           sql
-            string, sql command to run
+            string, sql command to be executed
+
+        return:
+          `MySQLdb.cursors object`
+
+        sample::
+
+            >>> Database.execute('select * from user')
+            <MySQLdb.cursors.Cursor object at 0xb710aaec>
         """
         cursor = cls.get_conn().cursor()
         cursor.execute(sql)
@@ -186,19 +204,23 @@ class Database(object):
 
     @classmethod
     def change(cls, db):
-        """
-        Change database.
+        """Switch database to `db`.
 
-        parameters
+        parameters:
           db
             string, database to use
+
+        sample::
+
+            >>> Database.change('mydb')
+            >>> Database.select_db('mydb')  # alias
         """
         cls.configs['db'] = db
 
         if cls.conn and cls.conn.open:
             cls.conn.select_db(db)
 
-    select_db = change  # alias
+    select_db = change  # alias of `Database.change`
 
 
 class Leaf(object):
@@ -228,15 +250,6 @@ class Leaf(object):
 
 
 class Expr(Leaf):
-    """
-    Expression object.
-
-    You need't new an expression in this way: myexpr = Expr(left, right, op)
-
-    Use expression like this:
-      User.id == 4
-      User.name == "Amy"
-    """
 
     def __init__(self, left, right, op):
         self.left = left
@@ -272,10 +285,25 @@ class FieldDescriptor(object):
 
 
 class Field(Leaf):
-    """
-    Field object.
+    """Field object, mapping to field in mysql table, i.e. `User.name`.
 
-    examples: User.name, User.age ..
+    attributes:
+
+      is_primarykey
+        boolean, if this field a primarykey
+
+      is_foreignkey
+        boolean, if this field a foreignkey
+
+      name
+        string, field's shortname, i.e `User.name`'s name is `name`
+
+      fullname
+        string, field's fullname, i.e `User.name`'s fullname is `user.name`
+
+      model
+        Model object, the model this field was bound.
+
     """
 
     def __init__(self, is_primarykey=False, is_foreignkey=False):
@@ -285,60 +313,76 @@ class Field(Leaf):
     def describe(self, name, model):
         self.name = name
         self.model = model
-        # `fullname`: e.g.: User.id => fullname is 'user.id'
-        self.fullname = self.model.table_name + '.' + self.name
-        # describe the attribute
-        setattr(model, name, FieldDescriptor(self))
+        self.fullname = '{table}.{field}'.format(table=self.model.table_name,
+                                                 field=self.name)
+        setattr(model, name, FieldDescriptor(self))  # describe this attribute
 
     def __repr__(self):
         return '<%s %r>' % (type(self).__name__, self.fullname)
 
     def like(self, pattern):
         """
-        e.g. User.name.like("Amy%")
+        parameters
+
+          pattern
+            string, pattern to like
+
+        sample::
+            >>> User.name.like('%Amy%')
         """
         return Expr(self, pattern, OP_LIKE)
 
-    def between(self, value1, value2):
+    def between(self, left, right):
         """
-        e.g. User.id.between(3, 7)
+        parameters
+
+          left, right
+            string/integer/..
+
+        sample::
+            >>> User.age.between(13, 17)
         """
-        return Expr(self, (value1, value2), OP_BETWEEN)
+        return Expr(self, (left, right), OP_BETWEEN)
 
     def _in(self, *values):
         """
-        e.g.:
-          User.id._in(1, 2, 3, 4, 5)
-          User.id._in(Post.select(Post.user_id))
+        parameters
+
+          *values
+            string/integer/sub_query/..
+
+        sample::
+            >>> User.age._in(1, 3, 5, 7)
+            >>> User.id._in(Post.select(Post.user_id))
         """
         return Expr(self, values, OP_IN)
 
     def not_in(self, *values):
         """
-        e.g.:
-          User.id.not_in(1, 2, 3, 4, 5)
-          User.id.not_in(Post.select(Post.user_id))
+        parameters
+
+          *values:
+            string/integer/sub_query/..
+
+        sample::
+            >>> User.age._in(1, 3, 5, 7)
+            >>> User.id._in(Post.select(Post.user_id))
         """
         return Expr(self, values, OP_NOT_IN)
 
 
 class PrimaryKey(Field):
-    """
-    PrimaryKey object.
-
-    PrimaryKey example: User.id
-    """
+    """PrimaryKey object, fields which `is_primarykey` set `True`."""
 
     def __init__(self):
         super(PrimaryKey, self).__init__(is_primarykey=True)
 
 
 class ForeignKey(Field):
-    """
-    ForeignKey object.
-    ForeignKey example: Post.user_id = ForeignKey(point_to=User.id)
+    """ForeignKey object, fields which `is_foreignkey` set `True`
 
-    Parameter:
+    parameters
+
       point_to
         PrimaryKey object, the primary key this foreignkey referenced to.
     """
@@ -349,8 +393,27 @@ class ForeignKey(Field):
 
 
 class Function(Leaf):
-    """
-    Function object. e.g. `count`, `max`, `sum` in SQL
+    """Function object, i.e. `count(User.id)`, `max(User.age)`.
+
+    CURD.py only supports scalar functions (`lcase`, `ucase`..)
+    and aggregate functions(`count`, `max`..).
+
+    attributes
+
+      field
+        Field object, field object this function functions
+
+      func_type
+        integer, this function's type
+
+      name
+        string, this function's shortname, i.e. `count(user.name)`
+
+      fullname
+        string, this function's fullname, i.e. `count_of_name`
+
+      model
+        Model object, model its field was bound
     """
 
     FUNC_MAPPINGS = {
@@ -363,24 +426,32 @@ class Function(Leaf):
         FUNC_LCASE: 'lcase',
     }
 
+
     def __init__(self, field, func_type):
         self.field = field
         self.func_type = func_type
         # the name appeared in SQL string
         self.fullname = '%s(%s)' % (Function.FUNC_MAPPINGS[self.func_type],
                                     field.fullname)
-
         # the name in the python codes
         self.name = '%s_of_%s' % (Function.FUNC_MAPPINGS[self.func_type],
                                   field.name)
-
         self.model = self.field.model
 
     def __repr__(self):
-        return '<Function %r>' % self.fullname
+        return 'Function %r' % self.fullname
 
 
 class Fn(object):
+    """API class with supported functions.
+
+    sample::
+
+        >>> Fn.count(User.id)
+        <Function 'count(user.id)'>
+
+    """
+
 
     def fn(func_type):
         @classmethod
@@ -482,24 +553,23 @@ class Compiler(object):
 
         if isinstance(side, (Field, Function)):  # field
             return side.fullname
-        elif isinstance(side, Expr):  # expressions
+        elif isinstance(side, Expr):  # expression
             return Compiler.parse_expr(side)
         elif isinstance(side, Query):  # sub query
             return '(%s)' % side.sql
-        elif type(side) in Compiler.conversions:
+        elif type(side) in Compiler.conversions:  # common value
             return Compiler.conversions[type(side)](side)
-        else:
+        else:  # unsupported
             raise UnSupportedType("Unsupported type '%s' in one side of some"
                                   " expression" % str(type(side)))
 
     @staticmethod
     def parse_expr(expr):
-        '''parse expression to string'''
 
         cache = Compiler.expr_cache
 
         # check cache at first
-        if expr in cache:  # `in` statement use `__hash__` and then `__eq__`
+        if expr in cache:  # `in` statement uses `__hash__` and then `__eq__`
             return cache[expr]
 
         # make alias
@@ -514,16 +584,13 @@ class Compiler(object):
         elif op is OP_BETWEEN:
             string = '%s between %s and %s' % (tostr(l), tostr(r[0]), tostr(r[1]))
         elif op in (OP_IN, OP_NOT_IN):
-            string = '%s%s in (%s)' % (tostr(l),
-                                       ' not' if op is OP_NOT_IN else '',
-                                       ', '.join(tostr(value) for value in r))
+            string = '%s%s in (%s)' % (
+                tostr(l), ' not' if op is OP_NOT_IN else '', ', '.join(tostr(value) for value in r)
+            )
 
-        # set cache
-        cache[expr] = string
+        cache[expr] = string  # set cache
 
         return string
-
-    # ------------------ runtime part -----
 
     @staticmethod
     def parse_orderby(lst):
@@ -586,20 +653,17 @@ class Compiler(object):
 
     @staticmethod
     def gen_sql(runtime, query_type, target_model=None):
-        '''
+        """
         Generate SQL from runtime information.
 
         parameters:
-
           runtime
-            Runtime, runtime instance
-
+            Runtime object, runtime instance
           query_type
-            macros, query_types, the QUERY_**:
-
+            macros, query type, the QUERY_**:
           target_model
-            Model, model to delete, update, select or insert
-        '''
+            Model object, model to delete, update, select or insert
+        """
 
         from_table = runtime.model.table_name
 
@@ -640,14 +704,12 @@ class Compiler(object):
 
 
 class Runtime(object):
-    """Runtime information manager"""
 
     def __init__(self, model=None):
         self.model = model
         self.data = {}.fromkeys(
             ('where', 'set', 'orderby', 'select', 'limit', 'groupby', 'having', 'distinct'),
             None)
-        # reset runtime data
         self.reset_data()
 
     def reset_data(self):
@@ -683,6 +745,7 @@ class Runtime(object):
         if self.model.single:  # Models objects cannot use dct as arg
             fields = self.model.fields
             lst.extend(fields[k] == v for k, v in dct.iteritems())
+
         self.data['where'] = lst
 
     def set_set(self, lst, dct):
@@ -703,7 +766,7 @@ class Query(object):
     def __init__(self, query_type, runtime, target_model=None):
         self.query_type = query_type
         self.sql = Compiler.gen_sql(runtime, self.query_type, target_model)
-        runtime.reset_data()  # ! important: clean runtime right on this query initialized
+        runtime.reset_data()  # !important: clean runtime right on this query initialized
 
     def __repr__(self):
         return '<%s %r>' % (type(self).__name__, self.sql)
@@ -728,6 +791,7 @@ class UpdateQuery(Query):
         cursor = Database.execute(self.sql)
         return cursor.rowcount
 
+
 class SelectQuery(Query):
 
     def __init__(self, runtime, target_model=None):
@@ -743,6 +807,7 @@ class SelectQuery(Query):
         cursor = Database.execute(self.sql)
         return SelectResult(cursor, self.from_model, self.selects)
 
+
 class DeleteQuery(Query):
 
     def __init__(self, runtime, target_model=None):
@@ -754,6 +819,15 @@ class DeleteQuery(Query):
 
 
 class SelectResult(object):
+    """Select query result.
+
+    methods:
+      fetchone,  fetch a single row each time
+      fetchall,  fetch all rows at a time
+
+    attributes:
+      count,  results rowcount from mysql
+    """
 
     def __init__(self, cursor, model, flst):
         self.model = model
@@ -773,7 +847,7 @@ class SelectResult(object):
         return instance
 
     def fetchone(self):
-        '''Fetch a single row each time'''
+        """Fetch a single row each time"""
         row = self.cursor.fetchone()
 
         if row is None:
@@ -785,7 +859,7 @@ class SelectResult(object):
             return tuple(self.__instance_from_db(m, row) for m in self.model.models)
 
     def fetchall(self):
-        '''Fetch all rows at a time'''
+        """Fetch all rows at a time"""
         rows = self.cursor.fetchall()
 
         if self.model.single:
@@ -800,11 +874,11 @@ class SelectResult(object):
         return self.cursor.rowcount
 
 
-class MetaModel(type):  # metaclass for `Model`
+class MetaModel(type):
 
     def __init__(cls, name, bases, attrs):
 
-        cls.table_name = cls.__name__.lower()  # clsname lowercase => table name
+        cls.table_name = cls.__name__.lower()  # clsname's lowercase => table name
 
         fields = {}  # {field_name: field}
         primarykey = None
@@ -817,8 +891,8 @@ class MetaModel(type):  # metaclass for `Model`
                 if attr.is_primarykey:
                     primarykey = attr
 
-        if primarykey is None:  # if primarykey not found
-            primarykey = PrimaryKey()  # use `id` as default
+        if primarykey is None:
+            primarykey = PrimaryKey()  # use `id` as default primarykey
             primarykey.describe('id', cls)
             fields['id'] = primarykey
 
@@ -830,6 +904,14 @@ class MetaModel(type):  # metaclass for `Model`
         return JoinModel(self, join)
 
     def __contains__(self, obj):
+        """To test if some instance is in table.
+
+        sample usage::
+
+            >>> user = User(name='jack')
+            >>> user in User
+            True
+        """
         if isinstance(obj, self):
             query = self.where(**obj.data).select()
             result = query.execute()
@@ -840,15 +922,30 @@ class MetaModel(type):  # metaclass for `Model`
 
 class Model(object):
     """
-    Model object. Tables are mapped to models.
+    Model object, mysql tables are mapped to models, i.e. table 'user' => `User`
 
-    Parameters:
+    Model(*expressions, **values)
+
+    instantiation parameters:
 
       expressions
         Expr objects, e.g. User(User.name == "Join")
 
-      datas
-        e.g. User(name="Join")
+      values
+        name to value mappings, e.g. User(name="Join")
+
+    sample instantiation::
+
+        >>> user = User(name='jack', age=13, email='jack@gmail.com')
+        >>> user = User(User.name == 'jack', age=13)
+
+    instance attributes:
+
+      data
+        dict, data in this instance
+
+      _id
+        string/integer/.., value of this instance's primarykey
 
     """
 
@@ -858,80 +955,253 @@ class Model(object):
 
     def __init__(self, *lst, **dct):
         self.data = {}
-        # update data dict from expressions
+
         for expr in lst:
             field, value = expr.left, expr.right
             self.data[field.name] = value
 
-        self.data.update(dct) # update data dict from data parameter
+        self.data.update(dct)
         self._cache = self.data.copy()  # cache for data
-        self.set_in_db(False)  # not in database
+        self.set_in_db(False)
 
     @classmethod
     def get_fields(cls):
-        """return list of this model's fields"""
+        """Get this model's fields list."""
         return cls.fields.values()
 
     @classmethod
     def insert(cls, *lst, **dct):
+        """Create a `insert` query.
+
+        parameters:
+          lst
+            list, Expr objects, i.e. `User.insert(User.name=='jack')`
+          dct
+            dict, data mappings, i.e. `User.insert(name='jack')`
+
+        return:
+          InsertQuery object.
+
+        sample::
+
+            >>> User.insert(name='jack')
+            <InsertQuery "insert into user set user.name = 'jack'">
+        """
         cls.runtime.set_set(lst, dct)
         return InsertQuery(cls.runtime)
 
     @classmethod
     def select(cls, *flst):
+        """Create a `select` query.
+
+        parameters:
+          flst
+            list, Field or Function objects.
+
+        return:
+          SelectQuery object.
+
+        sample::
+
+            >>> User.select(User.id)
+            <SelectQuery 'select user.id from user'>
+            >>> User.where(User.id > 3).select()
+            <SelectQuery "select user.email, user.id, user.name from user where user.id > '3'">
+        """
         cls.runtime.set_select(flst)
         return SelectQuery(cls.runtime)
 
     @classmethod
     def update(cls, *lst, **dct):
+        """Create a `update` query.
+
+        parameters:
+          lst
+            list, Expr objects.
+          dct
+            dict, data mappings.
+
+        return:
+          UpdateQuery object.
+
+        sample::
+
+            >>> User.at(3).update(name='amy')
+            <UpdateQuery "update user set user.name = 'amy' where user.id = '3'">
+
+        """
         cls.runtime.set_set(lst, dct)
         return UpdateQuery(cls.runtime)
 
     @classmethod
     def create(cls, *lst, **dct):
+        """Insert one new record into database and return the instance.
+
+        parameters:
+          lst
+            list, Expr objects
+          dct
+            dict, data mappings
+
+        return value:
+          - on success: model's instance
+          - on failure: None
+
+        sample::
+
+            >>> User.create(name='jack')
+            <models.User object at 0xb70e0d6c>
+        """
         query = cls.insert(*lst, **dct)
         id = query.execute()
+
         if id is not None:
             dct[cls.primarykey.name] = id  # add id to dct
             instance = cls(*lst, **dct)
             instance.set_in_db(True)
             return instance
 
+        return None
+
     @classmethod
     def delete(cls):
+        """Create a `delete` query.
+
+        return:
+          DeleteQuery object.
+
+        sample::
+
+            >>> User.at(1).delete()
+            <DeleteQuery "delete user from user where user.id = '1'">
+        """
         return DeleteQuery(cls.runtime)
 
     @classmethod
     def where(cls, *lst, **dct):
+        """The `where claause` in sql.
+
+        parameters:
+          lst
+            list, Expr objects
+          dct
+            dict, data mappings
+
+        sample::
+
+            >>> User.where(User.name.like('%a')).select(User.id)
+            <SelectQuery "select user.id from user where user.name like '%a'">
+            >>> User.where(User.id <= 15).select(User.id)
+            <SelectQuery "select user.id from user where user.id <= '15'">
+            >>> User.where(name='jack').select(User.id)
+            <SelectQuery "select user.id from user where user.name = 'jack'">
+        """
         cls.runtime.set_where(lst, dct)
         return cls
 
     @classmethod
     def at(cls, _id):
+        """Equal to `where(model.primarykey == _id)`.
+
+        sample::
+
+            >>> User.at(5).select(User.id)
+            <SelectQuery "select user.id from user where user.id = '5'">
+        """
         return cls.where(cls.primarykey == _id)
 
     @classmethod
     def orderby(cls, field, desc=False):
+        """The `order by field [desc]` in sql.
+
+        parameters:
+          field
+            Field object, the field to order by
+          desc
+            boolean, if desc? default: False
+
+        return:
+          this model
+
+        sample::
+
+            >>> User.orderby(User.id, desc=True).select()
+            <SelectQuery 'select user.email, user.id, user.name from user order by user.id desc '>
+        """
         cls.runtime.set_orderby((field, desc))
         return cls
 
     @classmethod
     def groupby(cls, *lst):
+        """The `group  by` in sql.
+
+        parameters:
+          lst
+            list, fields to group by
+
+        return:
+          this model
+
+        sample::
+
+            >>> query = User.groupby(User.name).select(User.id, User.name)
+            >>> query.sql
+            'select user.name, user.id from user group by user.name'
+        """
         cls.runtime.set_groupby(lst)
         return cls
 
     @classmethod
     def having(cls, *lst):
+        """The `having` in sql.
+
+        parameters:
+          lst
+            list, Expr objects
+
+        return:
+          this model
+
+        sample::
+
+            >>> query = User.groupby(User.name).having(Fn.count(User.id) > 3).select(User.id, User.name)
+            >>> query.sql
+            "select user.name, user.id from user group by user.name having count(user.id) > '3'"
+        """
         cls.runtime.set_having(lst)
         return cls
 
     @classmethod
     def limit(cls, rows, offset=None):
+        """The `limit` in sql.
+
+        parameters:
+          rows
+            integer, rows count to select
+          offset
+            integer, offset rows count, default: None
+
+        return:
+          this model
+
+        sample::
+
+            >>> query = User.limit(2, offset=1).select()
+            >>> query.sql
+            'select user.id, user.name, user.email from user limit 1, 2 '
+        """
         cls.runtime.set_limit((offset, rows))
         return cls
 
     @classmethod
     def distinct(cls):
+        """Distinct select results.
+
+        sample::
+
+            >>> [user.name for user in User.distinct().select(User.name)]
+            [u'jack', u'tom']
+        """
         cls.runtime.set_distinct(True)
         return cls
 
@@ -939,34 +1209,57 @@ class Model(object):
 
     @classmethod
     def findone(cls, *lst, **dct):
+        """Fetch one result from database, equal to
+        `Model.where(*lst, **dct).select().execute().fetchone()`.
+        Return a single instance of this model."""
         query = cls.where(*lst, **dct).select()
         result = query.execute()
         return result.fetchone()
 
     @classmethod
     def findall(cls, *lst, **dct):
+        """Fetch all results from database, equal to
+        `Model.where(*lst, **dct).select().execute().fetchall()`.
+        Return a tuple of instances of this model."""
         query = cls.where(*lst, **dct).select()
         result = query.execute()
         return result.fetchall()
 
     @classmethod
     def getone(cls):
+        """Equal to `Model.select().execute().fetchone()`"""
         return cls.select().execute().fetchone()
 
     @classmethod
     def getall(cls):
+        """Equal to `Model.select().execute().fetchall()`"""
         return cls.select().execute().fetchall()
 
     # ------------ select shortcuts }}}
 
     @property
-    def _id(self):  # value of primarykey
+    def _id(self):
         return self.data.get(type(self).primarykey.name, None)
 
     def set_in_db(self, boolean):
         self._in_db = boolean
 
     def save(self):
+        """Save this instance to database, if this instance is created/select
+        from database, update it; else if this instance is new to database,
+        insert it into table.
+
+        sample::
+
+            >>> user = User.getone()
+            >>> user.name = 'NewName'
+            >>> user.save()  # update
+            1L
+
+            >>> user = User(name='NewPerson')
+            >>> user.save()  # insert
+            1L
+        """
         model = type(self)
 
         if not self._in_db:  # insert
@@ -993,12 +1286,33 @@ class Model(object):
             return rows_affected
 
     def destroy(self):
+        """Delete this instance if it came from database.
+
+        Equal to `Model.at(id).delete().execute()`
+
+        return:
+          - on success: rows count deleted
+          - on failure: None
+
+        exceptions:
+
+          PrimaryKeyValueNotFound
+            this method needs instance's primarykey to delete
+
+        sample::
+
+            >>> user = User.getone()
+            >>> user.destroy()
+            1L
+        """
         if self._in_db:
             if self._id is None:
                 raise PrimaryKeyValueNotFound  #! need primarykey to track this instance
             return type(self).at(self._id).delete().execute()
+        return None
 
     def fn(func_type):
+        """Non-API functions factory."""
         @classmethod
         def _fn(cls, field=None):
             if field is None:

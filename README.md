@@ -2,9 +2,10 @@ CURD.py
 =======
 
 Tiny Python ORM for MySQL.
-[![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
 
-latest version: v0.3.6
+Latest version: v0.4.0
+
+Development status: 3 - Alpha
 
 Only support C, U, R, D, responsing to its name:
 
@@ -16,11 +17,7 @@ Only support C, U, R, D, responsing to its name:
 
 - Delete
 
-- Multiple Tables
-
 **NOTE**: CURD.py may not be stable before version v1.0
-
-**NOTE**: CURD.py v0.3.0 has a lot of **Not-Backward-Compatible** changes.
 
 Sample Code
 -----------
@@ -33,19 +30,19 @@ Sample Code
 >>> user.email = 'tom@github.com'
 >>> user.save()  # update
 1L
->>> [user.name for user in User.select()]
-[u'Tom']  # select
+>>> [user.name for user in User.select()]  # select
+[u'Tom']
 >>> query = User.where(name='Tom').delete()
 >>> query.execute()  # delete
 1L
->>> user = User.create(name='Kate', email='kate@gmail.com')  # anthor insert
+>>> user = User.create(name='Kate', email='kate@gmail.com')  # another insert
 >>> user.data
 {'email': 'kate@gmail.com', 'name': 'Kate', 'id': 2L}
->>> user.destroy()  # anthor delete
+>>> user.destroy()  # another delete
 1L
 ```
 
-More examples are in [docs/sample/](http://github.com/hit9/CURD.py/tree/master/docs/sample).
+More examples: [docs/sample/](http://github.com/hit9/CURD.py/tree/master/docs/sample).
 
 Install
 -------
@@ -55,24 +52,23 @@ Install
 Documentation
 -------------
 
-Documentaion is already on http://curdpy.readthedocs.org/
+http://curdpy.readthedocs.org/
+
+Strongly recommend that you read [Quick Start](http://curdpy.readthedocs.org/en/latest/quickstart.html) at first.
 
 FAQ
 ---
 
-1. I meet problem installing MySQL-python via pip.
+- [FAQ](http://curdpy.readthedocs.org/en/latest/faq.html)
 
-  for ubuntu users:
-  ```
-  apt-get install libmysqlclient-dev
-  ```
+- [ISSUES TRACKER](https://github.com/hit9/CURD.py/issues)
 
-  for mac users:
-  ```
-  export PATH=$PATH:/usr/local/mysql/bin
-  ```
+Tests
+-----
 
-2. CURD.py only works with tables which has primarykey.
+- Status: [![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
+
+- [How to Run Tests](https://github.com/hit9/CURD.py/blob/dev/tests/README.rst)
 
 License
 -------
@@ -82,4 +78,4 @@ License
 Changes
 -------
 
-See [CHANGES](CHANGES)
+[CHANGES](CHANGES)

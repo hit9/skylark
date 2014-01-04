@@ -31,7 +31,7 @@ Model Definition
         # default primarykey: `id`, to figure out primarykey :
         #   myid = PrimaryKey()
 
-We defined a model: ``User``, which has 3 fields:``name``, ``email`` and ``id`` (*`id` is the default primarykey*)
+We defined a model: ``User``, which has 3 fields:``name``, ``email`` and ``id`` (``'id' is the default primarykey``)
 
 All models should inherit Model.
 
@@ -43,9 +43,9 @@ Better to put all models in a single script,  name it ``models.py`` :
 
 .. literalinclude:: sample/models.py
 
-* *You have to create tables in MySQL by hand, CURD.py has no feature `create_tables`*
+* You have to create tables in MySQL by hand, CURD.py has no feature ``create_tables``
 
-* *Note: sql defination of these two tables is* `here <https://github.com/hit9/CURD.py/blob/master/tests/tables.sql>`_.
+* Note: sql defination of these two tables is `here <https://github.com/hit9/CURD.py/blob/master/tests/tables.sql>`_.
 
 .. _Create:
 

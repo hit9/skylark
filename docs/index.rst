@@ -1,20 +1,21 @@
 .. _index:
 
-CURD - Tiny ORM for MySQL
-=========================
+CURD - Tiny Python ORM for MySQL
+================================
 
 Release: v\ |version| (:ref:`Installation <install>`) 
 
-**NOTE**: CURD.py may not be stable before version 1.0
 
-**NOTE**: version 0.3.0 has a lot of **Not-Backward-Compatible** changes
-compared to version 0.2.5.
+.. **NOTE**: version 0.3.0 has a lot of **Not-Backward-Compatible** changes
+.. compared to version 0.2.5.
 
 Tests status:
 
 .. image:: https://travis-ci.org/hit9/CURD.py.png?branch=dev
 
 CURD.py is a tiny orm for mysql database, written in Python.
+
+**NOTICE**: CURD.py may not be stable before version 1.0
 
 .. Contents::
 
@@ -32,15 +33,15 @@ Sample
     >>> user.email = 'tom@github.com'
     >>> user.save()  # update
     1L
-    >>> [user.name for user in User.select()]
-    [u'Tom']  # select
+    >>> [user.name for user in User.select()]  # select
+    [u'Tom']
     >>> query = User.where(name='Tom').delete()
     >>> query.execute()  # delete
     1L
-    >>> user = User.create(name='Kate', email='kate@gmail.com')  # anthor insert
+    >>> user = User.create(name='Kate', email='kate@gmail.com')  # another insert
     >>> user.data
     {'email': 'kate@gmail.com', 'name': 'Kate', 'id': 2L}
-    >>> user.destroy()  # anthor delete
+    >>> user.destroy()  # another delete
     1L
 
 More sample codes `here
@@ -61,15 +62,13 @@ Supports
 
 CURD.py only supports 4 types of queries: C, U, R, D, responsing to its name.
 
-- Create
+- :ref:`Create` 
 
-- Update
+- :ref:`Update`
 
-- Read
+- :ref:`Read`
 
-- Delete
-
-- Multiple Tables
+- :ref:`Delete`
 
 Plat
 ----
@@ -80,7 +79,7 @@ Documentaion
 ------------
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
     :numbered:
 
     quickstart
