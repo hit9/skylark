@@ -54,15 +54,17 @@ QUERY_SELECT = 22
 QUERY_DELETE = 23
 
 # supported sql functions
-# aggregate functions
+# {{{ -------- aggregate functions
 FUNC_COUNT = 31
 FUNC_SUM = 32
 FUNC_MAX = 33
 FUNC_MIN = 34
 FUNC_AVG = 35
-# scalar functions
+# ---------- }}}
+# {{{ ------- scalar functions
 FUNC_UCASE = 41
 FUNC_LCASE = 42
+# ---------- }}}
 
 DATA_ENCODING = 'utf8'  # user python code encoding
 
@@ -279,12 +281,16 @@ class Field(Leaf):
 
       is_primarykey
         boolean, if this field a primarykey
+
       is_foreignkey
         boolean, if this field a foreignkey
+
       name
         string, field's shortname, i.e `User.name`'s name is `name`
+
       fullname
         string, field's fullname, i.e `User.name`'s fullname is `user.name`
+
       model
         Model object, the model this field was bound.
 
@@ -364,6 +370,7 @@ class ForeignKey(Field):
     """ForeignKey object, fields which `is_foreignkey` set `True`
 
     parameters
+
       point_to
         PrimaryKey object, the primary key this foreignkey referenced to.
     """
@@ -379,14 +386,19 @@ class Function(Leaf):
     and aggregate functions(`count`, `max`..).
 
     attributes
+
       field
         Field object, field object this function functions
+
       func_type
         integer, this function's type
+
       name
         string, this function's shortname, i.e. `count(user.name)`
+
       fullname
         string, this function's fullname, i.e. `count_of_name`
+
       model
         Model object, model its field was bound
     """
@@ -423,6 +435,7 @@ class Fn(object):
     sample::
 
         >>> Fn.count(User.id)
+        <Function 'count(user.id)'>
 
     """
 
@@ -746,7 +759,6 @@ class Query(object):
         return '<%s %r>' % (type(self).__name__, self.sql)
 
 
-
 class InsertQuery(Query):
 
     def __init__(self, runtime, target_model=None):
@@ -795,9 +807,11 @@ class DeleteQuery(Query):
 
 class SelectResult(object):
     """Select query result.
+
     methods:
       fetchone,  fetch a single row each time
       fetchall,  fetch all rows at a time
+
     attributes:
       count,  results rowcount from mysql
     """
@@ -878,7 +892,9 @@ class MetaModel(type):
 
     def __contains__(self, obj):
         """To test if some instance is in table.
+
         sample usage::
+
             >>> user = User(name='jack')
             >>> user in User
             True
@@ -898,18 +914,25 @@ class Model(object):
     Model(*expressions, **values)
 
     instantiation parameters:
+
       expressions
         Expr objects, e.g. User(User.name == "Join")
+
       values
         name to value mappings, e.g. User(name="Join")
 
     sample instantiation::
+
         >>> user = User(name='jack', age=13, email='jack@gmail.com')
         >>> user = User(User.name == 'jack', age=13)
 
     instance attributes:
+
       data
         dict, data in this instance
+
+      _id
+        string/integer/.., value of this instance's primarykey
 
     """
 
@@ -1084,6 +1107,9 @@ class Model(object):
           desc
             boolean, if desc? default: False
 
+        return:
+          this model
+
         sample::
 
             >>> User.orderby(User.id, desc=True).select()
@@ -1094,21 +1120,75 @@ class Model(object):
 
     @classmethod
     def groupby(cls, *lst):
+        """The `group  by` in sql.
+
+        parameters:
+          lst
+            list, fields to group by
+
+        return:
+          this model
+
+        sample::
+
+            >>> query = User.groupby(User.name).select(User.id, User.name)
+            >>> query.sql
+            'select user.name, user.id from user group by user.name'
+        """
         cls.runtime.set_groupby(lst)
         return cls
 
     @classmethod
     def having(cls, *lst):
+        """The `having` in sql.
+
+        parameters:
+          lst
+            list, Expr objects
+
+        return:
+          this model
+
+        sample::
+
+            >>> query = User.groupby(User.name).having(Fn.count(User.id) > 3).select(User.id, User.name)
+            >>> query.sql
+            "select user.name, user.id from user group by user.name having count(user.id) > '3'"
+        """
         cls.runtime.set_having(lst)
         return cls
 
     @classmethod
     def limit(cls, rows, offset=None):
+        """The `limit` in sql.
+
+        parameters:
+          rows
+            integer, rows count to select
+          offset
+            integer, offset rows count, default: None
+
+        return:
+          this model
+
+        sample::
+
+            >>> query = User.limit(2, offset=1).select()
+            >>> query.sql
+            'select user.id, user.name, user.email from user limit 1, 2 '
+        """
         cls.runtime.set_limit((offset, rows))
         return cls
 
     @classmethod
     def distinct(cls):
+        """Distinct select results.
+
+        sample::
+
+            >>> [user.name for user in User.distinct().select(User.name)]
+            [u'jack', u'tom']
+        """
         cls.runtime.set_distinct(True)
         return cls
 
@@ -1116,34 +1196,55 @@ class Model(object):
 
     @classmethod
     def findone(cls, *lst, **dct):
+        """Fetch one result from database, equal to `Model.where(*lst, **dct).select().execute().fetchone()`.
+        Return a single instance of this model."""
         query = cls.where(*lst, **dct).select()
         result = query.execute()
         return result.fetchone()
 
     @classmethod
     def findall(cls, *lst, **dct):
+        """Fetch all results from database, equal to `Model.where(*lst, **dct).select().execute().fetchall()`.
+        Return a tuple of instances of this model."""
         query = cls.where(*lst, **dct).select()
         result = query.execute()
         return result.fetchall()
 
     @classmethod
     def getone(cls):
+        """Equal to `Model.select().execute().fetchone()`"""
         return cls.select().execute().fetchone()
 
     @classmethod
     def getall(cls):
+        """Equal to `Model.select().execute().fetchall()`"""
         return cls.select().execute().fetchall()
 
     # ------------ select shortcuts }}}
 
     @property
-    def _id(self):  # value of primarykey
+    def _id(self):
         return self.data.get(type(self).primarykey.name, None)
 
     def set_in_db(self, boolean):
         self._in_db = boolean
 
     def save(self):
+        """Save this instance to database, if this instance is created/select from
+        database, update it; else if this instance is new to database, insert it into
+        table.
+
+        sample::
+
+            >>> user = User.getone()
+            >>> user.name = 'NewName'
+            >>> user.save()  # update
+            1L
+
+            >>> user = User(name='NewPerson')
+            >>> user.save()  # insert
+            1L
+        """
         model = type(self)
 
         if not self._in_db:  # insert
@@ -1170,12 +1271,33 @@ class Model(object):
             return rows_affected
 
     def destroy(self):
+        """Delete this instance if it came from database.
+
+        Equal to `Model.at(id).delete().execute()`
+
+        return:
+          - on success: rows count deleted
+          - on failure: None
+
+        exceptions:
+
+          PrimaryKeyValueNotFound
+            this method needs instance's primarykey to delete
+
+        sample::
+
+            >>> user = User.getone()
+            >>> user.destroy()
+            1L
+        """
         if self._in_db:
             if self._id is None:
                 raise PrimaryKeyValueNotFound  #! need primarykey to track this instance
             return type(self).at(self._id).delete().execute()
+        return None
 
     def fn(func_type):
+        """Non-API functions factory."""
         @classmethod
         def _fn(cls, field=None):
             if field is None:
