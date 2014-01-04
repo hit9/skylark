@@ -155,11 +155,12 @@ class Database(object):
 
     @classmethod
     def connect(cls):
-        """Connect to database with current `Database.configs`,
-        always creates a new connection to mysql.
-        CURD.py will auto establish a singleton connection once
-        running a query, you don't have to run this method to connect to
-        database manually."""
+        """Connect to database with current `Database.configs`, always creates
+        a new connection to mysql.
+
+        CURD.py will auto establish a singleton connection once running a query
+        , you don't have to call this method to connect to database manually.
+        """
         cls.conn = MySQLdb.connect(**cls.configs)
         cls.conn.autocommit(cls.autocommit)
 
@@ -167,9 +168,8 @@ class Database(object):
     def get_conn(cls):
         """Get current MySQL connection object.
 
-        if current connection is open and working normally,
-        return this connection object; else, creates a new connection and
-        return it.
+        If current connection is open and working normally, return this
+        connection object; else, creates a new connection and return it.
         """
 
         if not cls.conn or not cls.conn.open:
@@ -192,6 +192,11 @@ class Database(object):
 
         return:
           `MySQLdb.cursors object`
+
+        sample::
+
+            >>> Database.execute('select * from user')
+            <MySQLdb.cursors.Cursor object at 0xb710aaec>
         """
         cursor = cls.get_conn().cursor()
         cursor.execute(sql)
@@ -280,7 +285,7 @@ class FieldDescriptor(object):
 
 
 class Field(Leaf):
-    """Field object, mapping to field in mysql table, i.e. `User.name`, `User.age`.
+    """Field object, mapping to field in mysql table, i.e. `User.name`.
 
     attributes:
 
@@ -299,9 +304,6 @@ class Field(Leaf):
       model
         Model object, the model this field was bound.
 
-    methods:
-
-      like, between, _in, not_in
     """
 
     def __init__(self, is_primarykey=False, is_foreignkey=False):
@@ -321,6 +323,7 @@ class Field(Leaf):
     def like(self, pattern):
         """
         parameters
+
           pattern
             string, pattern to like
 
@@ -332,6 +335,7 @@ class Field(Leaf):
     def between(self, left, right):
         """
         parameters
+
           left, right
             string/integer/..
 
@@ -343,6 +347,7 @@ class Field(Leaf):
     def _in(self, *values):
         """
         parameters
+
           *values
             string/integer/sub_query/..
 
@@ -355,8 +360,10 @@ class Field(Leaf):
     def not_in(self, *values):
         """
         parameters
+
           *values:
             string/integer/sub_query/..
+
         sample::
             >>> User.age._in(1, 3, 5, 7)
             >>> User.id._in(Post.select(Post.user_id))
@@ -387,6 +394,7 @@ class ForeignKey(Field):
 
 class Function(Leaf):
     """Function object, i.e. `count(User.id)`, `max(User.age)`.
+
     CURD.py only supports scalar functions (`lcase`, `ucase`..)
     and aggregate functions(`count`, `max`..).
 
@@ -1201,7 +1209,8 @@ class Model(object):
 
     @classmethod
     def findone(cls, *lst, **dct):
-        """Fetch one result from database, equal to `Model.where(*lst, **dct).select().execute().fetchone()`.
+        """Fetch one result from database, equal to
+        `Model.where(*lst, **dct).select().execute().fetchone()`.
         Return a single instance of this model."""
         query = cls.where(*lst, **dct).select()
         result = query.execute()
@@ -1209,7 +1218,8 @@ class Model(object):
 
     @classmethod
     def findall(cls, *lst, **dct):
-        """Fetch all results from database, equal to `Model.where(*lst, **dct).select().execute().fetchall()`.
+        """Fetch all results from database, equal to
+        `Model.where(*lst, **dct).select().execute().fetchall()`.
         Return a tuple of instances of this model."""
         query = cls.where(*lst, **dct).select()
         result = query.execute()
@@ -1235,9 +1245,9 @@ class Model(object):
         self._in_db = boolean
 
     def save(self):
-        """Save this instance to database, if this instance is created/select from
-        database, update it; else if this instance is new to database, insert it into
-        table.
+        """Save this instance to database, if this instance is created/select
+        from database, update it; else if this instance is new to database,
+        insert it into table.
 
         sample::
 
