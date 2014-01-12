@@ -878,26 +878,39 @@ class MetaModel(type):
 
     def __init__(cls, name, bases, attrs):
 
-        cls.table_name = cls.__name__.lower()  # clsname's lowercase => table name
+        # cls.table_name = getattr(cls, 'table_name') if hasattr(cls, 'table_name') else cls.__name__.lower()
 
-        fields = {}  # {field_name: field}
+        table_name = None
         primarykey = None
+        fields = {}  # {field_name: field}
 
-        # foreach field, describe it and find the primarykey
-        for name, attr in cls.__dict__.iteritems():
-            if isinstance(attr, Field):
-                attr.describe(name, cls)
-                fields[name] = attr
-                if attr.is_primarykey:
-                    primarykey = attr
+
+        # lookup table_name, fields, primarykey from `cls.__dict__`
+        for name, value in cls.__dict__.iteritems():
+            if isinstance(value, Field):
+                fields[name] = value
+
+                if value.is_primarykey:
+                    primarykey = value
+
+            elif name == 'table_name':
+                table_name = value
+
+        if table_name is None:
+            table_name = cls.__name__.lower()  # default: clsname's lowercase
 
         if primarykey is None:
-            primarykey = PrimaryKey()  # use `id` as default primarykey
-            primarykey.describe('id', cls)
+            primarykey = PrimaryKey()   # default: `id`
             fields['id'] = primarykey
 
-        cls.fields = fields
         cls.primarykey = primarykey
+        cls.table_name = table_name
+        cls.fields = fields
+
+        # describe this cls's fields
+        for name, field in cls.fields.iteritems():
+            field.describe(name, cls)
+
         cls.runtime = Runtime(cls)
 
     def __and__(self, join):
