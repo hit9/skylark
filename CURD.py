@@ -95,10 +95,12 @@ class Database(object):
     attributes:
 
       configs
-        dict object, current configuration for connection with default values
+        dict object, current configuration for connection with default
+        values
 
       autocommit
-        boolean,  disables or enables the default autocommit mode for the current session, default: True
+        boolean,  disables or enables the default autocommit mode for the
+        current session, default: True
 
       conn
         mysql connection object, the `<_mysql.connection object>`.
