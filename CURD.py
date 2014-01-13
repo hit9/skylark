@@ -24,7 +24,7 @@
 """
 
 
-__version__ = '0.4.0'
+__version__ = '0.4.1'
 
 
 import types
@@ -879,8 +879,6 @@ class MetaModel(type):
 
     def __init__(cls, name, bases, attrs):
 
-        # cls.table_name = getattr(cls, 'table_name') if hasattr(cls, 'table_name') else cls.__name__.lower()
-
         table_name = None
         primarykey = None
         fields = {}  # {field_name: field}
@@ -898,7 +896,10 @@ class MetaModel(type):
                 table_name = value
 
         if table_name is None:
-            table_name = cls.__name__.lower()  # default: clsname's lowercase
+            # default table_name. User => 'user', 'CuteCat' => 'cute_cat'
+            table_name = reduce(
+                lambda x, y: ('_' if y.isupper() else '').join((x, y)),
+                list(cls.__name__)).lower()
 
         if primarykey is None:
             primarykey = PrimaryKey()   # default: `id`
