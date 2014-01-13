@@ -35,13 +35,24 @@ We defined a model: ``User``, which has 3 fields:``name``, ``email`` and ``id`` 
 
 All models should inherit Model.
 
-We take **the lower case of model's classname as table's name**
+To tell CURD.py the table_name of some model::
+
+    class SomeModel(Model):
+        table_name = 'tablename_of_somemodel'
+
+By default, we take the lower case of model’s classname as table’s name, i.e.::
+
+    class User(Model):  # table_name: 'user'
+        pass
+
+    class SomeModel(Model):  # table_name: 'some_model'
+        pass
 
 Better to put all models in a single script,  name it ``models.py`` :
 
 .. _two_models:
 
-.. literalinclude:: sample/models.py
+.. literalinclude:: ../sample/models.py
 
 * You have to create tables in MySQL by hand, CURD.py has no feature ``create_tables``
 

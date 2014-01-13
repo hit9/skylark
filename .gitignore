@@ -10,3 +10,4 @@ docs/_build
 venv
 venv-3.2
 testx
+docs/en/_build

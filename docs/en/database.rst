@@ -66,3 +66,5 @@ To change database::
 or::
 
     Database.select_db(db)  # alias of `change`
+
+**NOTE**: :ref:`tip_database_change`

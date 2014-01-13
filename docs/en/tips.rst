@@ -90,6 +90,14 @@ This field can be select as datetime objects as well::
 Using Python's ``datetime`` to handle time values is much better than using
 strings.
 
+.. _tip_database_change:
+
+Database.change(db_name) better to Database.config(db=db_name)
+--------------------------------------------------------------
+
+To select a new database, use ``Database.change(db_name)`` instead of ``Database.config(db=db_name)``,
+the latter will close the active database connection and the former needn’t.
+
 mix your methods into Model
 ---------------------------
 
@@ -116,7 +124,7 @@ one script.
 
 in models' file: models.py:
 
-.. literalinclude:: sample/models.py
+.. literalinclude:: ../sample/models.py
 
 and in other scripts : ::
 
