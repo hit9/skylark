@@ -66,3 +66,8 @@ To change database::
 or::
 
     Database.select_db(db)  # alias of `change`
+
+
+**Note**: Try to use ``Database.change(new_db_name)`` instead of
+``Database.config(db=new_db_name)`` , the latter will close the active database
+connection and the former needn't.
