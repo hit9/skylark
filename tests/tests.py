@@ -94,6 +94,7 @@ class TestDatabase(Test):
         Database.execute('insert into user set user.name="test"')
 
     def test_change(self):
+        """Database.change needn't change connection object!"""
         c = Database.conn
         Database.change(mysql_db)
         assert Database.conn is c
@@ -219,6 +220,8 @@ class TestModel_:
     def test_table_name(self):
         assert User.table_name == "user"
         assert Post.table_name == "post"
+        assert ATableDoseNotExist.table_name == 'a_table_dose_not_exist'
+        assert TableDoseNotExist.table_name == 'a_table_name'
 
     def test_primarykey(self):
         user_id = User.primarykey
