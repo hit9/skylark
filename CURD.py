@@ -23,9 +23,7 @@
     :license: BSD.
 """
 
-
 __version__ = '0.4.0'
-
 
 import types
 import MySQLdb
@@ -152,6 +150,9 @@ class Database(object):
         """
         cls.configs.update(configs)
         cls.autocommit = autocommit
+        if cls.conn and cls.conn.open:
+            cls.conn.close()
+            cls.connect()
 
     @classmethod
     def connect(cls):
@@ -224,10 +225,10 @@ class Database(object):
 
 
 class Leaf(object):
-
     def _e(op):
         def e(self, right):
             return Expr(self, right, op)
+
         return e
 
     __lt__ = _e(OP_LT)
@@ -250,7 +251,6 @@ class Leaf(object):
 
 
 class Expr(Leaf):
-
     def __init__(self, left, right, op):
         self.left = left
         self.right = right
@@ -270,7 +270,6 @@ class Expr(Leaf):
 
 
 class FieldDescriptor(object):
-
     def __init__(self, field):
         self.name = field.name
         self.field = field
@@ -426,7 +425,6 @@ class Function(Leaf):
         FUNC_LCASE: 'lcase',
     }
 
-
     def __init__(self, field, func_type):
         self.field = field
         self.func_type = func_type
@@ -457,6 +455,7 @@ class Fn(object):
         @classmethod
         def _fn(cls, field):
             return Function(field, func_type)
+
         return _fn
 
     count = fn(FUNC_COUNT)
@@ -704,7 +703,6 @@ class Compiler(object):
 
 
 class Runtime(object):
-
     def __init__(self, model=None):
         self.model = model
         self.data = {}.fromkeys(
@@ -762,7 +760,6 @@ class Runtime(object):
 
 
 class Query(object):
-
     def __init__(self, query_type, runtime, target_model=None):
         self.query_type = query_type
         self.sql = Compiler.gen_sql(runtime, self.query_type, target_model)
@@ -773,7 +770,6 @@ class Query(object):
 
 
 class InsertQuery(Query):
-
     def __init__(self, runtime, target_model=None):
         super(InsertQuery, self).__init__(QUERY_INSERT, runtime, target_model)
 
@@ -783,7 +779,6 @@ class InsertQuery(Query):
 
 
 class UpdateQuery(Query):
-
     def __init__(self, runtime, target_model=None):
         super(UpdateQuery, self).__init__(QUERY_UPDATE, runtime, target_model)
 
@@ -793,7 +788,6 @@ class UpdateQuery(Query):
 
 
 class SelectQuery(Query):
-
     def __init__(self, runtime, target_model=None):
         self.from_model = runtime.model
         self.selects = runtime.data['select']
@@ -809,7 +803,6 @@ class SelectQuery(Query):
 
 
 class DeleteQuery(Query):
-
     def __init__(self, runtime, target_model=None):
         super(DeleteQuery, self).__init__(QUERY_DELETE, runtime, target_model)
 
@@ -875,7 +868,6 @@ class SelectResult(object):
 
 
 class MetaModel(type):
-
     def __init__(cls, name, bases, attrs):
 
         cls.table_name = cls.__name__.lower()  # clsname's lowercase => table name
@@ -1313,6 +1305,7 @@ class Model(object):
 
     def fn(func_type):
         """Non-API functions factory."""
+
         @classmethod
         def _fn(cls, field=None):
             if field is None:
@@ -1322,6 +1315,7 @@ class Model(object):
             result = query.execute()
             instance = result.fetchone()
             return getattr(instance, func.name)
+
         return _fn
 
     count = fn(FUNC_COUNT)
@@ -1336,9 +1330,7 @@ class Model(object):
 
 
 class Models(object):
-
     def __init__(self, *models):
-
         self.models = list(models)
         self.single = False
         self.runtime = Runtime(self)
@@ -1402,7 +1394,6 @@ class Models(object):
 
 
 class JoinModel(Models):
-
     def __init__(self, main, join):
         super(JoinModel, self).__init__(main, join)
 
@@ -1424,6 +1415,7 @@ class JoinModel(Models):
                 self.bridge == self.bridge.point_to
             )
             return func(self, *arg, **kwarg)
+
         return e
 
     @brigde_wrapper
