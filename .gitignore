@@ -11,3 +11,4 @@ venv
 venv-3.2
 testx
 docs/en/_build
+docs/zh/_build
