@@ -9,12 +9,12 @@
 
 数据库配置
 ----------
-
+我们首先需要通过配置Database来告诉CURD.py怎样连接数据库,
 ``db``, ``user``, ``passwd`` 是必需项::
 
     Database.config(db='mydb', user='root', passwd='')
 
-当你执行查询的时候会自动建立到mysql的数据库连接，不必手动连接。
+当你执行查询的时候CURD.py会自动建立到mysql的数据库连接，不必手动连接。
 
 更为详细的配置项见 :ref:`db_configuration` .
 
@@ -72,15 +72,17 @@ Create
     >>> User.create(name='jack', email='jack@gmail.com')
     <models.User object at 0x8942acc>  # User object
 
+``create`` 方法返回了一个User对象.
+
 或者使用 ``save`` 方法::
 
     >>> user = User()
     >>> user.name = 'jack'
     >>> user.email = 'jack@gmail.com'
     >>> user.save()
-    1L  # inserted primarykey's value
+    1L  # 插入列的主键值
 
-或者这样::
+这也等价于::
 
     >>> user = User(name='jack',email='jack@gmail.com')
     >>> user.save()
@@ -95,24 +97,26 @@ Update
 
     >>> user.name = 'Any'
     >>> user.save()  # return 0 for failure,else success
-    1L  # rows affected
+    1L  # 影响了1行
 
-或者::
+或者使用 ``update`` 方法 ::
 
     >>> query = User.at(2).update(name='Join')
     >>> query
     <UpdateQuery "update user set user.name = 'Join' where user.id = '2'">
-    >>> query.execute()
+    >>> query.execute()  # 执行这个query
     1L
 
-``User.at(id_value)`` 等价于 ``User.where(User.id == id_value)`` , 都返回类 ``User`` 。
+``update`` 方法返回一个 ``UpdateQuery`` 对象， **每种查询对象都有execute方法来执行这个查询** 。
+
+另外，上面代码中 ``User.at(id_value)`` 等价于 ``User.where(User.id == id_value)`` , 都返回类 ``User`` 。
 
 .. _Read:
 
 Read
 ----
 
-以下是一个读取的例子::
+例子::
 
     >>> query = User.where(name='Join').select()
     >>> query
@@ -144,8 +148,15 @@ Read
     >>> user.name, user.id
     (u'jack', 1L)
 
-Model.select
-''''''''''''
+select
+''''''
+
+``select`` 方法可以构造一个select查询::
+
+    >>> User.where(User.id > 4).select(User.name)
+    <SelectQuery "select t_user.name from t_user where t_user.id > '4'">
+
+``select`` 方法的参数是我们关心的字段，方法返回一个 ``SelectQuery`` 对象。
 
 我们需要查询所有的用户::
 
@@ -155,51 +166,64 @@ Model.select
 
     User.where(User.id > 5).select(User.name)
 
+
 SelectResult对象
 ''''''''''''''''
 
-当我们执行一个查询对象后会得到一个查询结果对象
-(``SelectResult object``)，该对象有两个方法可以抓取结果:
+当我们执行SelectQuery对象后会得到一个查询结果对象
+(``SelectResult object``)::
 
-- ``fetchone()``: 一次抓取一条记录
+    >>> query = User.select()
+    >>> results = query.execute()
+    >>> results
+    <CURD.SelectResult object at 0x9c62b4c>
 
-- ``fetchall()``: 一次抓取全部记录
+该对象有两个方法可以抓取结果:
+
+- ``fetchone()``: 一次抓取一条记录::
+
+     >>> results.fetchone()
+     <models.User object at 0xb703148c>
+
+- ``fetchall()``: 一次抓取全部记录::
+
+     >>> results = query.execute()
+     >>> results.fetchall()
+     <generator object fetchall at 0x9c61644>
 
 该对象还有一个属性 ``count`` ，它记录着结果的条数::
 
-    >>> query = User.select()
-    >>> result = query.execute()
-    >>> result.count
-    2L  # 查询到了2条
+     >>> results.count
+     9L # 查询到了2条
 
 快捷查询
 ''''''''
 
 有4个方法来快速地执行select查询:
-``findone()``, ``findall()``,
-``getone()`` 和 ``getall()``
 
-使用示例::
+- ``findone``, 找到符合条件的一条记录::
 
-    >>> user = User.findone(name='Join')  # <=> User.where(name='Join').select().execute().fetchone()
-    >>> user.id
-    2L
+     >>> user = User.findone(name='Join')  # <=> User.where(name='Join').select().execute().fetchone()
+     >>> user.id
+     2L
 
-    >>> users = User.findall(User.id > 0, name='Join') # <=> User.where(User.id > 0 name='Join').select().execute().fetchall()
-    >>> [user.name for user in users]
-    [u'Join']
+- ``findall``, 找到所有符合条件的记录::
 
-    >>> user = User.at(2).getone() # <=> User.where(id=2).select().execute().fetchone()
-    >>> user.name
-    u'Join'
+     >>> users = User.findall(User.id > 0, name='Join') # <=> User.where(User.id > 0 name='Join').select().execute().fetchall()
+     >>> [user.name for user in users]
+     [u'Join']
 
-    >>> users = User.getall() # <=> User.select().execute().fetchall()
-    >>> [(user.id, user.name) for user in users]
-    [(1L, u'jack'), (2L, u'Join')]
+- ``getone``, 取出一条记录::
 
-- findone 和 findall 方法的参数为查询条件, 按照查询条件来获取一条或多条记录
-  
-- getone 和 getall 方法无参数，获取一条或多条记录
+     >>> user = User.at(2).getone() # <=> User.where(id=2).select().execute().fetchone()
+     >>> user.name
+     u'Join'
+
+- ``getall``, 取出全部记录::
+
+     >>> users = User.where(User.id > 4).getall()
+     >>> [user.name for user in users]
+     [u'jack', u'tom', u'tom', u'tom', u'tom', u'jack', u'ss']
 
 .. _Delete:
 
@@ -209,15 +233,15 @@ Delete
 删除一个对象对应的数据库记录::
 
     >>> user.destroy()
-    1L  # rows affected
+    1L  # 删除的行数
 
-或者::
+或者使用 ``delete`` 构造一个 ``DeleteQuery``, 然后执行它::
 
     >>> query = User.at(1).delete()
     >>> query
     <DeleteQuery "delete user from user where user.id = '1'">
     >>> query.execute()
-    1L  # rows affected
+    1L  # 删除的行数
 
 两个方法都返回影响的记录条数。
 
@@ -226,12 +250,13 @@ Delete
 Where
 -----
 
-``where`` 方法似乎很神奇::
+``where`` 方法似乎很神奇, 它用来指明筛选条件::
 
     Model.where(*expressions, **data)  # 返回当前模型类
 
-Where 使用示例
+Where使用示例
 ''''''''''''''
+
 ::
 
     >>> query = User.where(name='Jack').select()
@@ -246,7 +271,7 @@ Where 使用示例
     >>> query.sql
     "select user.name, user.email, user.id from user where user.name like '%sample%'"
 
-where的参数应该是一个或者多个"表达式对象"， 所有支持的"表达式"在这里: :ref:`expressions`
+where的参数应该是一个或者多个"表达式对象"， 所有支持的"表达式"在 :ref:`expressions`
 
 子查询
 ''''''
@@ -328,7 +353,7 @@ Distinct
 
     >>> for user in User.distinct().select(User.name):
     ...   user.name
-    ... 
+    ...
     u'jack'
     u'tom'
 
