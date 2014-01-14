@@ -31,7 +31,7 @@ Model Definition
         # default primarykey: `id`, to figure out primarykey :
         #   myid = PrimaryKey()
 
-We defined a model: ``User``, which has 3 fields:``name``, ``email`` and ``id`` (``'id' is the default primarykey``)
+We defined a model: ``User``, which has 3 fields:``name``, ``email`` and ``id`` (``id`` is the default primarykey)
 
 All models should inherit Model.
 
@@ -140,7 +140,7 @@ query::
     jack jack@gmail.com
     Join jack@gmail.com
 
-If we select data by primarykey, we can use ``Model.at(int_var)``::
+If we select data by primarykey, we can use ``Model.at(var)``::
 
     >>> query = User.at(1).select()
     >>> query
@@ -150,8 +150,8 @@ If we select data by primarykey, we can use ``Model.at(int_var)``::
     >>> user.name, user.id
     (u'jack', 1L)
 
-Model.select
-''''''''''''
+select
+''''''
 
 We want all users:
 

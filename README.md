@@ -52,9 +52,13 @@ Install
 Documentation
 -------------
 
-http://curdpy.readthedocs.org/
+- English version: http://curdpy.readthedocs.org/
 
-Strongly recommend that you read [Quick Start](http://curdpy.readthedocs.org/en/latest/quickstart.html) at first.
+  Strongly recommend that you read [Quick Start](http://curdpy.readthedocs.org/en/latest/quickstart.html) at first.
+
+- 简体中文文档: http://curdpy-zh.readthedocs.org/
+
+  强烈建议首先阅读[Quick Start](http://curdpy-zh.readthedocs.org/en/latest/quickstart.html).
 
 FAQ
 ---
