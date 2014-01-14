@@ -140,7 +140,7 @@ query::
     jack jack@gmail.com
     Join jack@gmail.com
 
-If we select data by primarykey, we can use ``Model.at(int_var)``::
+If we select data by primarykey, we can use ``Model.at(var)``::
 
     >>> query = User.at(1).select()
     >>> query
