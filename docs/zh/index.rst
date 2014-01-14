@@ -12,6 +12,8 @@ CURD - Python的MySQL微型ORM
 
 CURD.py是一个使用Python编写的小巧的MySQL ORM.
 
+`Englinsh version documentation <http://curdpy.readthedocs.org/>`_
+
 **注意**: CURD.py在v1.0版本之前可能会不稳定。
 
 .. Contents::
