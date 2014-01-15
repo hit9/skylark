@@ -3,6 +3,8 @@ Message-Board
 
 Sample app with CURD.py.
 
+![](https://dl.dropboxusercontent.com/u/68191343/github/messageboard.png)
+
 How to Run
 ----------
 
