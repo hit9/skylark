@@ -28,7 +28,7 @@ charset  string    charset of connection  'utf8'
 ======== ========  ====================== ===========
 
 See the MySQLdb documentation for more information,
-the parameters of `MySQLdb.connect` are all supported.
+the parameters of ``MySQLdb.connect`` are all supported.
 
 Generally, you just need to tell CURD.py these 3 items: ``user``, ``passwd``, ``db``::
 

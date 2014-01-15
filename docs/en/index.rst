@@ -85,11 +85,13 @@ Documentaion
     :numbered:
 
     quickstart
+    models
     returns
     types
+    database
+    apps
     tips
     cases
-    database
     exceptions
     faq
     changes

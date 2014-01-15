@@ -1,7 +1,7 @@
 .. _index:
 
-CURD - Python的MySQL微型ORM
-===========================
+CURD.py - Python的MySQL微型ORM
+===============================
 
 最新发布: v\ |version| (:ref:`安装 <install>`) 
 
@@ -84,11 +84,13 @@ Python2(2.6+), 跨操作系统
     :numbered:
 
     quickstart
+    models
     returns
     types
+    database
+    apps
     tips
     cases
-    database
     exceptions
     faq
     changes

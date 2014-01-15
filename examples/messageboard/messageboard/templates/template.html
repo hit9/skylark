@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <title>Message Board</title>
+  <link rel="stylesheet" href="{{url_for('static', filename='style.css')}}" type="text/css" />
+</head>
+<body>
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class="flashes">
+    {% for message in messages %}
+      <li class="flash {{message.get("type")}}">{{ message.get("content") }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+  <div class="container">
+    <h1><a href="{{url_for('index')}}">Message Board</a></h1>
+    <form action="{{url_for('create')}}" method="post" accept-charset="utf-8">
+      <div class="item">
+        <label>Title</label>
+        <input type="text" name="title" />
+      </div>
+      <div class="item">
+        <label>Content</label>
+        <textarea name="content"></textarea>
+      </div>
+      <div class="item btn-box">
+        <button type="submit" >Save</button>
+      </div>
+    </form>
+    <ul class="messages">
+      {% for message in messages %}
+        <li class="message">
+          <h2>{{message.title}}</h2>
+          <p class="create_at">{{message.create_at.strftime("%Y-%m-%d %H:%M")}}</p>
+          <p class="content">{{message.content}}</p>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</body>
+</html>
