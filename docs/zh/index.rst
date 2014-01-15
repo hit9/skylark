@@ -84,11 +84,13 @@ Python2(2.6+), 跨操作系统
     :numbered:
 
     quickstart
+    models
     returns
     types
+    database
+    apps
     tips
     cases
-    database
     exceptions
     faq
     changes
