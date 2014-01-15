@@ -60,6 +60,11 @@ Documentation
 
   强烈建议首先阅读[Quick Start](http://curdpy-zh.readthedocs.org/en/latest/quickstart.html).
 
+Sample App
+----------
+
+A simple message board built with CURD.py and Flask: [examples/messageboard]
+
 FAQ
 ---
 
