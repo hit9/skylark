@@ -1,0 +1,112 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font: 16px/1.47 'Consolas', sans-serif;
+  color: #444;
+  background: #eee;
+}
+
+.container {
+  width: 570px;
+  margin: 0 auto;
+  background: #fff;
+  margin-top: 60px;
+  padding: 17px;
+  border: 7px solid #ddd;
+}
+
+/* ----- title --- */
+h1 a {
+  text-decoration: none;
+  color: #444;
+}
+
+/* ----- form ---- */
+
+form {width: 100%;}
+
+.item {
+  clear: both;
+  width: 100%;
+  padding: 25px 0;
+  margin: 20px 0;
+  border-top: 1px solid #eee;
+}
+
+label, input{
+  display: inline-block;
+  float: left;
+}
+
+label {
+  width: 20%;
+  line-height: 33px;
+}
+
+input, textarea {
+  width: 70%;
+  padding: 7px 5px;
+  color: #222;
+  border: 1px solid #ccc;
+}
+
+textarea {height: 160px}
+
+.btn-box {text-align: center}
+
+button {
+  cursor: pointer;
+  padding: 0 8px;
+  line-height: 30px;
+  display: inline-block;
+}
+
+input, textarea, button {outline: none}
+
+
+/* ------ flashes ------ */
+
+.flash {
+  color: white;
+  font-size: 18px;
+  font-weight: 500;
+  width: 100%;
+  line-height: 20px;
+  list-style: none;
+  text-align: center;
+  padding: 7px 0;
+}
+
+.flash.success {background-color: green}
+.flash.warning {background-color: orange}
+.flash.error {background-color: red}
+
+
+/* ------- messages ------ */
+
+.messages {
+  border-top: 1px solid #ddd;
+}
+
+.message {
+  padding: 20px 0;
+  list-style: none;
+  border-bottom: 1px solid #ddd;
+}
+
+.message h2 {
+  font-size: 1em;
+}
+
+.message .create_at {
+  text-align: right;
+  color: #999;
+  font-size: 14px;
+}
+
+.message .content {
+  text-indent: 1.5em;
+}
