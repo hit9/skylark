@@ -24,7 +24,7 @@
 """
 
 
-__version__ = '0.4.1'
+__version__ = '0.4.2'
 
 
 import types
@@ -60,11 +60,11 @@ FUNC_SUM = 32
 FUNC_MAX = 33
 FUNC_MIN = 34
 FUNC_AVG = 35
-# ---------- }}}
-# {{{ ------- scalar functions
+# ---------------------------- }}}
+# {{{ -------  scalar functions
 FUNC_UCASE = 41
 FUNC_LCASE = 42
-# ---------- }}}
+# ---------------------------- }}}
 
 DATA_ENCODING = 'utf8'  # user python code encoding
 
@@ -585,11 +585,12 @@ class Compiler(object):
         if op in OP_MAPPING:
             string = tostr(l) + OP_MAPPING[op] + tostr(r)
         elif op is OP_BETWEEN:
-            string = '%s between %s and %s' % (tostr(l), tostr(r[0]), tostr(r[1]))
+            string = '%s between %s and %s' % (
+                tostr(l), tostr(r[0]), tostr(r[1]))
         elif op in (OP_IN, OP_NOT_IN):
-            string = '%s%s in (%s)' % (
-                tostr(l), ' not' if op is OP_NOT_IN else '', ', '.join(tostr(value) for value in r)
-            )
+            string = '%s%s in (%s)' % (tostr(l),
+                ' not' if op is OP_NOT_IN else '',
+                ', '.join(tostr(value) for value in r))
 
         cache[expr] = string  # set cache
 
