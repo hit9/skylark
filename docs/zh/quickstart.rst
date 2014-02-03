@@ -373,7 +373,7 @@ X在数据库中吗
 联合模型
 ---------
 
-我们在models.py中定义了 :ref:`两个模 <two_models>` : ``User``, ``Post``
+我们在models.py中定义了 :ref:`两个模型 <two_models>` : ``User``, ``Post``
 
 .. literalinclude:: ../sample/models.py
 
