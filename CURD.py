@@ -591,6 +591,10 @@ class Compiler(object):
                 tostr(l), ' not' if op is OP_NOT_IN else '', ', '.join(tostr(value) for value in r)
             )
 
+        # Add priority around `expr1 and expr2`, `expr1 or expr2`
+        if op in (OP_AND, OP_OR):
+            string = '(%s)' % string
+
         cache[expr] = string  # set cache
 
         return string
