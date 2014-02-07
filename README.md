@@ -88,3 +88,10 @@ Changes
 -------
 
 [CHANGES](CHANGES)
+
+Feedback
+--------
+
+WE NEED YOU HELP!! CURD.py is young and may have a lot of bugs, don't be shy to
+share your opinions or to report your issues, please open an issue on
+https://github.com/hit9/CURD.py/issues.
