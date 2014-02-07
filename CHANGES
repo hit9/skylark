@@ -1,3 +1,8 @@
+version 0.4.2 (working on)
+--------------------------
+
+- fix bug: issue#12, select statement with where syntax without priority
+
 version 0.4.1
 -------------
 
