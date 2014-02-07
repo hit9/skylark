@@ -279,6 +279,15 @@ class TestModel(Test):
         ).select().execute().count == 0L
         assert User.where(name="name1", email="email1").select().execute().count == 1L
 
+    def test_expr_priority(self):
+        self.create_data(3, table=1)
+        assert User.create(name='jack', email='jack@gmail.com')
+        query = User.where(
+            (User.id < 0) & ((User.name == 'jack') | (User.email == 'jack@gmail.com'))
+        ).select()
+        result = query.execute()
+        assert result.count == 0
+
     def test_at(self):
         self.create_data(3, table=1)
         assert User.at(1).select().execute().count == 1L
@@ -375,14 +384,6 @@ class TestModel(Test):
             user.destroy()
         except PrimaryKeyValueNotFound:
             pass
-
-    # def test_select_without_primaryeky(self):
-    #     self.create_data(3, table=1)
-    #     user = User.at(1).select_without_primarykey(User.name).execute().fetchone()
-    #     try:
-    #         name = user.name
-    #     except KeyError:
-    #         pass
 
     def test_findone(self):
         self.create_data(3, table=1)
