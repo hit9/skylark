@@ -6,12 +6,9 @@
 #  \____|\___/|_| \_\____(_) .__/ \__, |
 #                         |_|    |___/
 #
-# Permission to use, copy, modify,
-# and distribute this software for any purpose with
-# or without fee is hereby granted,
-# provided that the above copyright notice
-# and this permission notice appear in all copies.
-#
+# Permission to use, copy, modify, and distribute this software for any purpose
+# with or without fee is hereby granted, provided that the above copyright noti
+# -ce and this permission notice appear in all copies.
 
 """
     CURD.py
@@ -53,20 +50,19 @@ QUERY_UPDATE = 21
 QUERY_SELECT = 22
 QUERY_DELETE = 23
 
-# supported sql functions
-# {{{ -------- aggregate functions
+# aggregations
 FUNC_COUNT = 31
 FUNC_SUM = 32
 FUNC_MAX = 33
 FUNC_MIN = 34
 FUNC_AVG = 35
-# ---------------------------- }}}
-# {{{ -------  scalar functions
+
+# scalar functions
 FUNC_UCASE = 41
 FUNC_LCASE = 42
-# ---------------------------- }}}
 
-DATA_ENCODING = 'utf8'  # user python code encoding
+
+DATA_ENCODING = 'utf8'
 
 
 class CURDException(Exception):
@@ -173,8 +169,8 @@ class Database(object):
     def get_conn(cls):
         """Get current MySQL connection object.
 
-        If current connection is open and working normally, return this
-        connection object; else, creates a new connection and return it.
+        If current connection is open and working normally, return this connect
+        -ion object; else, creates a new connection and return it.
         """
 
         if not cls.conn or not cls.conn.open:
@@ -218,7 +214,7 @@ class Database(object):
         sample::
 
             >>> Database.change('mydb')
-            >>> Database.select_db('mydb')  # alias
+            >>> Database.select_db('mydb')
         """
         cls.configs['db'] = db
 
@@ -333,6 +329,7 @@ class Field(Leaf):
             string, pattern to like
 
         sample::
+
             >>> User.name.like('%Amy%')
         """
         return Expr(self, pattern, OP_LIKE)
@@ -345,6 +342,7 @@ class Field(Leaf):
             string/integer/..
 
         sample::
+
             >>> User.age.between(13, 17)
         """
         return Expr(self, (left, right), OP_BETWEEN)
@@ -357,6 +355,7 @@ class Field(Leaf):
             string/integer/sub_query/..
 
         sample::
+
             >>> User.age._in(1, 3, 5, 7)
             >>> User.id._in(Post.select(Post.user_id))
         """
@@ -370,6 +369,7 @@ class Field(Leaf):
             string/integer/sub_query/..
 
         sample::
+
             >>> User.age._in(1, 3, 5, 7)
             >>> User.id._in(Post.select(Post.user_id))
         """
@@ -400,8 +400,8 @@ class ForeignKey(Field):
 class Function(Leaf):
     """Function object, i.e. `count(User.id)`, `max(User.age)`.
 
-    CURD.py only supports scalar functions (`lcase`, `ucase`..)
-    and aggregate functions(`count`, `max`..).
+    CURD.py only supports scalar functions (`lcase`, `ucase`..) and aggregate
+    functions(`count`, `max`..).
 
     attributes
 
@@ -554,7 +554,7 @@ class Compiler(object):
     @staticmethod
     def __parse_expr_one_side(side):
 
-        if isinstance(side, (Field, Function)):  # field
+        if isinstance(side, (Field, Function)):  # field/function
             return side.fullname
         elif isinstance(side, Expr):  # expression
             return Compiler.parse_expr(side)
@@ -563,8 +563,8 @@ class Compiler(object):
         elif type(side) in Compiler.conversions:  # common value
             return Compiler.conversions[type(side)](side)
         else:  # unsupported
-            raise UnSupportedType("Unsupported type '%s' in one side of some"
-                                  " expression" % str(type(side)))
+            raise UnSupportedType("Unsupported type %r in one side of expression"
+                                  % type(side))
 
     @staticmethod
     def parse_expr(expr):
@@ -683,7 +683,6 @@ class Compiler(object):
 
         data = runtime.data  # alias
 
-        # quick mark for parse time functions
         _where = Compiler.parse_where(data['where'])
         _set = Compiler.parse_set(data['set'])
         _orderby = Compiler.parse_orderby(data['orderby'])
