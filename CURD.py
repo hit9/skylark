@@ -91,12 +91,11 @@ class Database(object):
     attributes:
 
       configs
-        dict object, current configuration for connection with default
-        values
+        dict object, current configuration for connection with default values
 
       autocommit
-        boolean,  disables or enables the default autocommit mode for the
-        current session, default: True
+        boolean,  disables or enables the default autocommit mode for the curre
+        -nt session, default: True
 
       conn
         mysql connection object, the `<_mysql.connection object>`.
@@ -145,8 +144,8 @@ class Database(object):
           charset
             string, charset of connection
 
-        See the MySQLdb documentation for more information,
-        the parameters of `MySQLdb.connect` are all supported.
+        See the MySQLdb documentation for more information, the parameters of `
+        MySQLdb.connect` are all supported.
         """
         cls.configs.update(configs)
         cls.autocommit = autocommit
@@ -554,15 +553,15 @@ class Compiler(object):
     @staticmethod
     def __parse_expr_one_side(side):
 
-        if isinstance(side, (Field, Function)):  # field/function
+        if isinstance(side, (Field, Function)):
             return side.fullname
-        elif isinstance(side, Expr):  # expression
+        elif isinstance(side, Expr):
             return Compiler.parse_expr(side)
-        elif isinstance(side, Query):  # sub query
+        elif isinstance(side, Query):
             return '(%s)' % side.sql
-        elif type(side) in Compiler.conversions:  # common value
+        elif type(side) in Compiler.conversions:
             return Compiler.conversions[type(side)](side)
-        else:  # unsupported
+        else:
             raise UnSupportedType("Unsupported type %r in one side of expression"
                                   % type(side))
 
@@ -571,11 +570,9 @@ class Compiler(object):
 
         cache = Compiler.expr_cache
 
-        # check cache at first
-        if expr in cache:  # `in` statement uses `__hash__` and then `__eq__`
+        if expr in cache:
             return cache[expr]
 
-        # make alias
         l, op, r = expr.left, expr.op, expr.right
         OP_MAPPING = Compiler.OP_MAPPING
         tostr = Compiler.__parse_expr_one_side
@@ -592,11 +589,10 @@ class Compiler(object):
                 ' not' if op is OP_NOT_IN else '',
                 ', '.join(tostr(value) for value in r))
 
-        # Add priority around `expr1 and expr2`, `expr1 or expr2`
         if op in (OP_AND, OP_OR):
             string = '(%s)' % string
 
-        cache[expr] = string  # set cache
+        cache[expr] = string
 
         return string
 
@@ -623,8 +619,7 @@ class Compiler(object):
         if not lst:
             return ''
         return ' having %s' % (' and '.join(
-            Compiler.parse_expr(expr) for expr in lst
-        ))
+            Compiler.parse_expr(expr) for expr in lst))
 
     @staticmethod
     def parse_where(lst):
