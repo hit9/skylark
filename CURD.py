@@ -600,13 +600,8 @@ class Compiler(object):
     def parse_orderby(lst):
         if not lst:
             return ''
-
         field, desc = lst
-
-        if desc:
-            return ' order by %s desc' % field.fullname
-        else:
-            return ' order by %s' % field.fullname
+        return ' order by %s%s' % (field.fullname, ' desc' if desc else '')
 
     @staticmethod
     def parse_groupby(lst):
@@ -636,13 +631,8 @@ class Compiler(object):
     def parse_limit(lst):
         if not lst:
             return ''
-
         offset, rows = lst
-
-        if offset is None:
-            return ' limit %s' % rows
-        else:
-            return ' limit %s, %s' % (offset, rows)
+        return ' limit %s%s' % ('%s, ' % offset if offset else '', rows)
 
     @staticmethod
     def parse_set(lst):
@@ -709,9 +699,8 @@ class Runtime(object):
 
     def __init__(self, model=None):
         self.model = model
-        self.data = {}.fromkeys(
-            ('where', 'set', 'orderby', 'select', 'limit', 'groupby', 'having', 'distinct'),
-            None)
+        self.data = {}.fromkeys(('where', 'set', 'orderby', 'select', 'limit',
+                                 'groupby', 'having', 'distinct'), None)
         self.reset_data()
 
     def reset_data(self):
@@ -722,8 +711,8 @@ class Runtime(object):
     def __repr__(self):
         return '<Runtime %r>' % self.data
 
-    def set_orderby(self, field_desc):
-        self.data['orderby'] = list(field_desc)
+    def set_orderby(self, lst):
+        self.data['orderby'] = list(lst)
 
     def set_groupby(self, lst):
         self.data['groupby'] = list(lst)
@@ -731,22 +720,18 @@ class Runtime(object):
     def set_having(self, lst):
         self.data['having'] = list(lst)
 
-    def set_limit(self, offset_rows):
-        self.data['limit'] = list(offset_rows)
+    def set_limit(self, lst):
+        self.data['limit'] = list(lst)
 
-    def set_select(self, fields):
-        flst = list(fields)
-
-        if not flst:
-            flst = self.model.get_fields()  # select all
-        self.data['select'] = list(set(flst))  # remove duplicates
+    def set_select(self, flst):
+        flst = flst or self.model.get_fields()
+        self.data['select'] = {}.fromkeys(flst, None).keys()  # remove duplicates
 
     def set_where(self, lst, dct):
         lst = list(lst)
 
-        if self.model.single:  # Models objects cannot use dct as arg
-            fields = self.model.fields
-            lst.extend(fields[k] == v for k, v in dct.iteritems())
+        if self.model.single:
+            lst.extend(self.model.fields[k] == v for k, v in dct.iteritems())
 
         self.data['where'] = lst
 
@@ -754,9 +739,8 @@ class Runtime(object):
         lst = list(lst)
 
         if self.model.single:
-            fields = self.model.fields
-            primarykey = self.model.primarykey
-            lst.extend(fields[k] == v for k, v in dct.iteritems())
+            lst.extend(self.model.fields[k] == v for k, v in dct.iteritems())
+
         self.data['set'] = lst
 
     def set_distinct(self, boolean):
