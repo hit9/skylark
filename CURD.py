@@ -724,8 +724,7 @@ class Runtime(object):
         self.data['limit'] = list(lst)
 
     def set_select(self, flst):
-        flst = flst or self.model.get_fields()
-        self.data['select'] = {}.fromkeys(flst, None).keys()  # remove duplicates
+        self.data['select'] = list(flst) or self.model.get_fields()
 
     def set_where(self, lst, dct):
         lst = list(lst)
