@@ -10,6 +10,7 @@
 # with or without fee is hereby granted, provided that the above copyright noti
 # -ce and this permission notice appear in all copies.
 
+
 """
     CURD.py
     ~~~~~~~
@@ -21,15 +22,15 @@
 """
 
 
-__version__ = '0.4.2'
+__version__ = '0.5.0'
 
 
 import types
 import MySQLdb
-from datetime import datetime, time, date, timedelta
-from _mysql import string_literal, NULL, escape_sequence, escape_dict
+from datetime import date, datetime, time, timedelta
+from _mysql import escape_dict, escape_sequence, NULL, string_literal
 
-# operators
+
 OP_LT = 1
 OP_LE = 2
 OP_GT = 3
@@ -44,20 +45,17 @@ OP_BETWEEN = 11
 OP_IN = 12
 OP_NOT_IN = 13
 
-# query types
 QUERY_INSERT = 20
 QUERY_UPDATE = 21
 QUERY_SELECT = 22
 QUERY_DELETE = 23
 
-# aggregations
 FUNC_COUNT = 31
 FUNC_SUM = 32
 FUNC_MAX = 33
 FUNC_MIN = 34
 FUNC_AVG = 35
 
-# scalar functions
 FUNC_UCASE = 41
 FUNC_LCASE = 42
 
@@ -66,22 +64,18 @@ DATA_ENCODING = 'utf8'
 
 
 class CURDException(Exception):
-    """There was an ambiguous exception occurred"""
     pass
 
 
 class UnSupportedType(CURDException):
-    """Unsupported type."""
     pass
 
 
 class ForeignKeyNotFound(CURDException):
-    """Foreign key was not found in main model"""
     pass
 
 
 class PrimaryKeyValueNotFound(CURDException):
-    """Primarykey value was not found in this instance"""
     pass
 
 
@@ -91,17 +85,16 @@ class Database(object):
     attributes:
 
       configs
-        dict object, current configuration for connection with default values
+        dict, current configuration for connection.
 
       autocommit
-        boolean,  disables or enables the default autocommit mode for the curre
-        -nt session, default: True
+        boolean, disables or enables the default autocommit mode for the curren
+        -t session, default: True.
 
       conn
-        mysql connection object, the `<_mysql.connection object>`.
+        the `<_mysql.connection object>`.
     """
 
-    # configuration for connection with default values
     configs = {
         'host': 'localhost',
         'port': 3306,
@@ -111,18 +104,14 @@ class Database(object):
         'charset': 'utf8'
     }
 
-    # It is strongly recommended that you set this `True`
     autocommit = True
 
-    # mysql connection object
     conn = None
 
     @classmethod
     def config(cls, autocommit=True, **configs):
-        """
-        Configure the database connection.
-
-        The connection will be auto established with these configs.
+        """Update connection configurations, the connection will auto be establ
+        -ished with these configs.
 
         Keyword parameters for this method:
 
@@ -169,7 +158,7 @@ class Database(object):
         """Get current MySQL connection object.
 
         If current connection is open and working normally, return this connect
-        -ion object; else, creates a new connection and return it.
+        -ion, else, create a new connection and return it.
         """
 
         if not cls.conn or not cls.conn.open:
@@ -187,15 +176,17 @@ class Database(object):
         """Execute a single raw query.
 
         parameters:
+
           sql
-            string, sql command to be executed
+            string, sql command to be executed.
 
         return:
+
           `MySQLdb.cursors object`
 
         sample::
 
-            >>> Database.execute('select * from user')
+            >>> Database.execute('select * from user;')
             <MySQLdb.cursors.Cursor object at 0xb710aaec>
         """
         cursor = cls.get_conn().cursor()
@@ -204,23 +195,25 @@ class Database(object):
 
     @classmethod
     def change(cls, db):
-        """Switch database to `db`.
+        """Switch connection to new database.
 
         parameters:
+
           db
-            string, database to use
+            string, new database to use
 
         sample::
 
-            >>> Database.change('mydb')
+            >>> Databse.change('mydb')
             >>> Database.select_db('mydb')
         """
+
         cls.configs['db'] = db
 
         if cls.conn and cls.conn.open:
             cls.conn.select_db(db)
 
-    select_db = change  # alias of `Database.change`
+    select_db = change
 
 
 class Leaf(object):
