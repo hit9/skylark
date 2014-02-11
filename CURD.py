@@ -71,7 +71,7 @@ class CURDException(Exception):
 
 
 class UnSupportedType(CURDException):
-    """This value's type is unsupported now"""
+    """Unsupported type."""
     pass
 
 
@@ -866,7 +866,6 @@ class MetaModel(type):
         table_name = None
         primarykey = None
         fields = {}  # {field_name: field}
-
 
         # lookup table_name, fields, primarykey from `cls.__dict__`
         for name, value in cls.__dict__.iteritems():
