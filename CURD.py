@@ -295,7 +295,7 @@ class Field(Leaf):
         string, field's fullname, i.e `User.name`'s fullname is `user.name`
 
       model
-        Model object, the model this field was bound.
+        Model, the model this field binds.
 
     """
 
@@ -306,12 +306,11 @@ class Field(Leaf):
     def describe(self, name, model):
         self.name = name
         self.model = model
-        self.fullname = '{table}.{field}'.format(table=self.model.table_name,
-                                                 field=self.name)
-        setattr(model, name, FieldDescriptor(self))  # describe this attribute
+        self.fullname = '%s.%s' % (self.model.table_name, self.name)
+        setattr(model, name, FieldDescriptor(self))
 
     def __repr__(self):
-        return '<%s %r>' % (type(self).__name__, self.fullname)
+        return '<Field %r>' % self.fullname
 
     def like(self, pattern):
         """
@@ -381,7 +380,7 @@ class ForeignKey(Field):
     parameters
 
       point_to
-        PrimaryKey object, the primary key this foreignkey referenced to.
+        PrimaryKey, the primary key this foreignkey referenced to.
     """
 
     def __init__(self, point_to):
@@ -398,7 +397,7 @@ class Function(Leaf):
     attributes
 
       field
-        Field object, field object this function functions
+        Field, field object this function functions
 
       func_type
         integer, this function's type
@@ -410,10 +409,10 @@ class Function(Leaf):
         string, this function's fullname, i.e. `count_of_name`
 
       model
-        Model object, model its field was bound
+        Model, model its field was bound
     """
 
-    FUNC_MAPPINGS = {
+    FUNC_MAPPING = {
         FUNC_COUNT: 'count',
         FUNC_MAX: 'max',
         FUNC_SUM: 'sum',
@@ -426,16 +425,13 @@ class Function(Leaf):
     def __init__(self, field, func_type):
         self.field = field
         self.func_type = func_type
-        # the name appeared in SQL string
-        self.fullname = '%s(%s)' % (Function.FUNC_MAPPINGS[self.func_type],
+        self.fullname = '%s(%s)' % (Function.FUNC_MAPPING[self.func_type],
                                     field.fullname)
-        # the name in the python codes
-        self.name = '%s_of_%s' % (Function.FUNC_MAPPINGS[self.func_type],
-                                  field.name)
+        self.name = '%s_of_%s' % (Function.FUNC_MAPPING[self.func_type], field.name)
         self.model = self.field.model
 
     def __repr__(self):
-        return 'Function %r' % self.fullname
+        return '<Function %r>' % self.fullname
 
 
 class Fn(object):
@@ -472,7 +468,6 @@ class Fn(object):
 class Compiler(object):
     """Compile expressions and sequence of methods to SQL strings"""
 
-    # operator mapping
     OP_MAPPING = {
         OP_LT: ' < ',
         OP_LE: ' <= ',
@@ -486,7 +481,6 @@ class Compiler(object):
         OP_LIKE: ' like '
     }
 
-    # sql patterns
     SQL_PATTERNS = {
         QUERY_INSERT: 'insert into {target}{set}',
         QUERY_UPDATE: 'update {target}{set}{where}',
@@ -494,7 +488,7 @@ class Compiler(object):
         QUERY_DELETE: 'delete {target} from {from}{where}'
     }
 
-    expr_cache = {}  # dict to cache parsed expr
+    expr_cache = {}
 
     def thing2str(data):
         return string_literal(data)
@@ -555,8 +549,7 @@ class Compiler(object):
         elif type(side) in Compiler.conversions:
             return Compiler.conversions[type(side)](side)
         else:
-            raise UnSupportedType("Unsupported type %r in one side of expression"
-                                  % type(side))
+            raise UnSupportedType("Unsupported type: %r" % type(side))
 
     @staticmethod
     def parse_expr(expr):
@@ -575,8 +568,8 @@ class Compiler(object):
         if op in OP_MAPPING:
             string = tostr(l) + OP_MAPPING[op] + tostr(r)
         elif op is OP_BETWEEN:
-            string = '%s between %s and %s' % (
-                tostr(l), tostr(r[0]), tostr(r[1]))
+            string = '%s between %s and %s' % (tostr(l), tostr(r[0]),
+                                               tostr(r[1]))
         elif op in (OP_IN, OP_NOT_IN):
             string = '%s%s in (%s)' % (tostr(l),
                 ' not' if op is OP_NOT_IN else '',
@@ -606,15 +599,13 @@ class Compiler(object):
     def parse_having(lst):
         if not lst:
             return ''
-        return ' having %s' % (' and '.join(
-            Compiler.parse_expr(expr) for expr in lst))
+        return ' having %s' % (' and '.join(Compiler.parse_expr(expr) for expr in lst))
 
     @staticmethod
     def parse_where(lst):
         if not lst:
             return ''
-        return ' where %s' % (' and '.join(
-            Compiler.parse_expr(expr) for expr in lst))
+        return ' where %s' % (' and '.join(Compiler.parse_expr(expr) for expr in lst))
 
     @staticmethod
     def parse_select(lst):
@@ -629,9 +620,7 @@ class Compiler(object):
 
     @staticmethod
     def parse_set(lst):
-        return ' set %s' % (', '.join(
-            Compiler.parse_expr(expr) for expr in lst
-        ))
+        return ' set %s' % (', '.join(Compiler.parse_expr(expr) for expr in lst))
 
     @staticmethod
     def parse_distinct(boolean):
@@ -639,40 +628,39 @@ class Compiler(object):
 
     @staticmethod
     def gen_sql(runtime, query_type, target_model=None):
-        """
-        Generate SQL from runtime information.
+        """Generate SQL from runtime information.
 
         parameters:
+
           runtime
             Runtime object, runtime instance
+
           query_type
             macros, query type, the QUERY_**:
+
           target_model
             Model object, model to delete, update, select or insert
         """
 
         from_table = runtime.model.table_name
 
-        # if target_model not given, use from_table instead
         if target_model is None:
             target_model = runtime.model
 
         target_table = target_model.table_name
 
-        data = runtime.data  # alias
-
-        _where = Compiler.parse_where(data['where'])
-        _set = Compiler.parse_set(data['set'])
-        _orderby = Compiler.parse_orderby(data['orderby'])
-        _select = Compiler.parse_select(data['select'])
-        _limit = Compiler.parse_limit(data['limit'])
-        _groupby = Compiler.parse_groupby(data['groupby'])
-        _having = Compiler.parse_having(data['having'])
-        _distinct = Compiler.parse_distinct(data['distinct'])
+        _where = Compiler.parse_where(runtime.data['where'])
+        _set = Compiler.parse_set(runtime.data['set'])
+        _orderby = Compiler.parse_orderby(runtime.data['orderby'])
+        _select = Compiler.parse_select(runtime.data['select'])
+        _limit = Compiler.parse_limit(runtime.data['limit'])
+        _groupby = Compiler.parse_groupby(runtime.data['groupby'])
+        _having = Compiler.parse_having(runtime.data['having'])
+        _distinct = Compiler.parse_distinct(runtime.data['distinct'])
 
         pattern = Compiler.SQL_PATTERNS[query_type]
 
-        SQL = pattern.format(**{
+        return pattern.format(**{
             'target': target_table,
             'set': _set,
             'from': from_table,
@@ -684,8 +672,6 @@ class Compiler(object):
             'having': _having,
             'distinct': _distinct,
         })
-
-        return SQL
 
 
 class Runtime(object):
@@ -860,22 +846,18 @@ class MetaModel(type):
         primarykey = None
         fields = {}  # {field_name: field}
 
-        # lookup table_name, fields, primarykey from `cls.__dict__`
         for name, value in cls.__dict__.iteritems():
             if isinstance(value, Field):
                 fields[name] = value
-
                 if value.is_primarykey:
                     primarykey = value
-
             elif name == 'table_name':
                 table_name = value
 
         if table_name is None:
             # default table_name. User => 'user', 'CuteCat' => 'cute_cat'
-            table_name = reduce(
-                lambda x, y: ('_' if y.isupper() else '').join((x, y)),
-                list(cls.__name__)).lower()
+            table_name = reduce(lambda x, y: ('_' if y.isupper() else '').join(
+                (x, y)), list(cls.__name__)).lower()
 
         if primarykey is None:
             primarykey = PrimaryKey()   # default: `id`
@@ -885,7 +867,6 @@ class MetaModel(type):
         cls.table_name = table_name
         cls.fields = fields
 
-        # describe this cls's fields
         for name, field in cls.fields.iteritems():
             field.describe(name, cls)
 
