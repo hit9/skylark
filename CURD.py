@@ -1384,27 +1384,23 @@ class JoinModel(Models):
                 self.bridge = field
 
         if not self.bridge:
-            raise ForeignKeyNotFound(
-                "Foreign key references to "
-                "'%s' not found in '%s'" % (join.__name__, main.__name__)
-            )
+            raise ForeignKeyNotFound("Foreign key references to '%s' not found"
+                                     " in '%s'" % (join.__name__, main.__name__))
 
-    def brigde_wrapper(func):
+    def _brigde(func):
         def e(self, *arg, **kwarg):
-            self.runtime.data['where'].append(
-                self.bridge == self.bridge.point_to
-            )
+            self.runtime.data['where'].append(self.bridge == self.bridge.point_to)
             return func(self, *arg, **kwarg)
         return e
 
-    @brigde_wrapper
+    @_brigde
     def select(self, *lst):
         return super(JoinModel, self).select(*lst)
 
-    @brigde_wrapper
+    @_brigde
     def update(self, *lst):
         return super(JoinModel, self).update(*lst)
 
-    @brigde_wrapper
+    @_brigde
     def delete(self, target_model=None):
         return super(JoinModel, self).delete(target_model)
