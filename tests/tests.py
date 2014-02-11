@@ -744,3 +744,11 @@ class TestFunctions(Test):
         assert User.sum(User.id) == 10L
         assert User.max(User.id) == 4L
         assert User.min(User.id) == 1L
+
+    def test_fn(self):
+        self.create_data(4, table=1)
+        from CURD import fn
+        query = User.select(fn.count(User.id))
+        result = query.execute()
+        row = result.fetchone()
+        assert row.count_of_id == 4

@@ -444,25 +444,28 @@ class Fn(object):
 
     """
 
-    def fn(func_type):
+    def func(func_type):
         @classmethod
-        def _fn(cls, field):
+        def e(cls, field):
             return Function(field, func_type)
-        return _fn
+        return e
 
-    count = fn(FUNC_COUNT)
+    count = func(FUNC_COUNT)
 
-    sum = fn(FUNC_SUM)
+    sum = func(FUNC_SUM)
 
-    max = fn(FUNC_MAX)
+    max = func(FUNC_MAX)
 
-    min = fn(FUNC_MIN)
+    min = func(FUNC_MIN)
 
-    avg = fn(FUNC_AVG)
+    avg = func(FUNC_AVG)
 
-    ucase = fn(FUNC_UCASE)
+    ucase = func(FUNC_UCASE)
 
-    lcase = fn(FUNC_LCASE)
+    lcase = func(FUNC_LCASE)
+
+
+fn = Fn
 
 
 class Compiler(object):
@@ -1283,10 +1286,10 @@ class Model(object):
             return type(self).at(self._id).delete().execute()
         return None
 
-    def fn(func_type):
+    def func(func_type):
         """Non-API functions factory."""
         @classmethod
-        def _fn(cls, field=None):
+        def _func(cls, field=None):
             if field is None:
                 field = cls.primarykey
             func = Function(field, func_type)
@@ -1294,17 +1297,17 @@ class Model(object):
             result = query.execute()
             instance = result.fetchone()
             return getattr(instance, func.name)
-        return _fn
+        return _func
 
-    count = fn(FUNC_COUNT)
+    count = func(FUNC_COUNT)
 
-    sum = fn(FUNC_SUM)
+    sum = func(FUNC_SUM)
 
-    max = fn(FUNC_MAX)
+    max = func(FUNC_MAX)
 
-    min = fn(FUNC_MIN)
+    min = func(FUNC_MIN)
 
-    avg = fn(FUNC_AVG)
+    avg = func(FUNC_AVG)
 
 
 class Models(object):
