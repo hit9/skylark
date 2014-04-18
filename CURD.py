@@ -40,6 +40,15 @@ QUERY_UPDATE = 21
 QUERY_SELECT = 22
 QUERY_DELETE = 23
 
+FUNC_COUNT = 31
+FUNC_SUM = 32
+FUNC_MAX = 33
+FUNC_MIN = 34
+FUNC_AVG = 35
+
+FUNC_UCASE = 41
+FUNC_LCASE = 42
+
 
 DATA_ENCODING = 'utf8'
 
@@ -189,7 +198,7 @@ class Field(Leaf):
     def describe(self, name, model):
         self.name = name
         self.model = model
-        self.fullename = '%s.%s' % (self.model.table_name, self.name)
+        self.fullname = '%s.%s' % (self.model.table_name, self.name)
         setattr(model, name, FieldDescriptor(self))
 
     def __repr__(self):
@@ -219,3 +228,146 @@ class ForeignKey(Field):
     def __init__(self, point_to):
         super(ForeignKey, self).__init__(is_foreignkey=True)
         self.point_to = point_to
+
+
+class Function(Leaf):
+
+    mappings = {
+        FUNC_COUNT: 'count',
+        FUNC_MAX: 'max',
+        FUNC_SUM: 'sum',
+        FUNC_MIN: 'min',
+        FUNC_AVG: 'avg',
+        FUNC_UCASE: 'ucase',
+        FUNC_LCASE: 'lcase',
+    }
+
+    def __init__(self, field, func_type):
+        self.field = field
+        self.func_type = func_type
+        self.fullname = '%s(%s)' % (
+            Function.mappings[self.func_type], field.fullname)
+        self.name = '%s_of_%s' % (
+            Function.mappings[self.func_type], field.name)
+        self.model = self.field.model
+
+    def __repr__(self):
+        return '<Function %r>' % self.fullname
+
+
+class Fn(object):
+
+    def func(func_type):
+        @classmethod
+        def e(cls, field):
+            return Function(field, func_type)
+        return e
+
+    count = func(FUNC_COUNT)
+
+    sum = func(FUNC_SUM)
+
+    max = func(FUNC_MAX)
+
+    min = func(FUNC_MIN)
+
+    avg = func(FUNC_AVG)
+
+    ucase = func(FUNC_UCASE)
+
+    lcase = func(FUNC_LCASE)
+
+
+fn = Fn
+
+
+class Compiler(object):
+
+    OP_MAPPING = {
+        OP_LT: ' < ',
+        OP_LE: ' <= ',
+        OP_GT: ' > ',
+        OP_GE: ' >= ',
+        OP_EQ: ' = ',
+        OP_NE: ' <> ',
+        OP_ADD: ' + ',
+        OP_AND: ' and ',
+        OP_OR: ' or ',
+        OP_LIKE: ' like '
+    }
+
+    SQL_PATTERNS = {
+        QUERY_INSERT: 'insert into {target}{set}',
+        QUERY_UPDATE: 'update {target}{set}{where}',
+        QUERY_SELECT: ('select{distinct} {select} from {from}{where}{groupby}'
+                       '{having}{orderby}{limit}'),
+        QUERY_DELETE: 'delete {target} from {from}{where}'
+    }
+
+    expr_cache = {}
+
+    def thing2str(data):
+        return string_literal(data)
+
+    def float2str(data):
+        return '%.15g' % data
+
+    def None2Null(data):
+        return NULL
+
+    def bool2str(data):
+        return str(int(data))
+
+    def unicode2str(data):
+        return string_literal(data.encode(DATA_ENCODING))
+
+    def datetime2str(data):
+        return string_literal(data.strftime('%Y-%m-%d %H:%M:%S'))
+
+    def date2str(data):
+        return string_literal(data.strftime('%Y-%m-%d'))
+
+    def time2str(data):
+        return string_literal(data.strftime('%H:%M:%S'))
+
+    def timedelta2str(data):
+        seconds = int(data.seconds) % 60
+        minutes = int(data.seconds / 60) % 60
+        hours = int(data.seconds / 3600) % 24
+        return string_literal('%d %d:%d:%d' % (
+            data.days, hours, minutes, seconds))
+
+    conversions = {
+        types.IntType: thing2str,
+        types.LongType: thing2str,
+        types.FloatType: float2str,
+        types.NoneType: None2Null,
+        types.TupleType: escape_sequence,
+        types.ListType: escape_sequence,
+        types.DictType: escape_dict,
+        types.StringType: thing2str,
+        types.BooleanType: bool2str,
+        types.UnicodeType: unicode2str,
+        datetime: datetime2str,
+        date: date2str,
+        time: time2str,
+        timedelta: timedelta2str,
+    }
+
+    @staticmethod
+    def __parse_expr_one_side(side):
+
+        if isinstance(side, (Field, Function)):
+            return side.fullname
+        elif isinstance(side, Expr):
+            return Compiler.parse_expr(side)
+        elif isinstance(side, Query):
+            return '(%s)' % side.sql
+        elif type(side) in Compiler.conversions:
+            return Compiler.conversions[type(side)](side)
+        else:
+            raise UnSupportedType('Unsupported type: %r' % type(side))
+
+    @staticmethod
+    def parse_expr(expr):
+        pass
