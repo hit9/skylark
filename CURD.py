@@ -450,20 +450,6 @@ class Compiler(object):
 
     @staticmethod
     def gen_sql(runtime, query_type, target_model=None):
-        """Generate SQL from runtime information.
-
-        parameters:
-
-          runtime
-            Runtime object, runtime instance
-
-          query_type
-            macros, query type, the QUERY_**:
-
-          target_model
-            Model object, model to delete, update, select or insert
-        """
-
         from_table = runtime.model.table_name
 
         if target_model is None:
@@ -605,15 +591,6 @@ class DeleteQuery(Query):
 
 
 class SelectResult(object):
-    """Select query result.
-
-    methods:
-      fetchone,  fetch a single row each time
-      fetchall,  fetch all rows at a time
-
-    attributes:
-      count,  results rowcount from mysql
-    """
 
     def __init__(self, cursor, model, flst):
         self.model = model
@@ -633,7 +610,6 @@ class SelectResult(object):
         return instance
 
     def fetchone(self):
-        """Fetch a single row each time"""
         row = self.cursor.fetchone()
 
         if row is None:
@@ -646,7 +622,6 @@ class SelectResult(object):
                 self.__instance_from_db(m, row) for m in self.model.models)
 
     def fetchall(self):
-        """Fetch all rows at a time"""
         rows = self.cursor.fetchall()
 
         if self.model.single:
