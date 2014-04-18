@@ -49,6 +49,8 @@ from models import *
 sys.path.insert(0, '..')
 from CURD import *
 
+tostr = Compiler.parse_expr
+
 
 class Test(object):  # classes inhrite from Test need database connection
 
@@ -148,17 +150,10 @@ class TestExpr_:
     def test_op(self):
         expr1 = User.name == "Join"
         expr2 = User.email == "Join@github.com"
-        assert expr1 & expr2 == "user.name = 'Join' and user.email = 'Join@github.com'"
-        assert expr1 | expr2 == "user.name = 'Join' or user.email = 'Join@github.com'"
+        assert tostr(expr1 & expr2) == "(user.name = 'Join' and user.email = 'Join@github.com')"
+        assert tostr(expr1 | expr2) == "(user.name = 'Join' or user.email = 'Join@github.com')"
 
     def test_operator(self):
-
-        sys.path.insert(0, '..')
-
-        from CURD import Compiler
-
-        tostr = Compiler.parse_expr
-
         expr1 = User.id < 4
         expr2 = User.id <= 4
         expr3 = User.id > 4
@@ -183,9 +178,6 @@ class TestExpr_:
         assert tostr(expr11) == "user.id not in ('1', '2', '3')"
 
     def test_parser_cache(self):
-
-        tostr = Compiler.parse_expr
-
         expr1 = User.id == 199
         expr2 = User.id == 199
         assert expr1 is not expr2
@@ -193,11 +185,7 @@ class TestExpr_:
         assert tostr(expr1) is tostr(expr2)
 
     def test_unicode(self):
-
-        tostr = Compiler.parse_expr
-
         expr = User.name == u"你好世界"
-
         assert tostr(expr) == "user.name = '你好世界'"
 
 
