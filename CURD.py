@@ -94,10 +94,12 @@ class Database(object):
         if not cls.conn or not cls.conn.open:
             cls.connect()
 
+        # make sure current connection is working
         try:
-            cls.conn.ping()  # make sure current connection is working
+            cls.conn.ping()
         except MySQLdb.OperationalError:
-            cls.connect()  # connection lost, reconnet
+            # connection lost, reconnet
+            cls.connect()
 
         return cls.conn
 
@@ -114,4 +116,106 @@ class Database(object):
         if cls.conn and cls.conn.open:
             cls.conn.select_db(db)
 
-    select_db = change
+    select_db = change  # alias
+
+
+class Leaf(object):
+
+    def _e(op):
+        def e(self, right):
+            return Expr(self, right, op)
+        return e
+
+    __lt__ = _e(OP_LT)
+
+    __le__ = _e(OP_LE)
+
+    __gt__ = _e(OP_GT)
+
+    __ge__ = _e(OP_GE)
+
+    __eq__ = _e(OP_EQ)
+
+    __ne__ = _e(OP_NE)
+
+    __add__ = _e(OP_ADD)
+
+    __and__ = _e(OP_AND)
+
+    __or__ = _e(OP_OR)
+
+
+class Expr(Leaf):
+
+    def __init__(self, left, right, op):
+        self.left = left
+        self.right = right
+        self.op = op
+
+    def __attrs(self):
+        return (self.left, self.op, self.right)
+
+    def __hash__(self):
+        return hash(self.__attrs())
+
+    def __eq__(self, other):
+        return self.__attrs() == other.__attrs()
+
+    def __repr__(self):
+        return '<Expression %r>' % Compiler.parse_expr(self)
+
+
+class FieldDescriptor(object):
+
+    def __init__(self, field):
+        self.name = field.name
+        self.field = field
+
+    def __get__(self, instance, type=None):
+        if instance:
+            return instance.data[self.name]
+        return self.field
+
+    def __set__(self, instance, value):
+        instance.data[self.name] = value
+
+
+class Field(Leaf):
+
+    def __init__(self, is_primarykey=False, is_foreignkey=False):
+        self.is_primarykey = False
+        self.is_foreignkey = False
+
+    def describe(self, name, model):
+        self.name = name
+        self.model = model
+        self.fullename = '%s.%s' % (self.model.table_name, self.name)
+        setattr(model, name, FieldDescriptor(self))
+
+    def __repr__(self):
+        return '<Field %r>' % self.fullname
+
+    def like(self, pattern):
+        return Expr(self, pattern, OP_LIKE)
+
+    def between(self, left, right):
+        return Expr(self, (left, right), OP_BETWEEN)
+
+    def _in(self, *values):
+        return Expr(self, values, OP_IN)
+
+    def not_in(self, *values):
+        return Expr(self, values, OP_NOT_IN)
+
+
+class PrimaryKey(Field):
+
+    def __init__(self):
+        super(PrimaryKey, self).__init__(is_primarykey=True)
+
+
+class ForeignKey(Field):
+
+    def __init__(self, point_to):
+        super(ForeignKey, self).__init__(is_foreignkey=True)
+        self.point_to = point_to
