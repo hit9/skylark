@@ -118,7 +118,6 @@ class Node(object):
 
         for key, value in self.__dict__.iteritems():
             setattr(obj, key, value)
-
         return obj
 
 
@@ -198,7 +197,7 @@ class Field(Leaf):
         field = self.clone()
         field.name = _alias
         field.fullname = '%s as %s' % (self.fullname, _alias)
-        setattr(self.model, field.name, FieldDescriptor(self))
+        setattr(self.model, field.name, FieldDescriptor(field))
         return field
 
 
@@ -288,7 +287,7 @@ class SelectQuery(Query):
 
     def execute(self):
         cursor = Database.execute(self.sql)
-        return None  # TODO
+        return SelectResult(cursor, self.from_model, self.selects)
 
 
 class DeleteQuery(Query):
@@ -299,6 +298,49 @@ class DeleteQuery(Query):
     def execute(self):
         cursor = Database.execute(self.sql)
         return cursor.rowcount
+
+
+class SelectResult(object):
+
+    def __init__(self, cursor, model, nodes):
+        self.cursor = cursor
+        self.model = model
+        self.nodes = nodes
+
+    @property
+    def count(self):
+        return self.cursor.rowcount
+
+    def inst(self, model, row):
+        inst = model()
+        inst.set_in_db(True)
+
+        for idx, node in enumerate(self.nodes):
+            if isinstance(node, Field):
+                if node.model is model:
+                    inst.data[node.name] = row[idx]
+        return inst
+
+    def one(self):
+        row = self.cursor.fetchone()
+
+        if row is None:
+            return None
+
+        if self.model.single:
+            return self.inst(self.model, row)
+        else:
+            return map(lambda m: self.inst(m, row), self.model.models)
+
+    def all(self):
+        rows = self.cursor.fetchall()
+
+        if self.model.single:
+            for row in rows:
+                yield self.inst(self.model, row)
+        else:
+            for row in rows:
+                yield map(lambda m: self.inst(m, row), self.model.models)
 
 
 class Compiler(object):
@@ -654,3 +696,23 @@ class Model(object):
     def limit(cls, rows, offset=None):
         cls.runtime.set_limit((offset, rows))
         return cls
+
+    @classmethod
+    def findone(cls, *lst, **dct):
+        query = cls.where(*lst, **dct).select()
+        results = query.execute()
+        return results.one()
+
+    @classmethod
+    def findall(cls, *lst, **dct):
+        query = cls.where(*lst, **dct).select()
+        results = query.execute()
+        return results.all()
+
+    @classmethod
+    def getone(cls):
+        return cls.select().execute().one()
+
+    @classmethod
+    def getall(cls):
+        return cls.select().execute().all()
