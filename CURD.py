@@ -175,7 +175,7 @@ class Field(Leaf):
         setattr(model, name, FieldDescriptor(self))
 
     def like(self, pattern):
-        return Expr(self, pattern, OP_BETWEEN)
+        return Expr(self, pattern, OP_LIKE)
 
     def between(self, left, right):
         return Expr(self, (left, right), OP_BETWEEN)
@@ -394,7 +394,7 @@ class Compiler(object):
         elif expr.op is OP_BETWEEN:
             right = '%s and %s' % tuple(map(tostr, expr.right))
         elif expr.op in (OP_IN, OP_NOT_IN):
-            right = ', '.join(map(tostr, expr.right))
+            right = '(%s)' % ', '.join(map(tostr, expr.right))
 
         string = '%s %s %s' % (left, mappings[expr.op], right)
 
@@ -415,7 +415,7 @@ class Compiler(object):
     @_compile('order by {0}{1}')
     def _orderby(lst):
         node, desc = lst
-        return node, ' desc' if desc else ''
+        return node.fullname, ' desc' if desc else ''
 
     @_compile('group by {0}')
     def _groupby(lst):
