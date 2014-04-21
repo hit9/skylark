@@ -263,6 +263,20 @@ class Fn(object):
 fn = Fn()
 
 
+class Distinct(Node):
+    # 'distinct user.name, user.email..' -> legal
+    # 'user.id distinct user.name' -> illegal
+    # 'user.id, count(distinct user.name)' -> legal
+
+    def __init__(self, *args):
+        self.args = args
+        self.fullname = 'distinct(%s)' % ', '.join(
+            map(Compiler.tostr, args))
+
+
+distinct = Distinct
+
+
 class Query(object):
 
     def __init__(self, type, runtime, target=None):
@@ -325,6 +339,12 @@ class SelectResult(object):
     def __init__(self, cursor, model, nodes):
         self.cursor = cursor
         self.model = model
+
+        # distinct should be the first select node if it exists
+        if len(nodes) >= 1 and isinstance(nodes[0], Distinct):
+            nodes = list(nodes[0].args) + nodes[1:]
+
+        print nodes
 
         self.fields = {}
         self.funcs = {}
@@ -484,6 +504,7 @@ class Compiler(object):
         PrimaryKey: node2str,
         ForeignKey: node2str,
         Function: node2str,
+        Distinct: node2str,
         Expr: expr2str,
         Query: query2str,
         InsertQuery: query2str,
