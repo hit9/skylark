@@ -270,11 +270,11 @@ class Compiler(object):
     }
 
     patterns = {
-        QUERY_INSERT: 'insert into {target}{set}',
-        QUERY_UPDATE: 'update {target}{set}{where}',
-        QUERY_SELECT: ('select {select} from {from}{where}{groupby}'
-                       '{having}{orderby}{limit}'),
-        QUERY_DELETE: 'delete {target} from {from}{where}'
+        QUERY_INSERT: 'insert into {target} {set}',
+        QUERY_UPDATE: 'update {target} {set} {where}',
+        QUERY_SELECT: 'select {select} from {from} {where} {groupby}'
+                      ' {having} {orderby} {limit}',
+        QUERY_DELETE: 'delete {target} from {from} {where}'
     }
 
     encoding = 'utf8'
@@ -307,8 +307,8 @@ class Compiler(object):
         seconds = int(data.seconds) % 60
         minutes = int(data.seconds / 60) % 60
         hours = int(data.seconds / 3600) % 24
-        return string_literal('%d %d:%d:%d' % (data.days, hours, minutes,
-                                               seconds))
+        return string_literal('%d %d:%d:%d' % (
+            data.days, hours, minutes, seconds))
 
     def node2str(node):
         return node.fullname
@@ -354,8 +354,10 @@ class Compiler(object):
 
         left = tostr(expr.left)
 
-        if expr.op in (OP_LT, OP_LE, OP_GT, OP_GE, OP_EQ, OP_NE, OP_ADD,
-                       OP_AND, OP_OR, OP_LIKE):
+        if expr.op in (
+            OP_LT, OP_LE, OP_GT, OP_GE, OP_EQ, OP_NE,
+            OP_ADD, OP_AND, OP_OR,  OP_LIKE
+        ):
             right = tostr(expr.right)
         elif expr.op is OP_BETWEEN:
             right = '%s and %s' % tuple(map(tostr, expr.right))
@@ -368,3 +370,70 @@ class Compiler(object):
             string = '(%s)' % string
 
         return string
+
+    def _compile(pattern):
+        def _e(func):
+            def e(lst):
+                if not lst:
+                    return ''
+                return pattern.format(*func(lst))
+            return e
+        return _e
+
+    @_compile('order by {0}{1}')
+    def _orderby(lst):
+        node, desc = lst
+        return node, ' desc' if desc else ''
+
+    @_compile('group by {0}')
+    def _groupby(lst):
+        return ', '.join(f.fullname for f in lst)
+
+    @_compile('having {0}')
+    def _having(lst):
+        return ' and '.join(map(Compiler.parse_expr, lst))
+
+    @_compile('where {0}')
+    def _where(lst):
+        return ' and '.join(map(Compiler.parse_expr, lst))
+
+    @_compile('{0}')
+    def _select(lst):
+        return ', '.join(f.fullname for f in lst)
+
+    @_compile('limit {0}{1}')
+    def _limit(lst):
+        offset, rows = lst
+        return '%s, ' % offset if offset else '', rows
+
+    @_compile('set {0}')
+    def _set(lst):
+        return ', '.join(map(Compiler.parse_expr, lst))
+
+    compilers = {
+        'orderby': _orderby,
+        'groupby': _groupby,
+        'having': _having,
+        'where': _where,
+        'select': _select,
+        'limit': _limit,
+        'set': _set
+    }
+
+    @staticmethod
+    def compile(runtime, type, target=None):
+
+        if target is None:
+            target = runtime.model
+
+        args = {
+            'target': target.table_name,
+            'from': runtime.model.table_name
+        }
+
+        for key, func in Compiler.compilers:
+            args[key] = func(runtime.data[key])
+
+        pattern = Compiler.patterns[type]
+
+        return pattern.format(**args)
