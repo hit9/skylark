@@ -50,6 +50,10 @@ class UnSupportedType(CURDException):
     pass
 
 
+class PrimaryKeyValueNotFound(CURDException):
+    pass
+
+
 class Database(object):
 
     configs = {
@@ -321,7 +325,23 @@ class SelectResult(object):
     def __init__(self, cursor, model, nodes):
         self.cursor = cursor
         self.model = model
-        self.nodes = nodes
+
+        self.fields = {}
+        self.funcs = {}
+
+        for idx, node in enumerate(nodes):
+            if isinstance(node, Field):
+                self.fields[idx] = node
+            elif isinstance(node, Function):
+                self.funcs[idx] = node
+
+        # returns: 0->inst, 1->func, 2->inst, func
+        if self.fields and not self.funcs:
+            self.returns = 0
+        elif not self.fields and self.funcs:
+            self.returns = 1
+        elif self.fields and self.funcs:
+            self.returns = 2
 
     @property
     def count(self):
@@ -331,19 +351,16 @@ class SelectResult(object):
         inst = model()
         inst.set_in_db(True)
 
-        for idx, node in enumerate(self.nodes):
-            if isinstance(node, Field):
-                if node.model is model:
-                    inst.data[node.name] = row[idx]
+        for idx, field in self.fields.iteritems():
+            if field.model is model:
+                inst.data[field.name] = row[idx]
         return inst
 
     def func(self, row):
         func = Func()
 
-        for idx, node in enumerate(self.nodes):
-            if isinstance(node, Function):
-                func.data[node.name] = row[idx]
-
+        for idx, function in self.funcs.iteritems():
+            func.data[function.name] = row[idx]
         return func
 
     def __one(self, row):
@@ -352,12 +369,18 @@ class SelectResult(object):
 
         if self.model.single:
             inst = self.inst(self.model, row)
-            return (inst, func) if func.data else inst
+            return {
+                0: inst,
+                1: func,
+                2: (inst, func)
+            }[self.returns]
         else:
-            insts = map(lambda m: self.inst(m, row), self.model.models)
-            if func.data:
-                insts.extend(func)
-            return tuple(insts)
+            insts = tuple(map(lambda m: self.inst(m, row), self.model.models))
+            return {
+                0: insts,
+                1: func,
+                2: insts + func
+            }[self.returns]
 
     def one(self):
         row = self.cursor.fetchone()
@@ -379,11 +402,10 @@ class SelectResult(object):
     def dicts(self):
         for row in self.cursor.fetchall():
             dct = {}
-            for idx, node in enumerate(self.nodes):
-                if isinstance(node, Field):
-                    dct[node.fullname] = row[idx]
-                elif isinstance(node, Function):
-                    dct[node.name] = row[idx]
+            for idx, field in self.fields.iteritems():
+                dct[field.fullname] = row[idx]
+            for idx, func in self.funcs.iteritems():
+                dct[func.name] = row[idx]
             yield dct
 
 
@@ -525,7 +547,7 @@ class Compiler(object):
     @_compile('order by {0}{1}')
     def _orderby(lst):
         node, desc = lst
-        return node.fullname, ' desc' if desc else ''
+        return Compiler.tostr(node), ' desc' if desc else ''
 
     @_compile('group by {0}')
     def _groupby(lst):
@@ -760,3 +782,61 @@ class Model(object):
     @classmethod
     def getall(cls):
         return cls.select().execute().all()
+
+    @property
+    def _id(self):
+        return self.data.get(type(self).primarykey.name, None)
+
+    def save(self):
+        model = type(self)
+
+        if not self._in_db:  # insert
+            id = model.insert(**self.data).execute()
+
+            if id is not None:
+                self.data[model.primarykey.name] = id
+                self.set_in_db(True)
+                self._cache = self.data.copy()  # sync cache on saving
+            return id
+        else:  # update
+            dct = dict(set(self.data.items()) - set(self._cache.items()))
+
+            if self._id is None:
+                raise PrimaryKeyValueNotFound
+
+            if dct:
+                query = model.at(self._id).update(**dct)
+                rows_affected = query.execute()
+            else:
+                rows_affected = 0
+            self._cache = self.data.copy()
+            return rows_affected
+
+    def destroy(self):
+        if self._in_db:
+            if self._id is None:
+                raise PrimaryKeyValueNotFound
+            return type(self).at(self._id).delete().execute()
+        return None
+
+    def aggregator(name):
+        @classmethod
+        def _func(cls, arg=None):
+            if arg is None:
+                arg = cls.primarykey
+            function = Function(name, arg)
+            query = cls.select(function)
+            result = query.execute()
+            func = result.one()
+            return func.data[function.name]
+        return _func
+
+    count = aggregator('count')
+
+    sum = aggregator('sum')
+
+    max = aggregator('max')
+
+    min = aggregator('min')
+
+    avg = aggregator('avg')
