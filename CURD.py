@@ -113,6 +113,14 @@ class Node(object):
     def __repr__(self):
         return '<%s %r>' % (type(self).__name__, Compiler.tostr(self))
 
+    def clone(self, *args, **kwargs):
+        obj = type(self)(*args, **kwargs)
+
+        for key, value in self.__dict__.iteritems():
+            setattr(obj, key, value)
+
+        return obj
+
 
 class Leaf(Node):
 
@@ -186,6 +194,13 @@ class Field(Leaf):
     def not_in(self, *values):
         return Expr(self, values, OP_NOT_IN)
 
+    def alias(self, _alias):
+        field = self.clone()
+        field.name = _alias
+        field.fullname = '%s as %s' % (self.fullname, _alias)
+        setattr(self.model, field.name, FieldDescriptor(self))
+        return field
+
 
 class PrimaryKey(Field):
 
@@ -208,6 +223,12 @@ class Function(Leaf):
         self.fullname = '%s(%s)' % (
             self.name, ', '.join(map(Compiler.tostr, self.args)))
 
+    def alias(self, _alias):
+        fn = self.clone(self.name, *self.args)
+        fn.name = _alias
+        fn.fullname = '%s as %s' % (self.fullname, _alias)
+        return fn
+
 
 class Fn(object):
 
@@ -223,12 +244,15 @@ class Fn(object):
 fn = Fn()
 
 
-class Query(Node):
+class Query(object):
 
     def __init__(self, type, runtime, target=None):
         self.type = type
         self.sql = Compiler.compile(runtime, self.type, target)
         runtime.reset_data()
+
+    def __repr__(self):
+        return '<%s %r>' % (type(self).__name__, self.sql)
 
 
 class InsertQuery(Query):
