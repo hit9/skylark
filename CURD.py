@@ -251,6 +251,32 @@ class UpdateQuery(Query):
         return cursor.rowcount
 
 
+class SelectQuery(Query):
+
+    def __init__(self, runtime, target=None):
+        self.from_model = runtime.model
+        self.selects = runtime.data['select']
+        super(SelectQuery, self).__init__(QUERY_SELECT, runtime, target)
+
+    def __iter__(self):
+        results = self.execute()
+        return results.fetchall()
+
+    def execute(self):
+        cursor = Database.execute(self.sql)
+        return None  # TODO
+
+
+class DeleteQuery(Query):
+
+    def __init__(self, runtime, target=None):
+        super(DeleteQuery, self).__init__(QUERY_DELETE, runtime, target)
+
+    def execute(self):
+        cursor = Database.execute(self.sql)
+        return cursor.rowcount
+
+
 class Compiler(object):
 
     mappings = {
@@ -323,9 +349,15 @@ class Compiler(object):
         datetime: datetime2str,
         date: date2str,
         Field: node2str,
+        PrimaryKey: node2str,
+        ForeignKey: node2str,
         Function: node2str,
         Expr: expr2str,
         Query: query2str,
+        InsertQuery: query2str,
+        UpdateQuery: query2str,
+        SelectQuery: query2str,
+        DeleteQuery: query2str,
         time: time2str,
         timedelta: timedelta2str,
         types.IntType: thing2str,
@@ -387,19 +419,19 @@ class Compiler(object):
 
     @_compile('group by {0}')
     def _groupby(lst):
-        return ', '.join(f.fullname for f in lst)
+        return ', '.join(f.fullname for f in lst),
 
     @_compile('having {0}')
     def _having(lst):
-        return ' and '.join(map(Compiler.parse_expr, lst))
+        return ' and '.join(map(Compiler.parse_expr, lst)),
 
     @_compile('where {0}')
     def _where(lst):
-        return ' and '.join(map(Compiler.parse_expr, lst))
+        return ' and '.join(map(Compiler.parse_expr, lst)),
 
     @_compile('{0}')
     def _select(lst):
-        return ', '.join(f.fullname for f in lst)
+        return ', '.join(f.fullname for f in lst),
 
     @_compile('limit {0}{1}')
     def _limit(lst):
@@ -408,7 +440,7 @@ class Compiler(object):
 
     @_compile('set {0}')
     def _set(lst):
-        return ', '.join(map(Compiler.parse_expr, lst))
+        return ', '.join(map(Compiler.parse_expr, lst)),
 
     compilers = {
         'orderby': _orderby,
@@ -431,9 +463,170 @@ class Compiler(object):
             'from': runtime.model.table_name
         }
 
-        for key, func in Compiler.compilers:
+        for key, func in Compiler.compilers.items():
             args[key] = func(runtime.data[key])
 
         pattern = Compiler.patterns[type]
 
         return pattern.format(**args)
+
+
+class Runtime(object):
+
+    def __init__(self, model=None):
+        self.model = model
+        self.reset_data()
+
+    def reset_data(self):
+        keys = (
+            'where', 'set', 'orderby', 'select', 'limit', 'groupby', 'having')
+        self.data = {}.fromkeys(keys, [])
+
+    def __repr__(self):
+        return '<Runtime %r>' % self.data
+
+    def set_orderby(self, lst):
+        self.data['orderby'] = list(lst)
+
+    def set_groupby(self, lst):
+        self.data['groupby'] = list(lst)
+
+    def set_having(self, lst):
+        self.data['having'] = list(lst)
+
+    def set_limit(self, lst):
+        self.data['limit'] = list(lst)
+
+    def set_select(self, lst):
+        self.data['select'] = list(lst) or self.model.get_fields()
+
+    def set_where(self, lst, dct):
+        lst = list(lst)
+
+        if self.model.single:
+            lst.extend(self.model.fields[k] == v for k, v in dct.iteritems())
+
+        self.data['where'] = lst
+
+    def set_set(self, lst, dct):
+        lst = list(lst)
+
+        if self.model.single:
+            lst.extend(self.model.fields[k] == v for k, v in dct.iteritems())
+
+        self.data['set'] = lst
+
+
+class MetaModel(type):
+
+    def __init__(cls, name, bases, attrs):
+        table_name = None
+        primarykey = None
+        fields = {}
+
+        for name, value in cls.__dict__.iteritems():
+            if isinstance(value, Field):
+                fields[name] = value
+                if value.is_primarykey:
+                    primarykey = value
+            elif name == 'table_name':
+                table_name = value
+
+        if table_name is None:
+            # default: 'User' => 'user', 'CuteCat' => 'cute_cat'
+            table_name = reduce(
+                lambda x, y: ('_' if y.isupper() else '').join((x, y)),
+                list(cls.__name__)
+            ).lower()
+
+        if primarykey is None:
+            fields['id'] = primarykey = PrimaryKey()
+
+        cls.primarykey = primarykey
+        cls.table_name = table_name
+        cls.fields = fields
+
+        for name, field in cls.fields.iteritems():
+            field.describe(name, cls)
+
+        cls.runtime = Runtime(cls)
+
+
+class Model(object):
+
+    __metaclass__ = MetaModel
+
+    single = True
+
+    def __init__(self, *lst, **dct):
+        self.data = {}
+
+        for expr in lst:
+            field, value = expr.left, expr.right
+            self.data[field.name] = value
+
+        self.data.update(dct)
+        self._cache = self.data.copy()
+        self.set_in_db(False)
+
+    def set_in_db(self, boolean):
+        self._in_db = boolean
+
+    @classmethod
+    def get_fields(cls):
+        return cls.fields.values()
+
+    @classmethod
+    def insert(cls, *lst, **dct):
+        cls.runtime.set_set(lst, dct)
+        return InsertQuery(cls.runtime)
+
+    @classmethod
+    def select(cls, *lst):
+        cls.runtime.set_select(lst)
+        return SelectQuery(cls.runtime)
+
+    @classmethod
+    def update(cls, *lst, **dct):
+        cls.runtime.set_set(lst, dct)
+        return UpdateQuery(cls.runtime)
+
+    @classmethod
+    def create(cls, *lst, **dct):
+        query = cls.insert(*lst, **dct)
+        id = query.execute()
+
+        if id is not None:
+            dct[cls.primarykey.name] = id
+            instance = cls(*lst, **dct)
+            instance.set_in_db(True)
+            return instance
+        return None
+
+    @classmethod
+    def delete(cls):
+        return DeleteQuery(cls.runtime)
+
+    @classmethod
+    def where(cls, *lst, **dct):
+        cls.runtime.set_where(lst, dct)
+        return cls
+
+    @classmethod
+    def at(cls, id):
+        return cls.where(cls.primarykey == id)
+
+    @classmethod
+    def orderby(cls, field, desc=False):
+        cls.runtime.set_orderby((field, desc))
+        return cls
+
+    @classmethod
+    def groupby(cls, *lst):
+        cls.runtime.set_groupby(lst)
+        return cls
+
+    @classmethod
+    def limit(cls, rows, offset=None):
+        cls.runtime.set_limit((offset, rows))
+        return cls
