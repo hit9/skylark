@@ -551,7 +551,7 @@ class Compiler(object):
 
     @_compile('group by {0}')
     def _groupby(lst):
-        return ', '.join(f.fullname for f in lst),
+        return ', '.join(map(Compiler.tostr, lst)),
 
     @_compile('having {0}')
     def _having(lst):
