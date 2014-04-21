@@ -109,10 +109,12 @@ class Database(object):
 
 
 class Node(object):
-    pass
+
+    def __repr__(self):
+        return '<%s %r>' % (type(self).__name__, Compiler.tostr(self))
 
 
-class Leaf(object):
+class Leaf(Node):
 
     def _e(op):
         def e(self, right):
@@ -137,9 +139,6 @@ class Leaf(object):
 
     __or__ = _e(OP_OR)
 
-    def __repr__(self):
-        return '<%s %r>' % (type(self).__name__, Compiler.tostr(self))
-
 
 class Expr(Leaf):
 
@@ -163,7 +162,7 @@ class FieldDescriptor(object):
         instance.data[self.name] = value
 
 
-class Field(Node, Leaf):
+class Field(Leaf):
 
     def __init__(self, is_primarykey=False, is_foreignkey=False):
         self.is_primarykey = is_primarykey
@@ -201,7 +200,7 @@ class ForeignKey(Field):
         self.point_to = point_to
 
 
-class Function(Node, Leaf):
+class Function(Leaf):
 
     def __init__(self, name, *args):
         self.name = name
@@ -224,8 +223,32 @@ class Fn(object):
 fn = Fn()
 
 
-class Query(object):
-    pass
+class Query(Node):
+
+    def __init__(self, type, runtime, target=None):
+        self.type = type
+        self.sql = Compiler.compile(runtime, self.type, target)
+        runtime.reset_data()
+
+
+class InsertQuery(Query):
+
+    def __init__(self, runtime, target=None):
+        super(InsertQuery, self).__init__(QUERY_INSERT, runtime, target)
+
+    def execute(self):
+        cursor = Database.execute(self.sql)
+        return cursor.lastrowid if cursor.rowcount else None
+
+
+class UpdateQuery(Query):
+
+    def __init__(self, runtime, target=None):
+        super(UpdateQuery, self).__init__(QUERY_UPDATE, runtime, target)
+
+    def execute(self):
+        cursor = Database.execute(self.sql)
+        return cursor.rowcount
 
 
 class Compiler(object):
