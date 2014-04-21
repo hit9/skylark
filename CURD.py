@@ -344,8 +344,6 @@ class SelectResult(object):
         if len(nodes) >= 1 and isinstance(nodes[0], Distinct):
             nodes = list(nodes[0].args) + nodes[1:]
 
-        print nodes
-
         self.fields = {}
         self.funcs = {}
 
