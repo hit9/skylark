@@ -299,7 +299,7 @@ class SelectQuery(Query):
 
     def __iter__(self):
         results = self.execute()
-        return results.fetchall()
+        return results.all()
 
     def execute(self):
         cursor = Database.execute(self.sql)
@@ -352,10 +352,11 @@ class SelectResult(object):
 
         if self.model.single:
             inst = self.inst(self.model, row)
-            return inst, func if func.data else inst
+            return (inst, func) if func.data else inst
         else:
             insts = map(lambda m: self.inst(m, row), self.model.models)
-            insts.extend(func)
+            if func.data:
+                insts.extend(func)
             return tuple(insts)
 
     def one(self):
