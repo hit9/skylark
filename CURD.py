@@ -108,6 +108,10 @@ class Database(object):
     select_db = change  # alias
 
 
+class Node(object):
+    pass
+
+
 class Leaf(object):
 
     def _e(op):
@@ -144,15 +148,6 @@ class Expr(Leaf):
         self.right = right
         self.op = op
 
-    def __attrs__(self):
-        return (self.left, self.right, self.op)
-
-    def __hash__(self):
-        return hash(self.__attrs__())
-
-    def __eq__(self):
-        return self.__attrs__() == self.__attrs__()
-
 
 class FieldDescriptor(object):
 
@@ -168,7 +163,7 @@ class FieldDescriptor(object):
         instance.data[self.name] = value
 
 
-class Field(Leaf):
+class Field(Node, Leaf):
 
     def __init__(self, is_primarykey=False, is_foreignkey=False):
         self.is_primarykey = is_primarykey
@@ -206,7 +201,7 @@ class ForeignKey(Field):
         self.point_to = point_to
 
 
-class Function(Leaf):
+class Function(Node, Leaf):
 
     def __init__(self, name, *args):
         self.name = name
@@ -227,6 +222,10 @@ class Fn(object):
 
 
 fn = Fn()
+
+
+class Query(object):
+    pass
 
 
 class Compiler(object):
@@ -288,6 +287,15 @@ class Compiler(object):
         return string_literal('%d %d:%d:%d' % (data.days, hours, minutes,
                                                seconds))
 
+    def node2str(node):
+        return node.fullname
+
+    def expr2str(expr):
+        return Compiler.parse_expr(expr)
+
+    def query2str(query):
+        return '(%s)' % query.sql
+
     conversions = {
         types.IntType: thing2str,
         types.LongType: thing2str,
@@ -302,21 +310,20 @@ class Compiler(object):
         datetime: datetime2str,
         date: date2str,
         time: time2str,
-        timedelta: timedelta2str
+        timedelta: timedelta2str,
+        Field: node2str,
+        Function: node2str,
+        Expr: expr2str,
+        Query: query2str
     }
 
     @staticmethod
-    def tostr(side):
-        if isinstance(side, (Field, Function)):
-            return side.fullname
-        elif isinstance(side, Expr):
-            return Compiler.parse_expr(side)
-        elif isinstance(side, Query):
-            return '(%s)' % side.sql
-        elif type(side) in Compiler.conversions:
-            return Compiler.conversions[type(side)](side)
-        else:
-            raise UnSupportedType
+    def tostr(e):
+        tp = type(e)
+
+        if tp in Compiler.conversions:
+            return Compiler.conversions[tp](e)
+        raise UnSupportedType
 
     @staticmethod
     def parse_expr(expr):
@@ -339,7 +346,3 @@ class Compiler(object):
             string = '(%s)' % string
 
         return string
-
-
-class Query(object):
-    pass
