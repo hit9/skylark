@@ -372,6 +372,20 @@ class SelectResult(object):
         for row in rows:
             yield self.__one(row)
 
+    def tuples(self):
+        for row in self.cursor.fetchall():
+            yield row
+
+    def dicts(self):
+        for row in self.cursor.fetchall():
+            dct = {}
+            for idx, node in enumerate(self.nodes):
+                if isinstance(node, Field):
+                    dct[node.fullname] = row[idx]
+                elif isinstance(node, Function):
+                    dct[node.name] = row[idx]
+            yield dct
+
 
 class Compiler(object):
 
