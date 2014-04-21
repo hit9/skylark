@@ -297,6 +297,14 @@ class Compiler(object):
         return '(%s)' % query.sql
 
     conversions = {
+        datetime: datetime2str,
+        date: date2str,
+        Field: node2str,
+        Function: node2str,
+        Expr: expr2str,
+        Query: query2str,
+        time: time2str,
+        timedelta: timedelta2str,
         types.IntType: thing2str,
         types.LongType: thing2str,
         types.FloatType: float2str,
@@ -306,21 +314,12 @@ class Compiler(object):
         types.NoneType: None2Null,
         types.TupleType: escape_sequence,
         types.ListType: escape_sequence,
-        types.DictType: escape_dict,
-        datetime: datetime2str,
-        date: date2str,
-        time: time2str,
-        timedelta: timedelta2str,
-        Field: node2str,
-        Function: node2str,
-        Expr: expr2str,
-        Query: query2str
+        types.DictType: escape_dict
     }
 
     @staticmethod
     def tostr(e):
         tp = type(e)
-
         if tp in Compiler.conversions:
             return Compiler.conversions[tp](e)
         raise UnSupportedType
