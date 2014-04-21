@@ -229,6 +229,22 @@ class Function(Leaf):
         return fn
 
 
+class Func(object):
+
+    def __init__(self, data=None):
+        if data is None:
+            data = {}
+        self.data = data
+
+    def __getattr__(self, name):
+        if name in self.data:
+            return self.data[name]
+        raise AttributeError
+
+    def __getitem__(self, name):
+        return self.data[name]
+
+
 class Fn(object):
 
     def _e(self, name):
@@ -321,26 +337,39 @@ class SelectResult(object):
                     inst.data[node.name] = row[idx]
         return inst
 
+    def func(self, row):
+        func = Func()
+
+        for idx, node in enumerate(self.nodes):
+            if isinstance(node, Function):
+                func.data[node.name] = row[idx]
+
+        return func
+
+    def __one(self, row):
+
+        func = self.func(row)
+
+        if self.model.single:
+            inst = self.inst(self.model, row)
+            return inst, func if func.data else inst
+        else:
+            insts = map(lambda m: self.inst(m, row), self.model.models)
+            insts.extend(func)
+            return tuple(insts)
+
     def one(self):
         row = self.cursor.fetchone()
 
         if row is None:
             return None
-
-        if self.model.single:
-            return self.inst(self.model, row)
-        else:
-            return map(lambda m: self.inst(m, row), self.model.models)
+        return self.__one(row)
 
     def all(self):
         rows = self.cursor.fetchall()
 
-        if self.model.single:
-            for row in rows:
-                yield self.inst(self.model, row)
-        else:
-            for row in rows:
-                yield map(lambda m: self.inst(m, row), self.model.models)
+        for row in rows:
+            yield self.__one(row)
 
 
 class Compiler(object):
