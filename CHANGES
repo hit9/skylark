@@ -1,7 +1,5 @@
-version 0.5.0
--------------
-
-**NOT backward compatiable changes:**
+version 0.5.0 (**not backward compatiable**)
+--------------------------------------------
 
 - Fix bug: issue#12, select statement with where syntax without priority
 
@@ -12,6 +10,8 @@ version 0.5.0
 - Removed `distinct()`, add keyword `distinct` (implemented as a type)
 
 - Retrieving data way: inst; inst, func; func
+
+- Add class `sql`, to declare a literal sql
 
 - Lots of minor bugs fixed.
 
