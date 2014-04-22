@@ -41,7 +41,9 @@ def drop_tables():
 from models import User, Post, TestCustomTableName, TestTableName
 
 sys.path.insert(0, '..')
-from CURD import Database, Compiler, fn, distinct, sql, PrimaryKeyValueNotFound
+from CURD import Database, Compiler, fn, distinct, sql, \
+    PrimaryKeyValueNotFound, ForeignKeyNotFound, \
+    Models
 
 
 tostr = Compiler.tostr
@@ -647,3 +649,182 @@ class TestCommonFunctions(Test):
         query = User.at(1).update(name=fn.concat(User.email, User.id))
         assert query.execute() == 1L
         assert User.at(1).getone().name == 'email11'
+
+
+class TestModels_:
+
+    def setUp(self):
+        self.models = Models(User, Post)
+
+    def test_models_table_name(self):
+        assert self.models.table_name == "user, post"
+
+    def test_models_primarykey(self):
+        assert self.models.primarykey == [User.id, Post.post_id]
+
+
+class TestModels(Test):
+
+    def setUp(self):
+        super(TestModels, self).setUp()
+        self.create_data(4)
+        self.models = Models(Post, User)
+
+    def test_where(self):
+        assert self.models.where(
+            User.id == Post.user_id).select().execute().count == 4L
+        assert self.models.where(
+            User.id == Post.user_id, User.id == 1
+        ).select().execute().count == 1L
+
+    def test_select(self):
+        for post, user in self.models.where(
+            User.id == Post.user_id
+        ).select():
+            assert user.id == post.user_id
+
+        post, user = self.models.where(
+            Post.post_id == User.id
+        ).getone()
+
+        assert user.id == post.post_id
+
+    def test_groupby(self):
+        query = self.models.groupby(User.name).select()
+        results = query.execute()
+        assert results.count == 4L
+
+        query = self.models.groupby(User.name, Post.name).select()
+        result = query.execute()
+        assert result.count == 16L
+
+    def test_having(self):
+        query = self.models.groupby(
+            User.name).having(fn.count(User.id) >= 1).select()
+        results = query.execute()
+        assert results.count == 4L
+
+        query = self.models.groupby(
+            User.name).having(fn.count(User.id) > 4).select()
+        results = query.execute()
+        assert results.count == 0
+
+        query = self.models.groupby(
+            User.name).having(fn.count(User.id) == 4).select()
+        results = query.execute()
+        assert results.count == 4L  # 16 / 4 =4
+
+    def test_distinct(self):
+        query = self.models.select(distinct(User.name))
+        result = query.execute()
+        assert result.count == 4L
+
+    def test_update(self):
+        assert self.models.where(
+            User.id == Post.user_id
+        ).update(User.name == 'new').execute() == 4L
+
+        User.at(1).getone().name == 'new'
+
+    def test_delete(self):
+        assert self.models.where(
+            User.id == Post.user_id).delete().execute() == 8L
+        assert self.models.where(
+            User.id == Post.user_id).select().execute().count == 0L
+        assert Post.count() == 0
+        assert User.count() == 0
+
+    def test_delete2(self):
+        assert self.models.where(
+            User.id == Post.user_id).delete(Post).execute() == 4L
+        assert User.select().execute().count == 4L
+        assert Post.count() == 0
+
+    def test_orderby(self):
+        g = self.models.where(
+            Post.post_id == User.id
+        ).orderby(User.name, desc=True).getall()
+        d = tuple(g)
+        assert d == tuple(sorted(d, key=lambda x: x[1].name, reverse=True))
+
+    def test_limit(self):
+        query = self.models.where(
+            (Post.user_id == User.id) & (User.id > 1)
+        ).limit(4, offset=2).select()
+        result = query.execute()
+        assert result.count == 1L
+
+    def test_getone(self):
+        post, user = self.models.where(User.id == Post.user_id).getone()
+        assert user.id == post.user_id
+
+    def test_getall(self):
+        g = self.models.where(User.id == Post.user_id).getall()
+        for post, user in g:
+            assert post.user_id == user.id
+
+
+class TestJoinModel(Test):
+
+    def setUp(self):
+        super(TestJoinModel, self).setUp()
+        self.create_data(10)
+
+    def test_select(self):
+        assert (Post & User).select().execute().count == 10L
+        assert (Post & User).where(
+            User.name == "name2").select().execute().count == 1L
+        for post, user in (Post & User).select():
+            assert post.post_id
+            assert user.id
+            assert post.user_id == user.id
+
+    def test_delete(self):
+        assert (Post & User).delete().execute() == 20L
+        assert (Post & User).select().execute().count == 0L
+
+    def test_delete2(self):
+        assert (Post & User).delete(Post).execute() == 10L
+
+    def test_update(self):
+        assert (Post & User).where(
+            User.name <= "name4"
+        ).update(User.name == "hello").execute() == 5L
+        assert (Post & User).where(
+            User.name == "hello"
+        ).update(Post.name == "good").execute() == 5L
+
+    def test_foreignkey_exception(self):
+        try:
+            User & Post
+        except ForeignKeyNotFound:
+            pass
+        else:
+            raise Exception
+
+    def test_findone(self):
+        post, user = (Post & User).findone(User.name == "name1")
+        assert user._id and post._id
+        assert user._id == post.user_id
+        assert user.name == "name1"
+
+    def test_findall(self):
+
+        g = (Post & User).findall(User.name.like("name%"))
+
+        i = 0
+
+        for post, user in g:
+            i += 1
+            assert user.name and post._id
+            assert user.id == post.user_id
+
+        assert i == 10
+
+    def test_getone(self):
+        post, user = (Post & User).getone()
+        assert post.user_id == user.id == 10L
+
+    def test_getall(self):
+        g = (Post & User).where(User.id <= 5).getall()
+        assert len(tuple(g)) == 5
