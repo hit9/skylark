@@ -183,7 +183,7 @@ class FieldDescriptor(object):
         return self.field
 
     def __set__(self, instance, value):
-        instance.data[self.name] = value
+        instance.data[self.field.name] = value
 
 
 class Field(Leaf):

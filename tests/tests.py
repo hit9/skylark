@@ -260,6 +260,118 @@ class TestModel(Test):
             assert user.name
         assert results.count == 2L
 
+    def test_delete(self):
+        self.create_data(4, table=1)
+        assert User.at(1).delete().execute() == 1L
+        assert User.where(
+            (User.name == 'name1') | (User.name == 'name2')
+        ).delete().execute() == 1L
+        assert User.count() == 2L
+
+    def test_where(self):
+        self.create_data(3, table=1)
+        assert User.where(User.id == 1) is User
+        assert User.where(id=1) is User
+        User.runtime.reset_data()
+        assert User.where(User.name == 'name1').select().execute().count == 1
+        assert User.where(User.name == 'name1',
+                          User.email == 'email').select().execute().count == 0
+        assert User.where(
+            User.name.like('name%')).select().execute().count == 3L
+        assert User.where(
+            User.id.between(0, 4)).select().execute().count == 3L
+
+    def test_expr_priority(self):
+        assert User.create(name='jack', email='jack@gmail.com')
+        query = User.where(
+            (User.id < 0) & (
+                (User.name == 'jack') | User.email == 'jack@gmail.com')
+        ).select()
+        results = query.execute()
+        assert results.count == 0
+
+    def test_at(self):
+        self.create_data(3, table=1)
+        assert User.at(1).select().execute().count == 1L
+        assert User.at(-1).select().execute().count == 0
+        assert User.at(1).select().execute().one().name == "name1"
+        assert User.at(1).delete().execute()
+
+    def test_orderby(self):
+        self.create_data(3, table=1)
+        users = User.orderby(
+            User.id, desc=True).select(User.id, User.name).execute().all()
+        user1, user2, user3 = tuple(users)
+        assert user1.id > user2.id > user3.id
+
+    def test_alias(self):
+        self.create_data(3, table=1)
+        query = User.having(sql('d') >= 3).select(User.id.alias('d'))
+        results = query.execute()
+        user = results.one()
+        assert user.d == 3L
+
+    def test_groupby(self):
+        for x in range(2):
+            User.create(name='jack', email='jack@github.com')
+        for x in range(3):
+            User.create(name='tom', email='jack@github.com')
+
+        query = User.groupby(User.name).select(fn.count(User.id), User.name)
+
+        for user, func in query:
+            if user.name == 'jack':
+                assert func.count == 2L
+            elif user.name == 'tom':
+                assert func.count == 3L
+
+    def test_having(self):
+        for x in range(2):
+            User.create(name='jack', email='jack@github.com')
+        for x in range(3):
+            User.create(name='tom', email='jack@github.com')
+
+        query = User.groupby(User.name).having(sql('count') > 2).select(
+            fn.count(User.id).alias('count'), User.name)
+        results = query.execute()
+        assert results.count == 1L
+        user, func = results.one()
+        assert func.count == 3L and user.name == 'tom'
+
+    def test_distinct(self):
+        assert User.create(name='jack', email='jack@github.com')
+        assert User.create(name='jack', email='jack@ele.me')
+        assert User.create(name='wangchao', email='nz2324@126.com')
+        assert User.create(name='hit9', email='nz2324@126.com')
+        query = User.select(fn.count(distinct(User.name)))
+        results = query.execute()
+        func = results.one()
+        assert func.count == 3L
+
+        query = User.orderby(User.id).select(distinct(User.email))
+        results = query.execute()
+        assert tuple(results.tuples()) == (
+            ('jack@github.com', ), ('jack@ele.me', ), ('nz2324@126.com', )
+        )
+
+        query = User.orderby(User.id).select(distinct(User.name), User.id)
+        results = query.execute()
+        assert tuple(results.dicts()) == (
+            {'name': 'jack', 'id': 1L},
+            {'name': 'jack', 'id': 2L},
+            {'name': 'wangchao', 'id': 3L},
+            {'name': 'hit9', 'id': 4L},
+        )
+
+    def test_model_inst_save(self):
+        user = User(name='jack', email='jack@gmail.com')
+        assert user.save() == 1L
+        assert User.count() == 1L
+        assert User.getone().name == 'jack'
+        user.name = 'amy'
+        assert user.save() == 1L
+        assert User.findone(id=1).name == 'amy'
+
 
 class TestSelectResults(Test):
 
