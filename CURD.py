@@ -54,6 +54,10 @@ class PrimaryKeyValueNotFound(CURDException):
     pass
 
 
+class ForeignKeyNotFound(CURDException):
+    pass
+
+
 class Database(object):
 
     configs = {
@@ -397,7 +401,7 @@ class SelectResult(object):
             return {
                 0: insts,
                 1: func,
-                2: insts + func
+                2: insts + (func, )
             }[self.returns]
 
     def one(self):
@@ -631,7 +635,8 @@ class Runtime(object):
     def reset_data(self):
         keys = (
             'where', 'set', 'orderby', 'select', 'limit', 'groupby', 'having')
-        self.data = {}.fromkeys(keys, [])
+        # dont use {}.fromkeys(keys, [])
+        self.data = dict((key, []) for key in keys)
 
     def __repr__(self):
         return '<Runtime %r>' % self.data
@@ -701,6 +706,17 @@ class MetaModel(type):
             field.describe(name, cls)
 
         cls.runtime = Runtime(cls)
+
+    def __contains__(cls, inst):
+        if isinstance(inst, cls):
+            query = cls.where(**inst.data).select()
+            results = query.execute()
+            if results.count:
+                return True
+        return False
+
+    def __and__(cls, join):
+        return JoinModel(cls, join)
 
 
 class Model(object):
@@ -859,3 +875,98 @@ class Model(object):
     min = aggregator('min')
 
     avg = aggregator('avg')
+
+
+class Models(object):
+
+    def __init__(self, *models):
+        self.models = list(models)
+        self.single = False
+        self.runtime = Runtime(self)
+        self.table_name = ', '.join(m.table_name for m in self.models)
+        self.primarykey = [m.primarykey for m in self.models]
+
+    def get_fields(self):
+        lst = [m.get_fields() for m in self.models]
+        return sum(lst, [])
+
+    def select(self, *lst):
+        self.runtime.set_select(lst)
+        return SelectQuery(self.runtime)
+
+    def update(self, *lst):
+        self.runtime.set_set(lst, {})
+        return UpdateQuery(self.runtime)
+
+    def delete(self, target=None):
+        return DeleteQuery(self.runtime, target=target)
+
+    def where(self, *lst):
+        self.runtime.set_where(lst, {})
+        return self
+
+    def orderby(self, field, desc=False):
+        self.runtime.set_orderby((field, desc))
+        return self
+
+    def groupby(self, *lst):
+        self.runtime.set_groupby(lst)
+        return self
+
+    def having(self, *lst):
+        self.runtime.set_having(lst)
+        return self
+
+    def limit(self, rows, offset=None):
+        self.runtime.set_limit((offset, rows))
+        return self
+
+    def findone(self, *lst):
+        query = self.where(*lst).select()
+        results = query.execute()
+        return results.one()
+
+    def findall(self, *lst):
+        query = self.where(*lst).select()
+        results = query.execute()
+        return results.all()
+
+    def getone(self):
+        return self.select().execute().one()
+
+    def getall(self):
+        return self.select().execute().all()
+
+
+class JoinModel(Models):
+
+    def __init__(self, main, join):
+        super(JoinModel, self).__init__(main, join)
+        self.bridge = None
+
+        for field in main.get_fields():
+            if field.is_foreignkey and field.point_to is join.primarykey:
+                self.bridge = field
+
+        if self.bridge is None:
+            raise ForeignKeyNotFound
+
+    def _bridge(func):
+        def e(self, *args, **kwargs):
+            self.runtime.data['where'].append(
+                self.bridge == self.bridge.point_to
+            )
+            return func(self, *args, **kwargs)
+        return e
+
+    @_bridge
+    def select(self, *lst):
+        return super(JoinModel, self).select(*lst)
+
+    @_bridge
+    def update(self, *lst):
+        return super(JoinModel, self).update(*lst)
+
+    @_bridge
+    def delete(self, target=None):
+        return super(JoinModel, self).delete(target)
