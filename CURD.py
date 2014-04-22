@@ -155,6 +155,15 @@ class Leaf(Node):
     __or__ = _e(OP_OR)
 
 
+class SQL(Node):
+
+    def __init__(self, literal):
+        self.literal = literal
+
+
+sql = SQL
+
+
 class Expr(Leaf):
 
     def __init__(self, left, right, op):
@@ -425,7 +434,10 @@ class SelectResult(object):
         for row in self.cursor.fetchall():
             dct = {}
             for idx, field in self.fields.iteritems():
-                dct[field.fullname] = row[idx]
+                if field.name not in dct:
+                    dct[field.name] = row[idx]
+                else:
+                    dct[field.fullname] = row[idx]
             for idx, func in self.funcs.iteritems():
                 dct[func.name] = row[idx]
             yield dct
@@ -499,6 +511,9 @@ class Compiler(object):
     def query2str(query):
         return '(%s)' % query.sql
 
+    def sql2str(sql):
+        return str(sql.literal)
+
     conversions = {
         datetime: datetime2str,
         date: date2str,
@@ -507,6 +522,7 @@ class Compiler(object):
         ForeignKey: node2str,
         Function: node2str,
         Distinct: node2str,
+        sql: sql2str,
         Expr: expr2str,
         Query: query2str,
         InsertQuery: query2str,
