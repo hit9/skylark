@@ -1,11 +1,11 @@
-CURD.py
-=======
+CURD.py (v0.5.0 - Beta)
+=======================
 
 Tiny Python ORM for MySQL.
 
-Latest version: v0.4.1
+Latest version: v0.5.0
 
-Development status: 3 - Alpha
+Development status: 4 - Beta
 
 Only support C, U, R, D, responsing to its name:
 

@@ -5,7 +5,7 @@ first_user = User.at(1).getone()
 print first_user.name
 
 # get user who called 'Join'
-join = User.where(name='Join').getone()
+jack = User.where(name='jack').getone()
 
 # get all users
 for user in User.select():
