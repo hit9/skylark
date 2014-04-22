@@ -155,7 +155,7 @@ class Leaf(Node):
     __or__ = _e(OP_OR)
 
 
-class SQL(Node):
+class SQL(Leaf):
 
     def __init__(self, literal):
         self.literal = literal
@@ -807,6 +807,11 @@ class Model(object):
     @classmethod
     def groupby(cls, *lst):
         cls.runtime.set_groupby(lst)
+        return cls
+
+    @classmethod
+    def having(cls, *lst):
+        cls.runtime.set_having(lst)
         return cls
 
     @classmethod
