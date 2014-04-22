@@ -41,7 +41,7 @@ def drop_tables():
 from models import User, Post, TestCustomTableName, TestTableName
 
 sys.path.insert(0, '..')
-from CURD import Database, Compiler, fn, distinct, sql
+from CURD import Database, Compiler, fn, distinct, sql, PrimaryKeyValueNotFound
 
 
 tostr = Compiler.tostr
@@ -372,6 +372,98 @@ class TestModel(Test):
         assert user.save() == 1L
         assert User.findone(id=1).name == 'amy'
 
+        user = User(name='test!', email='haha@haha.com')
+        id = user.save()
+        assert id == 2L
+        assert User.at(2).getone().name == 'test!'
+        user.name = 'run a test!'
+        rows_affected = user.save()
+        assert rows_affected == 1
+        query = User.at(2).select(User.name)
+        results = query.execute()
+        user = results.one()
+        try:
+            user.name = 'hello'
+            user.save()
+        except PrimaryKeyValueNotFound:
+            pass
+
+    def test_instance_destroy(self):
+        self.create_data(3, table=1)
+        user = User.at(1).getone()
+        assert user.destroy()
+        assert User.at(1).getone() is None
+
+        user = User.at(2).select(User.name).execute().one()
+        try:
+            user.destroy()
+        except PrimaryKeyValueNotFound:
+            pass
+
+    def test_findone(self):
+        self.create_data(3, table=1)
+        user = User.findone(name='name1')
+        assert user.id == 1L
+
+    def test_findall(self):
+        self.create_data(3, table=1)
+        users = User.findall(User.name.like('name%'))
+        assert len(list(users)) == 3
+        users = User.findall(name='name1')
+        assert len(list(users)) == 1
+
+    def test_getone(self):
+        self.create_data(3, table=1)
+        user = User.at(1).getone()
+        assert user.name == 'name1' and user.id == 1L
+        assert User.at(100).getone() is None
+
+    def test_getall(self):
+        self.create_data(3, table=1)
+        users = User.where(User.name == 'name1').getall()
+        assert len(list(users)) == 1
+
+    def test_in_select(self):
+        self.create_data(4)
+
+        query = User.where(User.id._in(Post.select(Post.user_id))).select()
+        results = query.execute()
+        assert results.count == 4L
+
+    def test_not_in_select(self):
+        self.create_data(4)
+        query = User.where(
+            User.id.not_in(Post.select(Post.user_id))
+        ).select()
+        results = query.execute()
+        assert results.count == 0
+
+    def test_instance_in_models(self):
+        self.create_data(4)
+        user = User(name='helo', email='abc')
+        assert user not in User
+        assert user.save() == 5L
+        assert user in User
+        user = User(name='name1')
+        assert user in User
+        user = User(name=u'中文')
+        assert user not in User
+
+    def test_limit(self):
+        self.create_data(10)
+        query = User.limit(4).select()
+        results = query.execute()
+        assert results.count == 4L
+        assert len(tuple(User.limit(9, offset=1).getall())) is 9
+        assert len(tuple(User.limit(100, offset=9).getall())) is 1
+
+    def test_subquery(self):
+        self.create_data(10)
+
+        query = User.where(User.id._in(Post.select(Post.user_id))).select()
+        results = query.execute()
+        assert results.count == 10L
+
 
 class TestSelectResults(Test):
 
@@ -465,6 +557,15 @@ class TestSelectResults(Test):
         for post, user in (Post & User).select():
             assert post.user_id == user.id
 
+    def test_iter(self):
+        self.create_data(4)
+        i = 0
+        for user in User.where(User.id < 3).select(User.id):
+            i = i + 1
+            assert user.id == i
+
+        assert i == 2
+
     def test_examples(self):
         User.create(name='jack', email='jack@gmail.com')
         User.create(name='jack', email='jack1@gmail.com')
@@ -482,3 +583,67 @@ class TestSelectResults(Test):
         assert user.name == 'amy' and func.count == 1L
         user, func = results.one()
         assert user.name == 'jack' and func.count == 2L
+
+
+class TestRuntime_:
+
+    def test_reset_data(self):
+        User.where(User.name == 'hello')
+        assert User.runtime.data['where']
+        User.where(User.name == 'x').select()
+        for runtime_key, runtime_data in User.runtime.data.items():
+            assert not runtime_data
+        User.at(7).select()
+        for runtime_key, runtime_data in User.runtime.data.items():
+            assert not runtime_data
+
+
+class TestCommonFunctions(Test):
+
+    def test_count(self):
+        self.create_data(4)
+        assert User.count() == 4
+        query = (Post & User).select(
+            fn.count(User.id).alias('count_user_id'),
+            fn.count(Post.post_id).alias('count_post_id'))
+        results = query.execute()
+        assert results.count == 1L
+        func = results.one()
+        assert func.count_user_id == 4L
+        assert func.count_post_id == 4L
+
+    def test_max_min(self):
+        self.create_data(4, table=1)
+        assert User.max(User.id) == 4L
+        assert User.min(User.id) == 1L
+
+    def test_sum(self):
+        self.create_data(4, table=1)
+        assert User.sum(User.id) == 10
+
+    def test_lcase_ucase(self):
+        self.create_data(4, table=1)
+        query = User.select(fn.ucase(User.name), User.name)
+        for user, func in query:
+            assert user.name.upper() == func.ucase
+
+        query = User.select(fn.lcase(User.name), User.name)
+        for user, func in query:
+            assert user.name.lower() == func.lcase
+
+    def test_avg(self):
+        self.create_data(4, table=1)
+        assert User.avg(User.id) == 2.5
+
+    def test_concat(self):
+        self.create_data(4, table=1)
+        query = User.select(fn.concat(User.name, '+', User.email))
+
+        idx = 0
+        for func in query:
+            idx = idx + 1
+            assert func.concat == 'name%d+email%d' % (idx, idx)
+
+        query = User.at(1).update(name=fn.concat(User.email, User.id))
+        assert query.execute() == 1L
+        assert User.at(1).getone().name == 'email11'
