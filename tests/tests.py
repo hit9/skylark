@@ -37,6 +37,7 @@ def drop_tables():
     conn.cursor().execute("drop table post, user")
 # --------------------------------------- }}}
 
+from decimal import Decimal
 
 from models import User, Post, TestCustomTableName, TestTableName
 
@@ -635,7 +636,7 @@ class TestCommonFunctions(Test):
 
     def test_avg(self):
         self.create_data(4, table=1)
-        assert User.avg(User.id) == 2.5
+        assert User.avg(User.id) == Decimal(2.5)
 
     def test_concat(self):
         self.create_data(4, table=1)
