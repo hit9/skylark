@@ -517,7 +517,9 @@ class TestSelectResults(Test):
 
         query = (Post & User).select()
         results = query.execute()
-        assert tuple(results.dicts()) == (
+        x = tuple(results.dicts())
+        print x
+        assert x == (
             {'post_id': 1L, 'name': 'name1', 'user_id': 3L,
              'id': 3L, 'email': 'email3', 'user.name': 'name3'},
             {'post_id': 2L, 'name': 'name2', 'user_id': 2L,
@@ -636,7 +638,7 @@ class TestCommonFunctions(Test):
 
     def test_avg(self):
         self.create_data(4, table=1)
-        assert User.avg(User.id) == Decimal(2.5)
+        assert User.avg(User.id) == Decimal('2.5')
 
     def test_concat(self):
         self.create_data(4, table=1)
