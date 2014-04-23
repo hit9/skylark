@@ -42,7 +42,7 @@ Sample Code
 1L
 ```
 
-More examples: [sample/](sample/).
+More examples: [sample/](sample/), [snippets](snippets/)
 
 Install
 -------
