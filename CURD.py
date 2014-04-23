@@ -639,7 +639,7 @@ class Compiler(object):
 
         pattern = Compiler.patterns[type]
 
-        return pattern.format(**args)
+        return ' '.join(pattern.format(**args).split())
 
 
 class Runtime(object):
