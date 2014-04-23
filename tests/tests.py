@@ -287,7 +287,7 @@ class TestModel(Test):
         assert User.create(name='jack', email='jack@gmail.com')
         query = User.where(
             (User.id < 0) & (
-                (User.name == 'jack') | User.email == 'jack@gmail.com')
+                (User.name == 'jack') | (User.email == 'jack@gmail.com'))
         ).select()
         results = query.execute()
         assert results.count == 0
