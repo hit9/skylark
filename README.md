@@ -5,7 +5,9 @@ Tiny Python ORM for MySQL.
 
 Latest version: v0.5.0
 
-Development status: 4 - Beta
+Development status: **4 - Beta**
+
+Testing status: [![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
 
 Only support C, U, R, D, responsing to its name:
 
