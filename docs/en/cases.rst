@@ -57,7 +57,7 @@ Suppose the current post's id is 4.
 To get next post::
 
     >>> query = Post.where(id=(
-    ...   Post.where(Post.id > 4).select(Fn.min(Post.id))
+    ...   Post.where(Post.id > 4).select(fn.min(Post.id))
     ... )).select(Post.id, Post.title)
     >>> query.sql
     "select post.title, post.id from post where post.id = (select min(post.id) from post where post.id > '4')"
@@ -65,7 +65,7 @@ To get next post::
 To get previous post::
 
     >>> query = Post.where(id=(                                                                                                             
-    ...   Post.where(Post.id < 4).select(Fn.max(Post.id))                                                                                   
+    ...   Post.where(Post.id < 4).select(fn.max(Post.id))                                                                                   
     ... )).select(Post.id, Post.title)
     >>> query.sql
     "select post.title, post.id from post where post.id = (select max(post.id) from post where post.id < '4')"

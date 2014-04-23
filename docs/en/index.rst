@@ -11,10 +11,6 @@ Tests status:
 
 CURD.py is a tiny orm for mysql database, written in Python.
 
-`简体中文文档 <http://curdpy-zh.readthedocs.org/>`_
-
-**NOTICE**: CURD.py may not be stable before version 1.0
-
 .. Contents::
 
 .. _SimpleExample:

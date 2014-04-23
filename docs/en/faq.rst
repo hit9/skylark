@@ -19,7 +19,7 @@ compiler makes a SQL::
 
 If you don't want ``utf8``, set this var::
 
-    CURD.DATA_ENCODING = 'gbk'  # set to `gbk` for example
+    CURD.Compiler.encoding = 'gbk'
 
 SQL Injection Problem?
 -----------------------
@@ -44,4 +44,4 @@ Actually, that's MySQL-python's issue, solution:
 Available Scope
 ---------------
 
-CURD.py only works with tables which has primarykey.
+- CURD.py only works with tables which has a single Field as its primarykey.

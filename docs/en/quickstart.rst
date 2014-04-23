@@ -49,7 +49,7 @@ Better to put all models into a single script,  name it ``models.py`` :
 
 .. _two_models:
 
-.. literalinclude:: ../sample/models.py
+.. literalinclude:: ../../sample/models.py
 
 * You **have to create tables in MySQL by hand**, CURD.py has no feature like ``create_tables``,
   table user and post sql defination: https://github.com/hit9/CURD.py/blob/master/tests/tables.sql.
@@ -365,6 +365,17 @@ Alias
     >>> query = User.select(fn.count(User.id).alias('count_id'))
     # select count(user.id) as count_id from user
 
+.. _sql:
+
+SQL
+----
+
+``sql()`` creates a SQL string literal, for example::
+
+    >>> query = User.having(sql('count') > 2).groupby(User.name).select(fn.count(User.id).alias('count'), User.name)
+    >>> query.sql
+    "select count(user.id) as count, user.name from user group by user.name having count > '2'"
+
 .. _JoinModel:
 
 JoinModel
@@ -372,7 +383,7 @@ JoinModel
 
 We defined :ref:`two models <two_models>` in models.py: ``User``, ``Post``
 
-.. literalinclude:: ../sample/models.py
+.. literalinclude:: ../../sample/models.py
 
 Now, join them::
 

@@ -3,14 +3,14 @@
 Model Definition
 =================
 
-A table in mysql corresponds to a class in Python, i.e. we create a 
+A table in mysql corresponds to a class in Python, i.e. we create a
 table ``comment``:
 
 .. code-block:: sql
 
     mysql> create table comment(
       id int primary key auto_increment,
-      content text, 
+      content text,
       create_at datetime,
       user_id int,
       foreign key(user_id) references user(id)
@@ -43,7 +43,7 @@ We should define its model class in Python like this::
 We need to create tables by hand and then define their model classes in Python.
 
 In code above, ``id`` is the default primarykey, ``user_id`` is a foreignkey references ``user.id``.
-By default, we take classname's lowercase as its table's name. And for models like ``MyTable`` (Pascal naming style)::
+By default, we take classname's "snake case" as its table's name. And for models like ``MyTable`` (Pascal naming style)::
 
     class MyTable(Model):
         pass

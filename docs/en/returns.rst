@@ -58,9 +58,9 @@ Return ``SelectResult object``::
     >>> results
     <CURD.SelectResult object at 0xb6f8df6c>
 
-And from ``SelectResult object``, we can fetch ``users``::
+And from ``SelectResult object``, we can fetch ``user``::
 
-    >>> results.fetchone()
+    >>> results.one()
     <models.User object at 0xb6f8dccc>
 
 
@@ -69,7 +69,7 @@ Delete
 
 Return number of the rows deleted::
 
-    
+
     >>> user.destroy()
     1L
     >>> User.where(name='jack').delete().execute()
