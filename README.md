@@ -42,7 +42,7 @@ Sample Code
 1L
 ```
 
-More examples: [docs/sample/](http://github.com/hit9/CURD.py/tree/master/docs/sample).
+More examples: [sample/](sample/).
 
 Install
 -------
