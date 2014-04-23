@@ -3,7 +3,7 @@
 Expressions
 -----------
 
-A Field object, an operator and another side(string, value etc.) make up an expression.
+A field or function, an operator and another side(string, value etc.) make up an expression.
 
 Here are mappings from expressions to sql strings:
 

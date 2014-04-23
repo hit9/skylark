@@ -3,11 +3,7 @@
 CURD - Tiny Python ORM for MySQL
 ================================
 
-Release: v\ |version| (:ref:`Installation <install>`) 
-
-
-.. **NOTE**: version 0.3.0 has a lot of **Not-Backward-Compatible** changes
-.. compared to version 0.2.5.
+Release: v\ |version| - Beta (:ref:`Installation <install>`) 
 
 Tests status:
 
@@ -75,7 +71,7 @@ CURD.py only supports 4 types of queries: C, U, R, D, responsing to its name.
 Plat
 ----
 
-Python2(2.6+), OS Independent
+Python2 (2.6+), OS Independent
 
 Documentaion
 ------------
