@@ -2,7 +2,7 @@ To run tests with nose
 
 1. create a database::
 
-    $ mysql -e 'create database curdtest;' -uroot -p 
+    $ mysql -e 'create database curdtests;' -uroot -p 
 
 2. add your mysql username and passwd::
 

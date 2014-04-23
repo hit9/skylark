@@ -5,6 +5,8 @@ Some Tips
 
 .. Contents::
 
+.. _tip_destroy:
+
 Use destroy() wisely
 --------------------
 

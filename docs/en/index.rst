@@ -3,21 +3,13 @@
 CURD - Tiny Python ORM for MySQL
 ================================
 
-Release: v\ |version| (:ref:`Installation <install>`) 
-
-
-.. **NOTE**: version 0.3.0 has a lot of **Not-Backward-Compatible** changes
-.. compared to version 0.2.5.
+Release: v\ |version| - Beta (:ref:`Installation <install>`) 
 
 Tests status:
 
 .. image:: https://travis-ci.org/hit9/CURD.py.png?branch=dev
 
 CURD.py is a tiny orm for mysql database, written in Python.
-
-`简体中文文档 <http://curdpy-zh.readthedocs.org/>`_
-
-**NOTICE**: CURD.py may not be stable before version 1.0
 
 .. Contents::
 
@@ -75,7 +67,7 @@ CURD.py only supports 4 types of queries: C, U, R, D, responsing to its name.
 Plat
 ----
 
-Python2(2.6+), OS Independent
+Python2 (2.6+), OS Independent
 
 Documentaion
 ------------

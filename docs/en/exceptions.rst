@@ -22,8 +22,7 @@ example::
     >>> User.where(id=object()).select()
     Traceback (most recent call last):
     .....
-    CURD.UnSupportedType: Unsupported type '<type 'object'>' in one side of some expression
-
+    CURD.UnSupportedType
 
 ForeignKeyNotFound
 ------------------
@@ -38,27 +37,22 @@ example::
     <PrimaryKey 'user.id'>
     >>> User & Post
     Traceback (most recent call last):
-      File "<stdin>", line 1, in <module>
-      File "../CURD.py", line 828, in __and__
-        return JoinModel(self, join)
-      File "../CURD.py", line 1078, in __init__
-        "'%s' not found in '%s'" % (join.__name__, main.__name__))
-    CURD.ForeignKeyNotFound: Foreign key references to 'Post' not found in 'User'
+    .....
+    CURD.ForeignKeyNotFound
 
 PrimaryKeyValueNotFound
 -----------------------
 
 Primarykey value not found in this instance.
 
-example, ``id`` not selected, and CURD.py dont know which row to update::
+example, ``id`` not selected, and CURD.py dosen't know which row to update::
 
-    >>> user = User.select(User.name).execute().fetchone()
+    >>> user = User.select(User.name).execute().one()
     >>> user.name
     u'Join'
     >>> user.name = 'Julia'
     >>> user.save()
     Traceback (most recent call last):
-      File "<stdin>", line 1, in <module>
-      File "../CURD.py", line 968, in save
+    .....
         raise PrimaryKeyValueNotFound  # need its primarykey value to track this instance
     CURD.PrimaryKeyValueNotFound

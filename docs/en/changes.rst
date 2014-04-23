@@ -3,6 +3,23 @@
 Changes
 ========
 
+version 0.5.0 (**not backward compatiable**)
+--------------------------------------------
+
+- Fix bug: issue#12, select statement with where syntax without priority
+
+- SelectResult: `findall()` => `all()`, `findone()` => `one()`
+
+- SelectResults: add `tuples()`, `dicts()`
+
+- Removed `distinct()`, add keyword `distinct` (implemented as a type)
+
+- Retrieving data way: inst; inst, func; func
+
+- Add class `sql`, to declare a literal sql
+
+- Lots of minor bugs fixed.
+
 version 0.4.1
 --------------
 

@@ -2,7 +2,7 @@ import sys
 
 sys.path.insert(0, '..')
 
-from CURD import Database, Model, Field, PrimaryKey, ForeignKey, Fn
+from CURD import Model, Field, PrimaryKey, ForeignKey
 
 
 class User(Model):
@@ -13,12 +13,12 @@ class User(Model):
 class Post(Model):
     post_id = PrimaryKey()
     name = Field()
-    user_id = ForeignKey(point_to=User.id)
+    user_id = ForeignKey(User.id)
 
 
-class TableDoseNotExist(Model):
-    table_name = 'a_table_name'
+class TestCustomTableName(Model):
+    table_name = 'a_custom_table_name'
 
 
-class ATableDoseNotExist(Model):
+class TestTableName(Model):
     pass

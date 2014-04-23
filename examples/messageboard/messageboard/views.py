@@ -10,9 +10,10 @@ from flask import flash, render_template, request, redirect, url_for
 
 @app.route('/', methods=['GET'])
 def index():
-    query = Message.orderby(Message.create_at, desc=True).select()  # sort by created time
+    query = Message.orderby(
+        Message.create_at, desc=True).select()  # sort by created time
     results = query.execute()
-    messages = results.fetchall()
+    messages = results.all()
     return render_template('template.html', messages=messages)
 
 

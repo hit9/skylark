@@ -10,13 +10,13 @@ Quick Start
 Database Configuration
 ----------------------
 
-``db``, ``user``, ``passwd`` are required::
+::
 
     Database.config(db='mydb', user='root', passwd='')
 
 Connection to mysql will be auto established when you execute queries.
 
-See :ref:`db_configuration` for detailed configurations.
+For detailed configurations: :ref:`db_configuration`.
 
 .. _DefineModel:
 
@@ -28,19 +28,16 @@ Model Definition
     class User(Model):
         name = Field()
         email = Field()
-        # default primarykey: `id`, to figure out primarykey :
-        #   myid = PrimaryKey()
 
-We defined a model: ``User``, which has 3 fields:``name``, ``email`` and ``id`` (``id`` is the default primarykey)
+We defined a model: ``User``, which has 3 fields:``name``, ``email``
+and ``id`` (``id`` - the default primarykey)
 
-All models should inherit Model.
-
-To tell CURD.py the table_name of some model::
+To tell CURD.py the ``table_name`` of some model::
 
     class SomeModel(Model):
         table_name = 'tablename_of_somemodel'
 
-By default, we take the lower case of model’s classname as table’s name, i.e.::
+By default, we take the "snake" case of model’s classname as ``table_name``, i.e.::
 
     class User(Model):  # table_name: 'user'
         pass
@@ -48,15 +45,14 @@ By default, we take the lower case of model’s classname as table’s name, i.e
     class SomeModel(Model):  # table_name: 'some_model'
         pass
 
-Better to put all models in a single script,  name it ``models.py`` :
+Better to put all models into a single script,  name it ``models.py`` :
 
 .. _two_models:
 
-.. literalinclude:: ../sample/models.py
+.. literalinclude:: ../../sample/models.py
 
-* You have to create tables in MySQL by hand, CURD.py has no feature ``create_tables``
-
-* Note: sql defination of these two tables is `here <https://github.com/hit9/CURD.py/blob/master/tests/tables.sql>`_.
+* You **have to create tables in MySQL by hand**, CURD.py has no feature like ``create_tables``,
+  table user and post sql defination: https://github.com/hit9/CURD.py/blob/master/tests/tables.sql.
 
 .. _Create:
 
@@ -69,7 +65,7 @@ Add "Jack" to datatable:
 
     >>> from models import User
     >>> User.create(name='jack', email='jack@gmail.com')
-    <models.User object at 0x8942acc>  # User object
+    <models.User object at 0x8942acc>  # User instance
 
 or to use ``save``
 
@@ -81,7 +77,8 @@ or to use ``save``
     >>> user.save()
     1L  # inserted primarykey's value
 
-or this way :)
+equal to:
+
 ::
 
     >>> user = User(name='jack',email='jack@gmail.com')
@@ -93,12 +90,12 @@ or this way :)
 Update
 ------
 
-Simply, just ``save``
+Just ``save()``
 
 ::
 
     >>> user.name = 'Any'
-    >>> user.save()  # return 0 for failure,else success
+    >>> user.save()
     1L  # rows affected
 
 or ::
@@ -109,51 +106,48 @@ or ::
     >>> query.execute()
     1L
 
-tip: ``User.at(id_value)`` is equivalent to ``User.where(User.id == id_value)``, both return class ``User``
+Note: ``User.at(value)`` is ``User.where(id=value)``.
 
 .. _Read:
 
 Read
 ----
 
+An example:
+
 ::
 
-    >>> query = User.where(name='Join').select()
-    >>> query
-    <SelectQuery "select user.id, user.name, user.email from user where user.name = 'Join'">
+    >>> query =  User.where(name='Join').select()
     >>> result = query.execute()
-    >>> for user in result.fetchall():
-    ...   print user.name, user.email
-    ...
-    Join jack@gmail.com
-
-The ``name="Any"`` can be replaced by ``User.name == "Any"``.
-
-And, we can iter a ``SelectQuery object`` directly, that will execute the
-query::
+    >>> users = result.all()
+    >>> [(user.id, user.name) for user in users]
+    [(2L, u'Join')]
 
 
-    >>> query = User.where(name='Join').select()
-    >>> for user in User.select():
-    ...   print user.name, user.email
-    ...
-    jack jack@gmail.com
-    Join jack@gmail.com
 
-If we select data by primarykey, we can use ``Model.at(var)``::
+Iterating a select-query will execute the query directly::
+
+    >>> [user.name for user in User.where(User.id > 3).select()]
+    [u'jack', u'amy']
+
+To select record by primarykey, use ``at()``::
 
     >>> query = User.at(1).select()
-    >>> query
-    <SelectQuery "select user.id, user.name, user.email from user where user.id = '1'">
     >>> result = query.execute()
-    >>> user = result.fetchone()
-    >>> user.name, user.id
-    (u'jack', 1L)
+    >>> user = result.one()
+    >>> user.id, user.name
+    (1L, u'jack')
+
+which equal to::
+
+    >>> user = User.at(1).getone()
+    >>> user.id, user.name
+    (1L, u'jack')
 
 select
 ''''''
 
-We want all users:
+We want all fields
 
 ::
 
@@ -163,48 +157,55 @@ We only care about their names:
 
 ::
 
-    User.where(User.id > 5).select(User.name)
+    User.select(User.name)
 
-SelectResult Object
-''''''''''''''''''''
+select-result
+'''''''''''''
 
-Execute a select query will get a ``SelectResult object``,
+Execute a select-query will get a "select-result", which binds 4 methods for
+retrieving data::
 
-which has 2 methods to fetch results:
+    >>> result.one()
+    >>> <models.User object at 0x1056acd10>
 
-- ``fetchone()``: fetch one result each time
+    >>> [user for user in result.all()]
+    [<models.User object at 0x1056b70d0>, <models.User object at 0x1056b7190>]
 
-- ``fetchall()``: fetch all results at a time
+    >>> tuple(result.tuples())
+    ((2L, u'Join', u'jack2@gmail.com'), (3L, u'Amy', u'amy@gmail.com'))
 
-and has an attribute ``count``: result rows count::
+    >>> tuple(result.dicts())
+    ({'email': u'jack2@gmail.com', 'id': 2L, 'name': u'Join'}, {'email': u'amy@gmail.com', 'id': 3L, 'name': u'Amy'})
 
+
+and an attribute ``count``::
 
     >>> query = User.select()
     >>> result = query.execute()
     >>> result.count
     2L  # rows selected
 
-Select Shortcuts
-''''''''''''''''
+Quick Read
+''''''''''
 
-There are 4 methods to select rows quickly: ``findone()``, ``findall()``,
-``getone()`` and ``getall()``
+4 methods to select rows quickly: ``findone()``, ``findall()``,
+``getone()``, ``getall()``
 
-sample usage::
+::
 
-    >>> user = User.findone(name='Join')  # <=> User.where(name='Join').select().execute().fetchone()
+    >>> user = User.findone(name='Join')  # <=> User.where(name='Join').select().execute().one()
     >>> user.id
     2L
 
-    >>> users = User.findall(User.id > 0, name='Join') # <=> User.where(User.id > 0 name='Join').select().execute().fetchall()
+    >>> users = User.findall(User.id > 0, name='Join') # <=> User.where(User.id > 0 name='Join').select().execute().all()
     >>> [user.name for user in users]
     [u'Join']
 
-    >>> user = User.at(2).getone() # <=> User.where(id=2).select().execute().fetchone()
+    >>> user = User.at(2).getone() # <=> User.where(id=2).select().execute().one()
     >>> user.name
     u'Join'
 
-    >>> users = User.getall() # <=> User.select().execute().fetchall()
+    >>> users = User.getall() # <=> User.select().execute().all()
     >>> [(user.id, user.name) for user in users]
     [(1L, u'jack'), (2L, u'Join')]
 
@@ -223,12 +224,8 @@ or :
 ::
 
     >>> query = User.at(1).delete()
-    >>> query
-    <DeleteQuery "delete user from user where user.id = '1'">
     >>> query.execute()
     1L  # rows affected
-
-Both the two methods return affected rows number.
 
 .. _Where:
 
@@ -243,13 +240,13 @@ Where Sample Usage
 ''''''''''''''''''
 ::
 
-    >>> query = User.where(name='Jack').select()
+    >>> query = User.where(name='Jack').select(User.id)
     >>> query.sql
-    "select user.name, user.email, user.id from user where user.name = 'Jack'"
+    "select user.id from user where user.name = 'Jack'"
 
-    >>> query = User.where(User.id.between(3,6)).select()
+    >>> query = User.where(User.id.between(3, 6)).select(User.name)
     >>> query.sql
-    "select user.id, user.name, user.email from user where user.id between '3' and '6'"
+    "select user.name from user where user.id between '3' and '6'"
 
     >>> query = User.where(User.name.like('%sample%')).select()
     >>> query.sql
@@ -260,41 +257,35 @@ All available expressions are here: :ref:`expressions`
 SubQuery
 ''''''''
 
-An example of subquery using operator ``_in``::
+An example of sub-query using operator ``_in``::
 
-    >>> query = User.where(User.id._in(
-    ...   Post.select(Post.user_id)
-    ... )).select()
-    >>> query.sql
-    'select user.id, user.name, user.email from user where user.id in ((select post.user_id from post))'
-    >>> [(user.id, user.name) for user in query]  # run this query
-    [(3L, u'Join'), (5L, u'Amy')]
+    >>> query = User.where(User.id._in(Post.select(Post.user_id))).select()
+    # select user.id, user.name, user.email from user where user.id in ((select post.user_id from post))
+    >>> [user.id for user in query]
+    [1L]
 
 Group By
 ---------
 
 ::
 
-    groupby(*Field Objects)
+    >>> from CURD import fn
+    >>> query = User.groupby(User.name).select(User.name, fn.count(User.id))
+    # select user.name, count(user.id) from user group by user.name
+    >>> [(user.name, func.count) for user, func in query]
+    [(u'Amy', 2L), (u'jack', 2L), (u'Join', 1L)]
 
-Sample::
-
-    >>> query = User.groupby(User.name).select(User.id, User.name)
-    >>> query.sql
-    'select user.name, user.id from user group by user.name'
 
 Having
 ------
 
 ::
 
-    having(*Expression Objects)
-
-Sample::
-
-    >>> query = User.groupby(User.name).having(Fn.count(User.id) > 3).select(User.id, User.name)
-    >>> query.sql
-    "select user.name, user.id from user group by user.name having count(user.id) > '3'"
+    >>> from CURD import sql
+    >>> query = User.groupby(User.name).having(sql('count') > 1).select(User.name, fn.count(User.id).alias('count'))
+    # select user.name, count(user.id) as count from user group by user.name having count > '1'
+    >>> [(user.name, func.count) for user, func in query]
+    [(u'Amy', 2L), (u'jack', 2L)]
 
 .. _orderby:
 
@@ -303,15 +294,15 @@ Order By
 
 ::
 
-    orderby(Field Object, desc=False)
+    orderby(field, desc=False)
 
-Sample:
+Sample::
 
-::
+    >>> query = User.where(User.id < 5).orderby(User.id, desc=True).select(User.id)
+    # select user.id from user where user.id < '5' order by user.id desc
+    >>> [user.id for user in query]
+    [3L, 2L, 1L]
 
-    >>> query = User.where(User.id < 5).orderby(User.id, desc=True).select()
-    >>> query.sql
-    "select user.id, user.name, user.email from user where user.id < '5' order by user.id desc "
 
 Limit
 -----
@@ -333,24 +324,57 @@ Distinct
 
 ::
 
-    distinct()
+    >>> from CURD import distinct
+    >>> [user.name for user in User.select(distinct(User.name))]
+    [u'jack', u'Join', u'Amy']
+    # select distinct(user.name) from user
 
-Sample::
+And an example for ``function(distinct)``:
 
-    >>> for user in User.distinct().select(User.name):
-    ...   user.name
-    ... 
-    u'jack'
-    u'tom'
+::
+
+    >>> query = User.select(fn.count(distinct(User.name)))
+    # select count(distinct(user.name)) from user
+    >>> result = query.execute()
+    >>> result.one().count
+    3L
 
 Is X In the Table?
----------------------
+------------------
 
 ::
 
     >>> jack = User(name='Jack')
     >>> jack in User
     True  # there's someone called `Jack` in all users
+
+.. _alias:
+
+Alias
+-----
+
+``alias()`` is avaliable for fields and functions.
+
+::
+
+    >>> query = User.select(User.name.alias('username'))
+    # select user.name as username from user
+    >>> [user.username for user in query]
+    [u'Jack', u'Join', u'Amy', u'jack', u'amy']
+
+    >>> query = User.select(fn.count(User.id).alias('count_id'))
+    # select count(user.id) as count_id from user
+
+.. _sql:
+
+SQL
+----
+
+``sql()`` creates a SQL string literal, for example::
+
+    >>> query = User.having(sql('count') > 2).groupby(User.name).select(fn.count(User.id).alias('count'), User.name)
+    >>> query.sql
+    "select count(user.id) as count, user.name from user group by user.name having count > '2'"
 
 .. _JoinModel:
 
@@ -359,7 +383,7 @@ JoinModel
 
 We defined :ref:`two models <two_models>` in models.py: ``User``, ``Post``
 
-.. literalinclude:: ../sample/models.py
+.. literalinclude:: ../../sample/models.py
 
 Now, join them::
 
@@ -383,79 +407,92 @@ Who has wrote posts ?
     Join wrote this post: "I love GitHub"
     Join wrote this post: "Never Give Up"
 
-Of course,there are also ``where``, ``orderby``, ``delete``, ``update`` for joinmodels.
 
-For example, to delete Jack's posts::
+To update jack's post::
 
-    >>> query = (Post & User).where(User.name == 'Jack').delete(Post)
-    >>> query
-    <DeleteQuery "delete post from post, user where user.name = 'Jack' and post.user_id = user.id">
+    >>> query = (Post & User).where(User.name == 'Jack').update(Post.name == 'NewName!')
+    # update post, user set post.name = 'NewName!' where user.name = 'Jack' and post.user_id = user.id
     >>> query.execute()
     1L
+
+To delete Jack's posts::
+
+    >>> query = (Post & User).where(User.name == 'Jack').delete(Post)
+    # delete post from post, user where user.name = 'Jack' and post.user_id = user.id
+    >>> query.execute()
+    1L
+
 
 SQL Functions
 -------------
 
-This feature was added in v0.3.1.
+Count users::
 
-An example::
-
-    >>> from CURD import Fn
-    >>> query = User.select(Fn.count(User.id))
-    >>> query
-    <SelectQuery 'select count(user.id) from user'>
+    >>> from CURD import fn
+    >>> query = User.select(fn.count(User.id))
+    # select count(user.id) from user
     >>> result = query.execute()
-    >>> user = result.fetchone()
-    >>> user.count_of_id
-    4L
+    >>> func = result.one()
+    >>> func.count
+    5L
 
-In the code above, we use ``Fn.count`` to make a ``Function`` object::
-
-    >>> Fn.count(User.id)
-    <Function 'count(user.id)'>
-
-and then use ``user.count_of_id`` to get rows count.
-
-So far, CURD.py supports 5 aggregate functions:
-
-- ``count``
-- ``sum``
-- ``max``
-- ``min``
-- ``avg``
-
-and 2 scalar functions
-
-- ``ucase``
-- ``lcase``
-
-All these functions are used in the way above, here is function ``ucase``'s
-example::
-
-    >>> [user.ucase_of_name for user in  User.select(Fn.ucase(User.name))]
-    [u'JOIN', u'JACK', u'AMY', u'JACK']
-
-
-Shortcuts
-''''''''''
-
-In most cases, we don't mix functions and fields in the same query, for
-instance, we just need the count of a table's rows.
-
-We can just do it this way::
+equal to::
 
     >>> User.count()
-    4L
+    5L
 
-Similarly, all aggregate functions have this feature::
+Get upper case of names::
+
+    >>> query = User.select(fn.ucase(User.name))
+    # select ucase(user.name) from user
+    >>> [func.ucase for func in query]
+    [u'JACK', u'JOIN', u'AMY', u'JACK', u'AMY']
+
+and distinct these upper cased names::
+
+    >>> query = User.select(distinct(fn.ucase(User.name)))
+    # select distinct(ucase(user.name)) from user
+    >>> [func.ucase for func in query]
+    [u'JACK', u'JOIN', u'AMY']
+
+
+Concat names and emails!::
+
+    >>> query = User.select(fn.concat(User.name,': ', User.email))
+    # select concat(user.name, ': ', user.email) from user
+    >>> [func.concat for func in query]
+    [u'Jack: jack@gmail.com', u'Join: jack2@gmail.com', ..]
+
+Retrieve Data
+''''''''''''''
+
+::
+
+    # select only fields
+    >>> [user.name for user in User.at(1).select(User.name)]
+    [u'Jack']
+
+    # select only functions
+    >>> [func.ucase for func in User.at(1).select(fn.ucase(User.name))]
+    [u'JACK']
+
+    # select both
+    >>> [(user.name, func.ucase) for user, func in User.at(1).select(fn.ucase(User.name), User.name)] 
+    [(u'Jack', u'JACK')]
+
+
+Aggregators
+'''''''''''
+
+Aggregators can be more easy::
 
     >>> User.count()
-    4L
+    5L
     >>> User.max(User.id)
-    6L
+    7L
     >>> User.min(User.id)
-    3L
+    1L
     >>> User.sum(User.id)
-    Decimal('18')
+    Decimal('19')
     >>> User.avg(User.id)
-    Decimal('4.5000')
+    Decimal('3.8000')

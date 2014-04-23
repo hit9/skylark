@@ -1,11 +1,11 @@
-CURD.py
-=======
+CURD.py (v0.5.0 - Beta)
+=======================
 
 Tiny Python ORM for MySQL.
 
-Latest version: v0.4.1
+Latest version: v0.5.0
 
-Development status: 3 - Alpha
+Development status: 4 - Beta
 
 Only support C, U, R, D, responsing to its name:
 
@@ -42,7 +42,7 @@ Sample Code
 1L
 ```
 
-More examples: [docs/sample/](http://github.com/hit9/CURD.py/tree/master/docs/sample).
+More examples: [sample/](sample/), [snippets](snippets/)
 
 Install
 -------
@@ -52,13 +52,9 @@ Install
 Documentation
 -------------
 
-- English version: http://curdpy.readthedocs.org/
+Documentation: http://curdpy.readthedocs.org/
 
-  Strongly recommend that you read [Quick Start](http://curdpy.readthedocs.org/en/latest/quickstart.html) at first.
-
-- 简体中文文档: http://curdpy-zh.readthedocs.org/
-
-  强烈建议首先阅读[Quick Start](http://curdpy-zh.readthedocs.org/en/latest/quickstart.html).
+Strongly recommend that you read [Quick Start](http://curdpy.readthedocs.org/en/latest/quickstart.html) at first.
 
 Sample App
 ----------
@@ -88,3 +84,10 @@ Changes
 -------
 
 [CHANGES](CHANGES)
+
+Feedback
+--------
+
+WE NEED YOU HELP!! CURD.py is young and may have a lot of bugs, don't be shy to
+share your opinions or to report your issues, please open an issue on
+https://github.com/hit9/CURD.py/issues.
