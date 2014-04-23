@@ -515,17 +515,15 @@ class TestSelectResults(Test):
             {'id': 3L, 'name': 'name3', 'email': 'email3'},
         )
 
-        query = (Post & User).select()
+        query = (Post & User).orderby(User.id).select()
         results = query.execute()
-        x = tuple(results.dicts())
-        print x
-        assert x == (
-            {'post_id': 1L, 'name': 'name1', 'user_id': 3L,
-             'id': 3L, 'email': 'email3', 'user.name': 'name3'},
-            {'post_id': 2L, 'name': 'name2', 'user_id': 2L,
-             'id': 2L, 'email': 'email2', 'user.name': 'name2'},
+        assert tuple(results.dicts()) == (
             {'post_id': 3L, 'name': 'name3', 'user_id': 1L,
              'id': 1L, 'email': 'email1', 'user.name': 'name1'},
+            {'post_id': 2L, 'name': 'name2', 'user_id': 2L,
+             'id': 2L, 'email': 'email2', 'user.name': 'name2'},
+            {'post_id': 1L, 'name': 'name1', 'user_id': 3L,
+             'id': 3L, 'email': 'email3', 'user.name': 'name3'},
         )
 
     def test_func_only(self):
