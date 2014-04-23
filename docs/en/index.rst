@@ -7,7 +7,7 @@ Release: v\ |version| - Beta (:ref:`Installation <install>`)
 
 Tests status:
 
-.. image:: https://travis-ci.org/hit9/CURD.py.png?branch=dev
+.. image:: https://travis-ci.org/hit9/CURD.py.png?branch=master
 
 CURD.py is a tiny orm for mysql database, written in Python.
 
