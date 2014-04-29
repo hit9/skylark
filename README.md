@@ -61,7 +61,9 @@ Strongly recommend that you read [Quick Start](http://curdpy.readthedocs.org/en/
 Sample App
 ----------
 
-A simple message board built with CURD.py and Flask: [examples/messageboard](examples/messageboard)
+- A simple message board built with CURD.py and Flask: [examples/messageboard](examples/messageboard)
+
+- A clean style blog system built with CURD.py and Flask: https://github.com/hit9/zhiz
 
 FAQ
 ---
