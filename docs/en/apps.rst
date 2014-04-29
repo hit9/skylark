@@ -23,4 +23,4 @@ Code: https://github.com/hit9/zhiz
 Preview: http://zhizblog.ap01.aws.af.cm/
 
 .. image:: https://dl.dropboxusercontent.com/u/68191343/github/zhiz.png
-:target: http://zhizblog.ap01.aws.af.cm/
+   :target: http://zhizblog.ap01.aws.af.cm/
