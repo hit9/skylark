@@ -23,7 +23,8 @@ except ImportError:
     from pymysql import NULL, escape_dict, escape_sequence
     from pymysql.converters import escape_str as string_literal
     from pymysql.connections import Connection
-    setattr(Connection, 'open', lambda self: self.sock or self._rfile)
+    setattr(Connection, 'open',
+            property(lambda self: self.socket and self._rfile))
 
 
 __version__ = '0.5.0'
