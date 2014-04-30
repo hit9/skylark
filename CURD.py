@@ -692,7 +692,7 @@ class Runtime(object):
         self.data['limit'] = list(lst)
 
     def set_select(self, lst):
-        self.data['select'] = list(lst) or self.model.get_fields()
+        self.data['select'] = list(lst or self.model.get_fields())
 
     def set_where(self, lst, dct):
         lst = list(lst)
@@ -777,7 +777,7 @@ class Model(MetaModel('NewBase', (object, ), {})):
 
     @classmethod
     def get_fields(cls):
-        return cls.fields.values()
+        return list(cls.fields.values())
 
     @classmethod
     def insert(cls, *lst, **dct):
@@ -928,8 +928,7 @@ class Models(object):
         self.primarykey = [m.primarykey for m in self.models]
 
     def get_fields(self):
-        lst = [m.get_fields() for m in self.models]
-        return sum(lst, [])
+        return sum((list(m.get_fields()) for m in self.models), [])
 
     def select(self, *lst):
         self.runtime.set_select(lst)
