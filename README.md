@@ -46,6 +46,14 @@ Sample Code
 
 More examples: [sample/](sample/), [snippets](snippets/)
 
+Requirements
+------------
+
+- Python >= 2.6 or >= 3.3
+
+- [MySQLdb(MySQL-python)](https://pypi.python.org/pypi/MySQL-python) or
+[PyMySQL](https://github.com/PyMySQL/PyMySQL)
+
 Install
 -------
 

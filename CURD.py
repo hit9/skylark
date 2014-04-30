@@ -757,7 +757,7 @@ class MetaModel(type):
         return JoinModel(cls, join)
 
 
-class Model(MetaModel('NewBase', (object, ), {})):
+class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
 
     single = True
 

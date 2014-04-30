@@ -59,7 +59,6 @@ setup(
     keywords='CURD ORM MySQL Python tiny database',
     url='https://github.com/hit9/CURD.py',
     py_modules=['CURD'],
-    install_requires = ['MySQL-python'],
     long_description=__doc__,
     classifiers=[
         'Development Status :: 4 - Beta',
