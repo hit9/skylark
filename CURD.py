@@ -14,7 +14,7 @@ import sys
 from datetime import date, datetime, time, timedelta
 
 
-try:  # try to use MySQLdb, else pymysql
+try:  # try to use MySQLdb, then pymysql
     import MySQLdb as mysql
     from _mysql import escape_dict, escape_sequence, NULL, string_literal
 except ImportError:
@@ -36,7 +36,7 @@ if PY_VERSION == 3:
     from functools import reduce
 
 
-__version__ = '0.5.0'
+__version__ = '0.6.0'
 
 
 OP_LT = 1

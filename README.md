@@ -3,7 +3,7 @@ CURD.py (v0.5.0 - Beta)
 
 Tiny Python ORM for MySQL.
 
-Latest version: v0.5.0
+Latest version: v0.6.0
 
 Development status: **4 - Beta**
 

@@ -51,7 +51,7 @@ from setuptools import setup
 
 setup(
     name='CURD.py',
-    version='0.5.0',
+    version='0.6.0',
     author='hit9',
     author_email='nz2324@126.com',
     description=('Tiny Python ORM for MySQL'),
