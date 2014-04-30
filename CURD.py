@@ -14,8 +14,16 @@
 import types
 from datetime import date, datetime, time, timedelta
 
-import MySQLdb
-from _mysql import escape_dict, escape_sequence, NULL, string_literal
+
+try:  # try to use MySQLdb, else pymysql
+    import MySQLdb as mysql
+    from _mysql import escape_dict, escape_sequence, NULL, string_literal
+except ImportError:
+    import pymysql as mysql
+    from pymysql import NULL, escape_dict, escape_sequence
+    from pymysql.converters import escape_str as string_literal
+    from pymysql.connections import Connection
+    setattr(Connection, 'open', lambda self: self.sock or self._rfile)
 
 
 __version__ = '0.5.0'
@@ -84,7 +92,7 @@ class Database(object):
 
     @classmethod
     def connect(cls):
-        cls.conn = MySQLdb.connect(**cls.configs)
+        cls.conn = mysql.connect(**cls.configs)
         cls.conn.autocommit(cls.autocommit)
 
     @classmethod
@@ -95,7 +103,7 @@ class Database(object):
         # make sure current connection is working
         try:
             cls.conn.ping()
-        except MySQLdb.OperationalError:
+        except mysql.OperationalError:
             cls.connect()
 
         return cls.conn
@@ -472,7 +480,7 @@ class Compiler(object):
     encoding = 'utf8'
 
     def thing2str(data):
-        return string_literal(data)
+        return string_literal(str(data))
 
     def float2str(data):
         return '%.15g' % data

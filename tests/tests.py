@@ -22,9 +22,12 @@ mysql_db = cf.get('MySQL', 'db')
 
 # -------------------------------------- {{{ create & drop tables
 
-import MySQLdb
+try:  # try to use MySQLdb, else pymysql
+    import MySQLdb as mysql
+except ImportError:
+    import pymysql as mysql
 
-conn = MySQLdb.connect(db=mysql_db, user=mysql_user, passwd=mysql_passwd)
+conn = mysql.connect(db=mysql_db, user=mysql_user, passwd=mysql_passwd)
 
 create_tbl_SQL = open("tables.sql").read()
 
