@@ -132,7 +132,7 @@ class Node(object):
     def clone(self, *args, **kwargs):
         obj = type(self)(*args, **kwargs)
 
-        for key, value in self.__dict__.iteritems():
+        for key, value in self.__dict__.items():
             setattr(obj, key, value)
         return obj
 
@@ -390,7 +390,7 @@ class SelectResult(object):
         inst = model()
         inst.set_in_db(True)
 
-        for idx, field in self.fields.iteritems():
+        for idx, field in self.fields.items():
             if field.model is model:
                 inst.data[field.name] = row[idx]
         return inst
@@ -398,7 +398,7 @@ class SelectResult(object):
     def func(self, row):
         func = Func()
 
-        for idx, function in self.funcs.iteritems():
+        for idx, function in self.funcs.items():
             func.data[function.name] = row[idx]
         return func
 
@@ -441,12 +441,12 @@ class SelectResult(object):
     def dicts(self):
         for row in self.cursor.fetchall():
             dct = {}
-            for idx, field in self.fields.iteritems():
+            for idx, field in self.fields.items():
                 if field.name not in dct:
                     dct[field.name] = row[idx]
                 else:
                     dct[field.fullname] = row[idx]
-            for idx, func in self.funcs.iteritems():
+            for idx, func in self.funcs.items():
                 dct[func.name] = row[idx]
             yield dct
 
@@ -688,7 +688,7 @@ class Runtime(object):
         lst = list(lst)
 
         if self.model.single:
-            lst.extend(self.model.fields[k] == v for k, v in dct.iteritems())
+            lst.extend(self.model.fields[k] == v for k, v in dct.items())
 
         self.data['where'] = lst
 
@@ -696,7 +696,7 @@ class Runtime(object):
         lst = list(lst)
 
         if self.model.single:
-            lst.extend(self.model.fields[k] == v for k, v in dct.iteritems())
+            lst.extend(self.model.fields[k] == v for k, v in dct.items())
 
         self.data['set'] = lst
 
@@ -708,7 +708,7 @@ class MetaModel(type):
         primarykey = None
         fields = {}
 
-        for name, value in cls.__dict__.iteritems():
+        for name, value in cls.__dict__.items():
             if isinstance(value, Field):
                 fields[name] = value
                 if value.is_primarykey:
@@ -730,7 +730,7 @@ class MetaModel(type):
         cls.table_name = table_name
         cls.fields = fields
 
-        for name, field in cls.fields.iteritems():
+        for name, field in cls.fields.items():
             field.describe(name, cls)
 
         cls.runtime = Runtime(cls)
