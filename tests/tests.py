@@ -9,7 +9,11 @@
 # Testxxx_ => Do Not Need Database Connection
 
 import sys
-import ConfigParser
+
+if sys.hexversion < 0x03000000:
+    import ConfigParser
+else:
+    import configparser as ConfigParser
 
 # -------------------- {{{read config
 cf = ConfigParser.ConfigParser()
