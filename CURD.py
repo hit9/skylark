@@ -26,6 +26,16 @@ except ImportError:
             property(lambda self: self.socket and self._rfile))
 
 
+if sys.hexversion < 0x03000000:
+    PY_VERSION = 2
+else:
+    PY_VERSION = 3
+
+
+if PY_VERSION == 3:
+    from functools import reduce
+
+
 __version__ = '0.5.0'
 
 
@@ -549,7 +559,7 @@ class Compiler(object):
         dict: escape_dict
     }
 
-    if sys.hexversion < 0x03000000:
+    if PY_VERSION == 2:
         conversions.update({
             long: thing2str,
             unicode: unicode2str
@@ -747,9 +757,7 @@ class MetaModel(type):
         return JoinModel(cls, join)
 
 
-class Model(object):
-
-    __metaclass__ = MetaModel
+class Model(MetaModel('NewBase', (object, ), {})):
 
     single = True
 
