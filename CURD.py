@@ -10,8 +10,7 @@
     :license: BSD.
 """
 
-
-import types
+import sys
 from datetime import date, datetime, time, timedelta
 
 
@@ -540,17 +539,21 @@ class Compiler(object):
         DeleteQuery: query2str,
         time: time2str,
         timedelta: timedelta2str,
-        types.IntType: thing2str,
-        types.LongType: thing2str,
-        types.FloatType: float2str,
-        types.StringType: thing2str,
-        types.UnicodeType: unicode2str,
-        types.BooleanType: bool2str,
-        types.NoneType: None2Null,
-        types.TupleType: escape_sequence,
-        types.ListType: escape_sequence,
-        types.DictType: escape_dict
+        int: thing2str,
+        float: float2str,
+        str: thing2str,
+        bool: bool2str,
+        type(None): None2Null,
+        tuple: escape_sequence,
+        list: escape_sequence,
+        dict: escape_dict
     }
+
+    if sys.hexversion < 0x03000000:
+        conversions.update({
+            long: thing2str,
+            unicode: unicode2str
+        })
 
     @staticmethod
     def tostr(e):
