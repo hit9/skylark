@@ -2,7 +2,7 @@ import sys
 
 sys.path.insert(0, '..')
 
-from CURD import Model, Field, PrimaryKey, ForeignKey
+from skylark import Model, Field, PrimaryKey, ForeignKey
 
 
 class User(Model):

@@ -18,6 +18,6 @@ branches:
     - dev
 
 before_script:
-  - mysql -e 'create database curdtests;'
+  - mysql -e 'create database skylarktests;'
 
 script: nosetests -v -x --process-timeout=10 -w tests --nocapture
