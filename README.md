@@ -1,19 +1,7 @@
 skylark (v0.7.0 - beta)
 =======================
 
-```
-        /)
-       / )
-(\    /  )
-( \  /   )
- ( \/ / )
- (@)   )
- / \_   \
-    // \\\
-    ((   \\
-   ~ ~ ~   \
-  skylark
-```
+![](http://i.imgur.com/fxvhCoN.png)
 
 A nice micro orm for python, mysql only. (Original named `CURD.py`).
 
