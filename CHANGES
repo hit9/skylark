@@ -1,3 +1,10 @@
+version 0.6.0
+-------------
+
+- Prefer to use the C DBAPI(MySQLdb), then PyMySQL
+
+- Support for Python3.x (>=3.3)
+
 version 0.5.0 (**not backward compatiable**)
 --------------------------------------------
 

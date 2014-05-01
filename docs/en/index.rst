@@ -41,6 +41,16 @@ Sample
 More sample codes `here
 <https://github.com/hit9/CURD.py/tree/master/docs/sample>`_.
 
+
+.. _requirements:
+
+Requirements
+------------
+
+* Python >= 2.6 or >= 3.3
+
+* `MySQLdb(MySQL-python) <https://pypi.python.org/pypi/MySQL-python>`_ or `PyMySQL <https://github.com/PyMySQL/PyMySQL>`_
+
 .. _install:
 
 Installation
