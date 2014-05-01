@@ -9,7 +9,11 @@
 # Testxxx_ => Do Not Need Database Connection
 
 import sys
-import ConfigParser
+
+if sys.hexversion < 0x03000000:
+    import ConfigParser
+else:
+    import configparser as ConfigParser
 
 # -------------------- {{{read config
 cf = ConfigParser.ConfigParser()
@@ -22,9 +26,12 @@ mysql_db = cf.get('MySQL', 'db')
 
 # -------------------------------------- {{{ create & drop tables
 
-import MySQLdb
+try:  # try to use MySQLdb, else pymysql
+    import MySQLdb as mysql
+except ImportError:
+    import pymysql as mysql
 
-conn = MySQLdb.connect(db=mysql_db, user=mysql_user, passwd=mysql_passwd)
+conn = mysql.connect(db=mysql_db, user=mysql_user, passwd=mysql_passwd)
 
 create_tbl_SQL = open("tables.sql").read()
 
@@ -233,7 +240,7 @@ class TestModel(Test):
         user2 = User.create(name='name2', email='email2')
         user3 = User.create(name='name3', email='email3')
         assert user1 and user2 and user3
-        assert user1._id == 1L and user2._id == 2L and user3._id == 3L
+        assert user1._id == 1 and user2._id == 2 and user3._id == 3
         assert user1 in User and user2 in User and user3 in User
         assert User.at(1).getone().name == 'name1'
         assert User.at(2).getone().name == 'name2'
@@ -241,35 +248,35 @@ class TestModel(Test):
 
     def test_update(self):
         self.create_data(2, table=1)
-        assert User.at(1).update(User.name == 'newname1').execute() == 1L
-        assert User.at(2).update(name='newname2').execute() == 1L
+        assert User.at(1).update(User.name == 'newname1').execute() == 1
+        assert User.at(2).update(name='newname2').execute() == 1
 
         user = User.getone()
         assert user.name == 'newname1'
 
         query = User.update(email='newemail')
-        assert query.execute() == 2L
+        assert query.execute() == 2
 
     def test_select(self):
         self.create_data(4, table=4)
         query = User.at(1).select()
         results = query.execute()
-        assert results.count == 1L
+        assert results.count == 1
         user = results.one()
-        assert user.id == 1L and user._in_db is True
+        assert user.id == 1 and user._in_db is True
         query = User.where(User.id < 3).select(User.name)
         results = query.execute()
         for user in results.all():
             assert user.name
-        assert results.count == 2L
+        assert results.count == 2
 
     def test_delete(self):
         self.create_data(4, table=1)
-        assert User.at(1).delete().execute() == 1L
+        assert User.at(1).delete().execute() == 1
         assert User.where(
             (User.name == 'name1') | (User.name == 'name2')
-        ).delete().execute() == 1L
-        assert User.count() == 2L
+        ).delete().execute() == 1
+        assert User.count() == 2
 
     def test_where(self):
         self.create_data(3, table=1)
@@ -280,9 +287,9 @@ class TestModel(Test):
         assert User.where(User.name == 'name1',
                           User.email == 'email').select().execute().count == 0
         assert User.where(
-            User.name.like('name%')).select().execute().count == 3L
+            User.name.like('name%')).select().execute().count == 3
         assert User.where(
-            User.id.between(0, 4)).select().execute().count == 3L
+            User.id.between(0, 4)).select().execute().count == 3
 
     def test_expr_priority(self):
         assert User.create(name='jack', email='jack@gmail.com')
@@ -295,7 +302,7 @@ class TestModel(Test):
 
     def test_at(self):
         self.create_data(3, table=1)
-        assert User.at(1).select().execute().count == 1L
+        assert User.at(1).select().execute().count == 1
         assert User.at(-1).select().execute().count == 0
         assert User.at(1).select().execute().one().name == "name1"
         assert User.at(1).delete().execute()
@@ -312,7 +319,7 @@ class TestModel(Test):
         query = User.having(sql('d') >= 3).select(User.id.alias('d'))
         results = query.execute()
         user = results.one()
-        assert user.d == 3L
+        assert user.d == 3
 
     def test_groupby(self):
         for x in range(2):
@@ -324,9 +331,9 @@ class TestModel(Test):
 
         for user, func in query:
             if user.name == 'jack':
-                assert func.count == 2L
+                assert func.count == 2
             elif user.name == 'tom':
-                assert func.count == 3L
+                assert func.count == 3
 
     def test_having(self):
         for x in range(2):
@@ -337,9 +344,9 @@ class TestModel(Test):
         query = User.groupby(User.name).having(sql('count') > 2).select(
             fn.count(User.id).alias('count'), User.name)
         results = query.execute()
-        assert results.count == 1L
+        assert results.count == 1
         user, func = results.one()
-        assert func.count == 3L and user.name == 'tom'
+        assert func.count == 3 and user.name == 'tom'
 
     def test_distinct(self):
         assert User.create(name='jack', email='jack@github.com')
@@ -349,7 +356,7 @@ class TestModel(Test):
         query = User.select(fn.count(distinct(User.name)))
         results = query.execute()
         func = results.one()
-        assert func.count == 3L
+        assert func.count == 3
 
         query = User.orderby(User.id).select(distinct(User.email))
         results = query.execute()
@@ -360,24 +367,24 @@ class TestModel(Test):
         query = User.orderby(User.id).select(distinct(User.name), User.id)
         results = query.execute()
         assert tuple(results.dicts()) == (
-            {'name': 'jack', 'id': 1L},
-            {'name': 'jack', 'id': 2L},
-            {'name': 'wangchao', 'id': 3L},
-            {'name': 'hit9', 'id': 4L},
+            {'name': 'jack', 'id': 1},
+            {'name': 'jack', 'id': 2},
+            {'name': 'wangchao', 'id': 3},
+            {'name': 'hit9', 'id': 4},
         )
 
     def test_model_inst_save(self):
         user = User(name='jack', email='jack@gmail.com')
-        assert user.save() == 1L
-        assert User.count() == 1L
+        assert user.save() == 1
+        assert User.count() == 1
         assert User.getone().name == 'jack'
         user.name = 'amy'
-        assert user.save() == 1L
+        assert user.save() == 1
         assert User.findone(id=1).name == 'amy'
 
         user = User(name='test!', email='haha@haha.com')
         id = user.save()
-        assert id == 2L
+        assert id == 2
         assert User.at(2).getone().name == 'test!'
         user.name = 'run a test!'
         rows_affected = user.save()
@@ -406,7 +413,7 @@ class TestModel(Test):
     def test_findone(self):
         self.create_data(3, table=1)
         user = User.findone(name='name1')
-        assert user.id == 1L
+        assert user.id == 1
 
     def test_findall(self):
         self.create_data(3, table=1)
@@ -418,7 +425,7 @@ class TestModel(Test):
     def test_getone(self):
         self.create_data(3, table=1)
         user = User.at(1).getone()
-        assert user.name == 'name1' and user.id == 1L
+        assert user.name == 'name1' and user.id == 1
         assert User.at(100).getone() is None
 
     def test_getall(self):
@@ -431,7 +438,7 @@ class TestModel(Test):
 
         query = User.where(User.id._in(Post.select(Post.user_id))).select()
         results = query.execute()
-        assert results.count == 4L
+        assert results.count == 4
 
     def test_not_in_select(self):
         self.create_data(4)
@@ -445,7 +452,7 @@ class TestModel(Test):
         self.create_data(4)
         user = User(name='helo', email='abc')
         assert user not in User
-        assert user.save() == 5L
+        assert user.save() == 5
         assert user in User
         user = User(name='name1')
         assert user in User
@@ -456,7 +463,7 @@ class TestModel(Test):
         self.create_data(10)
         query = User.limit(4).select()
         results = query.execute()
-        assert results.count == 4L
+        assert results.count == 4
         assert len(tuple(User.limit(9, offset=1).getall())) is 9
         assert len(tuple(User.limit(100, offset=9).getall())) is 1
 
@@ -465,7 +472,7 @@ class TestModel(Test):
 
         query = User.where(User.id._in(Post.select(Post.user_id))).select()
         results = query.execute()
-        assert results.count == 10L
+        assert results.count == 10
 
 
 class TestSelectResults(Test):
@@ -475,20 +482,20 @@ class TestSelectResults(Test):
         query = User.orderby(User.id).select()
         results = query.execute()
         user = results.one()
-        assert user.id == 1L
+        assert user.id == 1
 
         query = User.at(3).select()
         results = query.execute()
         user = results.one()
-        assert user.id == 3L
+        assert user.id == 3
 
     def test_all(self):
         self.create_data(3, table=1)
         query = User.where(User.id > 1, User.id < 3).select()
         results = query.execute()
-        assert results.count == 1L
+        assert results.count == 1
         for user in results.all():
-            assert user.id == 2L
+            assert user.id == 2
 
         idx = 0
         for user in User.select():
@@ -500,9 +507,9 @@ class TestSelectResults(Test):
         query = User.select(User.id)
         results = query.execute()
         assert tuple(results.tuples()) == (
-            (1L,),
-            (2L,),
-            (3L,),
+            (1,),
+            (2,),
+            (3,),
         )
 
     def test_dicts(self):
@@ -510,20 +517,20 @@ class TestSelectResults(Test):
         query = User.select()
         results = query.execute()
         assert tuple(results.dicts()) == (
-            {'id': 1L, 'name': 'name1', 'email': 'email1'},
-            {'id': 2L, 'name': 'name2', 'email': 'email2'},
-            {'id': 3L, 'name': 'name3', 'email': 'email3'},
+            {'id': 1, 'name': 'name1', 'email': 'email1'},
+            {'id': 2, 'name': 'name2', 'email': 'email2'},
+            {'id': 3, 'name': 'name3', 'email': 'email3'},
         )
 
         query = (Post & User).orderby(User.id).select()
         results = query.execute()
         assert tuple(results.dicts()) == (
-            {'post_id': 3L, 'name': 'name3', 'user_id': 1L,
-             'id': 1L, 'email': 'email1', 'user.name': 'name1'},
-            {'post_id': 2L, 'name': 'name2', 'user_id': 2L,
-             'id': 2L, 'email': 'email2', 'user.name': 'name2'},
-            {'post_id': 1L, 'name': 'name1', 'user_id': 3L,
-             'id': 3L, 'email': 'email3', 'user.name': 'name3'},
+            {'post_id': 3, 'name': 'name3', 'user_id': 1,
+             'id': 1, 'email': 'email1', 'user.name': 'name1'},
+            {'post_id': 2, 'name': 'name2', 'user_id': 2,
+             'id': 2, 'email': 'email2', 'user.name': 'name2'},
+            {'post_id': 1, 'name': 'name1', 'user_id': 3,
+             'id': 3, 'email': 'email3', 'user.name': 'name3'},
         )
 
     def test_func_only(self):
@@ -531,8 +538,8 @@ class TestSelectResults(Test):
         query = User.select(fn.count(User.id))
         results = query.execute()
         func = results.one()
-        assert func.count == 3L
-        assert results.count == 1L
+        assert func.count == 3
+        assert results.count == 1
 
         query = User.at(2).select(fn.ucase(User.name).alias('uname'))
         results = query.execute()
@@ -583,9 +590,9 @@ class TestSelectResults(Test):
             User.name, fn.count(User.id).alias('count'))
         results = query.execute()
         user, func = results.one()
-        assert user.name == 'amy' and func.count == 1L
+        assert user.name == 'amy' and func.count == 1
         user, func = results.one()
-        assert user.name == 'jack' and func.count == 2L
+        assert user.name == 'jack' and func.count == 2
 
 
 class TestRuntime_:
@@ -610,15 +617,15 @@ class TestCommonFunctions(Test):
             fn.count(User.id).alias('count_user_id'),
             fn.count(Post.post_id).alias('count_post_id'))
         results = query.execute()
-        assert results.count == 1L
+        assert results.count == 1
         func = results.one()
-        assert func.count_user_id == 4L
-        assert func.count_post_id == 4L
+        assert func.count_user_id == 4
+        assert func.count_post_id == 4
 
     def test_max_min(self):
         self.create_data(4, table=1)
-        assert User.max(User.id) == 4L
-        assert User.min(User.id) == 1L
+        assert User.max(User.id) == 4
+        assert User.min(User.id) == 1
 
     def test_sum(self):
         self.create_data(4, table=1)
@@ -648,7 +655,7 @@ class TestCommonFunctions(Test):
             assert func.concat == 'name%d+email%d' % (idx, idx)
 
         query = User.at(1).update(name=fn.concat(User.email, User.id))
-        assert query.execute() == 1L
+        assert query.execute() == 1
         assert User.at(1).getone().name == 'email11'
 
 
@@ -673,10 +680,10 @@ class TestModels(Test):
 
     def test_where(self):
         assert self.models.where(
-            User.id == Post.user_id).select().execute().count == 4L
+            User.id == Post.user_id).select().execute().count == 4
         assert self.models.where(
             User.id == Post.user_id, User.id == 1
-        ).select().execute().count == 1L
+        ).select().execute().count == 1
 
     def test_select(self):
         for post, user in self.models.where(
@@ -693,17 +700,17 @@ class TestModels(Test):
     def test_groupby(self):
         query = self.models.groupby(User.name).select()
         results = query.execute()
-        assert results.count == 4L
+        assert results.count == 4
 
         query = self.models.groupby(User.name, Post.name).select()
         result = query.execute()
-        assert result.count == 16L
+        assert result.count == 16
 
     def test_having(self):
         query = self.models.groupby(
             User.name).having(fn.count(User.id) >= 1).select()
         results = query.execute()
-        assert results.count == 4L
+        assert results.count == 4
 
         query = self.models.groupby(
             User.name).having(fn.count(User.id) > 4).select()
@@ -713,32 +720,32 @@ class TestModels(Test):
         query = self.models.groupby(
             User.name).having(fn.count(User.id) == 4).select()
         results = query.execute()
-        assert results.count == 4L  # 16 / 4 =4
+        assert results.count == 4   # 16 / 4 =4
 
     def test_distinct(self):
         query = self.models.select(distinct(User.name))
         result = query.execute()
-        assert result.count == 4L
+        assert result.count == 4
 
     def test_update(self):
         assert self.models.where(
             User.id == Post.user_id
-        ).update(User.name == 'new').execute() == 4L
+        ).update(User.name == 'new').execute() == 4
 
         User.at(1).getone().name == 'new'
 
     def test_delete(self):
         assert self.models.where(
-            User.id == Post.user_id).delete().execute() == 8L
+            User.id == Post.user_id).delete().execute() == 8
         assert self.models.where(
-            User.id == Post.user_id).select().execute().count == 0L
+            User.id == Post.user_id).select().execute().count == 0
         assert Post.count() == 0
         assert User.count() == 0
 
     def test_delete2(self):
         assert self.models.where(
-            User.id == Post.user_id).delete(Post).execute() == 4L
-        assert User.select().execute().count == 4L
+            User.id == Post.user_id).delete(Post).execute() == 4
+        assert User.select().execute().count == 4
         assert Post.count() == 0
 
     def test_orderby(self):
@@ -753,7 +760,7 @@ class TestModels(Test):
             (Post.user_id == User.id) & (User.id > 1)
         ).limit(4, offset=2).select()
         result = query.execute()
-        assert result.count == 1L
+        assert result.count == 1
 
     def test_getone(self):
         post, user = self.models.where(User.id == Post.user_id).getone()
@@ -772,28 +779,28 @@ class TestJoinModel(Test):
         self.create_data(10)
 
     def test_select(self):
-        assert (Post & User).select().execute().count == 10L
+        assert (Post & User).select().execute().count == 10
         assert (Post & User).where(
-            User.name == "name2").select().execute().count == 1L
+            User.name == "name2").select().execute().count == 1
         for post, user in (Post & User).select():
             assert post.post_id
             assert user.id
             assert post.user_id == user.id
 
     def test_delete(self):
-        assert (Post & User).delete().execute() == 20L
-        assert (Post & User).select().execute().count == 0L
+        assert (Post & User).delete().execute() == 20
+        assert (Post & User).select().execute().count == 0
 
     def test_delete2(self):
-        assert (Post & User).delete(Post).execute() == 10L
+        assert (Post & User).delete(Post).execute() == 10
 
     def test_update(self):
         assert (Post & User).where(
             User.name <= "name4"
-        ).update(User.name == "hello").execute() == 5L
+        ).update(User.name == "hello").execute() == 5
         assert (Post & User).where(
             User.name == "hello"
-        ).update(Post.name == "good").execute() == 5L
+        ).update(Post.name == "good").execute() == 5
 
     def test_foreignkey_exception(self):
         try:
@@ -824,7 +831,7 @@ class TestJoinModel(Test):
 
     def test_getone(self):
         post, user = (Post & User).getone()
-        assert post.user_id == user.id == 10L
+        assert post.user_id == user.id == 10
 
     def test_getall(self):
         g = (Post & User).where(User.id <= 5).getall()

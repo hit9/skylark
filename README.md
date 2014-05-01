@@ -3,7 +3,7 @@ CURD.py (v0.5.0 - Beta)
 
 Tiny Python ORM for MySQL.
 
-Latest version: v0.5.0
+Latest version: v0.6.0
 
 Development status: **4 - Beta**
 
@@ -46,6 +46,14 @@ Sample Code
 
 More examples: [sample/](sample/), [snippets](snippets/)
 
+Requirements
+------------
+
+- Python >= 2.6 or >= 3.3
+
+- [MySQLdb(MySQL-python)](https://pypi.python.org/pypi/MySQL-python) or
+[PyMySQL](https://github.com/PyMySQL/PyMySQL)
+
 Install
 -------
 
@@ -61,7 +69,9 @@ Strongly recommend that you read [Quick Start](http://curdpy.readthedocs.org/en/
 Sample App
 ----------
 
-A simple message board built with CURD.py and Flask: [examples/messageboard](examples/messageboard)
+- A simple message board built with CURD.py and Flask: [examples/messageboard](examples/messageboard)
+
+- A clean style blog system built with CURD.py and Flask: https://github.com/hit9/zhiz
 
 FAQ
 ---

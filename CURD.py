@@ -10,15 +10,33 @@
     :license: BSD.
 """
 
-
-import types
+import sys
 from datetime import date, datetime, time, timedelta
 
-import MySQLdb
-from _mysql import escape_dict, escape_sequence, NULL, string_literal
+
+try:  # try to use MySQLdb, then pymysql
+    import MySQLdb as mysql
+    from _mysql import escape_dict, escape_sequence, NULL, string_literal
+except ImportError:
+    import pymysql as mysql
+    from pymysql import NULL, escape_dict, escape_sequence
+    from pymysql.converters import escape_str as string_literal
+    from pymysql.connections import Connection
+    setattr(Connection, 'open',
+            property(lambda self: self.socket and self._rfile))
 
 
-__version__ = '0.5.0'
+if sys.hexversion < 0x03000000:
+    PY_VERSION = 2
+else:
+    PY_VERSION = 3
+
+
+if PY_VERSION == 3:
+    from functools import reduce
+
+
+__version__ = '0.6.0'
 
 
 OP_LT = 1
@@ -84,7 +102,7 @@ class Database(object):
 
     @classmethod
     def connect(cls):
-        cls.conn = MySQLdb.connect(**cls.configs)
+        cls.conn = mysql.connect(**cls.configs)
         cls.conn.autocommit(cls.autocommit)
 
     @classmethod
@@ -95,7 +113,7 @@ class Database(object):
         # make sure current connection is working
         try:
             cls.conn.ping()
-        except MySQLdb.OperationalError:
+        except mysql.OperationalError:
             cls.connect()
 
         return cls.conn
@@ -124,7 +142,7 @@ class Node(object):
     def clone(self, *args, **kwargs):
         obj = type(self)(*args, **kwargs)
 
-        for key, value in self.__dict__.iteritems():
+        for key, value in self.__dict__.items():
             setattr(obj, key, value)
         return obj
 
@@ -382,7 +400,7 @@ class SelectResult(object):
         inst = model()
         inst.set_in_db(True)
 
-        for idx, field in self.fields.iteritems():
+        for idx, field in self.fields.items():
             if field.model is model:
                 inst.data[field.name] = row[idx]
         return inst
@@ -390,7 +408,7 @@ class SelectResult(object):
     def func(self, row):
         func = Func()
 
-        for idx, function in self.funcs.iteritems():
+        for idx, function in self.funcs.items():
             func.data[function.name] = row[idx]
         return func
 
@@ -433,12 +451,12 @@ class SelectResult(object):
     def dicts(self):
         for row in self.cursor.fetchall():
             dct = {}
-            for idx, field in self.fields.iteritems():
+            for idx, field in self.fields.items():
                 if field.name not in dct:
                     dct[field.name] = row[idx]
                 else:
                     dct[field.fullname] = row[idx]
-            for idx, func in self.funcs.iteritems():
+            for idx, func in self.funcs.items():
                 dct[func.name] = row[idx]
             yield dct
 
@@ -472,7 +490,7 @@ class Compiler(object):
     encoding = 'utf8'
 
     def thing2str(data):
-        return string_literal(data)
+        return string_literal(str(data))
 
     def float2str(data):
         return '%.15g' % data
@@ -531,17 +549,21 @@ class Compiler(object):
         DeleteQuery: query2str,
         time: time2str,
         timedelta: timedelta2str,
-        types.IntType: thing2str,
-        types.LongType: thing2str,
-        types.FloatType: float2str,
-        types.StringType: thing2str,
-        types.UnicodeType: unicode2str,
-        types.BooleanType: bool2str,
-        types.NoneType: None2Null,
-        types.TupleType: escape_sequence,
-        types.ListType: escape_sequence,
-        types.DictType: escape_dict
+        int: thing2str,
+        float: float2str,
+        str: thing2str,
+        bool: bool2str,
+        type(None): None2Null,
+        tuple: escape_sequence,
+        list: escape_sequence,
+        dict: escape_dict
     }
+
+    if PY_VERSION == 2:
+        conversions.update({
+            long: thing2str,
+            unicode: unicode2str
+        })
 
     @staticmethod
     def tostr(e):
@@ -670,13 +692,13 @@ class Runtime(object):
         self.data['limit'] = list(lst)
 
     def set_select(self, lst):
-        self.data['select'] = list(lst) or self.model.get_fields()
+        self.data['select'] = list(lst or self.model.get_fields())
 
     def set_where(self, lst, dct):
         lst = list(lst)
 
         if self.model.single:
-            lst.extend(self.model.fields[k] == v for k, v in dct.iteritems())
+            lst.extend(self.model.fields[k] == v for k, v in dct.items())
 
         self.data['where'] = lst
 
@@ -684,7 +706,7 @@ class Runtime(object):
         lst = list(lst)
 
         if self.model.single:
-            lst.extend(self.model.fields[k] == v for k, v in dct.iteritems())
+            lst.extend(self.model.fields[k] == v for k, v in dct.items())
 
         self.data['set'] = lst
 
@@ -696,7 +718,7 @@ class MetaModel(type):
         primarykey = None
         fields = {}
 
-        for name, value in cls.__dict__.iteritems():
+        for name, value in cls.__dict__.items():
             if isinstance(value, Field):
                 fields[name] = value
                 if value.is_primarykey:
@@ -718,7 +740,7 @@ class MetaModel(type):
         cls.table_name = table_name
         cls.fields = fields
 
-        for name, field in cls.fields.iteritems():
+        for name, field in cls.fields.items():
             field.describe(name, cls)
 
         cls.runtime = Runtime(cls)
@@ -735,9 +757,7 @@ class MetaModel(type):
         return JoinModel(cls, join)
 
 
-class Model(object):
-
-    __metaclass__ = MetaModel
+class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
 
     single = True
 
@@ -757,7 +777,7 @@ class Model(object):
 
     @classmethod
     def get_fields(cls):
-        return cls.fields.values()
+        return list(cls.fields.values())
 
     @classmethod
     def insert(cls, *lst, **dct):
@@ -908,8 +928,7 @@ class Models(object):
         self.primarykey = [m.primarykey for m in self.models]
 
     def get_fields(self):
-        lst = [m.get_fields() for m in self.models]
-        return sum(lst, [])
+        return sum((list(m.get_fields()) for m in self.models), [])
 
     def select(self, *lst):
         self.runtime.set_select(lst)
