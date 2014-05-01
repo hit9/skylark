@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 """
-CURD.py
+skylark
 -------
 
-Tiny Python ORM for MySQL.
+A nice micro orm for python, mysql only.
 
 Sample Usage
 ````````````
@@ -34,15 +34,15 @@ Installation
 
 .. code:: bash
 
-    $ pip install CURD.py
+    $ pip install skylark
 
 Links
 `````
 
-* `Documentation <http://curdpy.readthedocs.org/>`_
-* `Code on Github <https://github.com/hit9/CURD.py>`_
+* `Documentation <http://skylark.readthedocs.org/>`_
+* `Code on Github <https://github.com/hit9/skylark>`_
 
-**NOTICE**: CURD.py may not be stable before version 1.0
+**NOTICE**: skylark may not be stable before version 1.0
 
 """
 
@@ -50,15 +50,15 @@ from setuptools import setup
 
 
 setup(
-    name='CURD.py',
-    version='0.6.0',
+    name='skylark',
+    version='0.7.0',
     author='hit9',
     author_email='nz2324@126.com',
-    description=('Tiny Python ORM for MySQL'),
+    description=('A nice micro orm for python, mysql only.'),
     license='BSD',
-    keywords='CURD ORM MySQL Python tiny database',
-    url='https://github.com/hit9/CURD.py',
-    py_modules=['CURD'],
+    keywords='ORM MySQL Python tiny micro database',
+    url='https://github.com/hit9/skylark',
+    py_modules=['skylark'],
     long_description=__doc__,
     classifiers=[
         'Development Status :: 4 - Beta',
