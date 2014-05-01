@@ -1,4 +1,4 @@
-CURD.py (v0.5.0 - Beta)
+CURD.py (v0.6.0 - Beta)
 =======================
 
 Tiny Python ORM for MySQL.
