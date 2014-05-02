@@ -49,7 +49,7 @@ from decimal import Decimal
 from models import User, Post, TestCustomTableName, TestTableName
 
 sys.path.insert(0, '..')
-from CURD import Database, Compiler, fn, distinct, sql, \
+from skylark import Database, Compiler, fn, distinct, sql, \
     PrimaryKeyValueNotFound, ForeignKeyNotFound, \
     Models
 

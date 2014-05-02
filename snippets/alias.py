@@ -1,5 +1,5 @@
 from models import User
-from CURD import fn
+from skylark import fn
 
 query = User.at(1).select(User.name.alias('un'))
 result = query.execute()

@@ -1,5 +1,5 @@
 from models import User
-from CURD import fn, sql
+from skylark import fn, sql
 
 # create data..
 User.create(name='jack')

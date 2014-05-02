@@ -1,10 +1,23 @@
 # -*- coding: utf-8 -*-
+#
+#            /)
+#           / )
+#    (\    /  )
+#    ( \  /   )
+#     ( \/ / )
+#     (@)   )
+#     / \_   \
+#        // \\\
+#        ((   \\
+#       ~ ~ ~   \
+#      skylark
+#
 
 """
-    CURD.py
-    ~~~~~~
+    skylark
+    ~~~~~~~
 
-    Tiny Python ORM for MySQL.
+    A nice micro orm for python, mysql only.
 
     :copyright: (c) 2014 by Chao Wang (Hit9).
     :license: BSD.
@@ -36,7 +49,7 @@ if PY_VERSION == 3:
     from functools import reduce
 
 
-__version__ = '0.6.0'
+__version__ = '0.7.0'
 
 
 OP_LT = 1
@@ -60,19 +73,19 @@ QUERY_SELECT = 23
 QUERY_DELETE = 24
 
 
-class CURDException(Exception):
+class SkylarkException(Exception):
     pass
 
 
-class UnSupportedType(CURDException):
+class UnSupportedType(SkylarkException):
     pass
 
 
-class PrimaryKeyValueNotFound(CURDException):
+class PrimaryKeyValueNotFound(SkylarkException):
     pass
 
 
-class ForeignKeyNotFound(CURDException):
+class ForeignKeyNotFound(SkylarkException):
     pass
 
 

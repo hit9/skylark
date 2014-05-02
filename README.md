@@ -1,25 +1,13 @@
-CURD.py (v0.6.0 - Beta)
-=======================
+![](http://i.imgur.com/Tat9ilM.png)
+===================================
 
-Tiny Python ORM for MySQL.
+A nice micro orm for python, mysql only. (Original named `CURD.py`).
 
-Latest version: v0.6.0
+Latest version: [v0.7.0](https://github.com/hit9/skylark/releases/tag/v0.7.0)
 
 Development status: **4 - Beta**
 
-Testing status: [![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
-
-Only support C, U, R, D, responsing to its name:
-
-- Create
-
-- Update
-
-- Read
-
-- Delete
-
-**NOTE**: CURD.py may not be stable before version v1.0
+Testing status: [![Build Status](https://travis-ci.org/hit9/skylark.png?branch=master)](https://travis-ci.org/hit9/skylark)
 
 Sample Code
 -----------
@@ -57,49 +45,42 @@ Requirements
 Install
 -------
 
-    $ pip install CURD.py
+    $ pip install skylark
 
 Documentation
 -------------
 
-Documentation: http://curdpy.readthedocs.org/
+Documentation: http://skylark.readthedocs.org/
 
-Strongly recommend that you read [Quick Start](http://curdpy.readthedocs.org/en/latest/quickstart.html) at first.
+Strongly recommend that you read [Quick Start](http://skylark.readthedocs.org/en/latest/quickstart.html) at first.
 
 Sample App
 ----------
 
-- A simple message board built with CURD.py and Flask: [examples/messageboard](examples/messageboard)
+- A simple message board built with skylark and Flask: [examples/messageboard](examples/messageboard)
 
-- A clean style blog system built with CURD.py and Flask: https://github.com/hit9/zhiz
+- A clean style blog system built with skylark and Flask: https://github.com/hit9/zhiz
 
 FAQ
 ---
 
-- [FAQ](http://curdpy.readthedocs.org/en/latest/faq.html)
+- [FAQ](http://skylark.readthedocs.org/en/latest/faq.html)
 
-- [ISSUES TRACKER](https://github.com/hit9/CURD.py/issues)
+- [ISSUES TRACKER](https://github.com/hit9/skylark/issues)
 
 Tests
 -----
 
-- Status: [![Build Status](https://travis-ci.org/hit9/CURD.py.png?branch=master)](https://travis-ci.org/hit9/CURD.py)
+- Status: [![Build Status](https://travis-ci.org/hit9/skylark.png?branch=master)](https://travis-ci.org/hit9/skylark)
 
-- [How to Run Tests](https://github.com/hit9/CURD.py/blob/dev/tests/README.rst)
+- [How to Run Tests](tests/README.rst)
 
 License
 -------
 
-[LICENSE-BSD](https://github.com/hit9/CURD.py/blob/master/LICENSE-BSD)
+[LICENSE-BSD](LICENSE-BSD)
 
 Changes
 -------
 
 [CHANGES](CHANGES)
-
-Feedback
---------
-
-WE NEED YOU HELP!! CURD.py is young and may have a lot of bugs, don't be shy to
-share your opinions or to report your issues, please open an issue on
-https://github.com/hit9/CURD.py/issues.

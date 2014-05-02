@@ -1,15 +1,15 @@
 .. _index:
 
-CURD - Tiny Python ORM for MySQL
-================================
+Overview
+========
+
+A nice micro orm for python, mysql only. (Original named CURD.py).
 
 Release: v\ |version| - Beta (:ref:`Installation <install>`) 
 
 Tests status:
 
-.. image:: https://travis-ci.org/hit9/CURD.py.png?branch=master
-
-CURD.py is a tiny orm for mysql database, written in Python.
+.. image:: https://travis-ci.org/hit9/skylark.png?branch=master
 
 .. Contents::
 
@@ -39,7 +39,7 @@ Sample
     1L
 
 More sample codes `here
-<https://github.com/hit9/CURD.py/tree/master/docs/sample>`_.
+<https://github.com/hit9/skylark/tree/master/docs/sample>`_.
 
 
 .. _requirements:
@@ -58,21 +58,7 @@ Installation
 
 ::
 
-    $ pip install CURD.py
-
-
-Supports
---------
-
-CURD.py only supports 4 types of queries: C, U, R, D, responsing to its name.
-
-- :ref:`Create` 
-
-- :ref:`Update`
-
-- :ref:`Read`
-
-- :ref:`Delete`
+    $ pip install skylark
 
 Plat
 ----

@@ -6,9 +6,6 @@ Database
 
 .. Contents::
 
-CURD.py is a tiny orm only for MySQL, it wraps the MySQL-Python package and
-behaves like the famous Python orm peewee.
-
 .. _db_configuration:
 
 Database Configuration
@@ -30,14 +27,14 @@ charset  string    charset of connection  'utf8'
 See the MySQLdb documentation for more information,
 the parameters of ``MySQLdb.connect`` are all supported.
 
-Generally, you just need to tell CURD.py these 3 items: ``user``, ``passwd``, ``db``::
+Generally, you just need to tell these 3 items: ``user``, ``passwd``, ``db``::
 
     >>> Database.config(db='mydb', user='root', passwd='')
 
 Get Database Connection
 ------------------------
 
-CURD.py will reuse the exist connection in singleton pattern, if you need the connection object::
+Skylark will reuse the exist connection in singleton pattern, if you need the connection object::
 
     >>> Database.get_conn()
     <_mysql.connection open to 'localhost' at 882e174>
@@ -50,7 +47,7 @@ CURD.py will reuse the exist connection in singleton pattern, if you need the co
 Execute Raw Query
 -----------------
 
-If you are dealing tasks outside of CURD.py's abilities, and need to run a raw query::
+If you are dealing tasks outside of skylark's abilities, and need to run a raw query::
 
     >>> Database.execute('show tables')
     <MySQLdb.cursors.Cursor object at 0xb703efcc>

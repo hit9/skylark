@@ -1,4 +1,4 @@
-from CURD import fn, distinct
+from skylark import fn, distinct
 from models import User
 
 # select count(distinct(user.name)) from user

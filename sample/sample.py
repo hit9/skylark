@@ -1,6 +1,6 @@
 # coding=utf8
 
-from CURD import Database, Model, Field
+from skylark import Database, Model, Field
 
 
 Database.config(user='root', passwd='', db='mytest')

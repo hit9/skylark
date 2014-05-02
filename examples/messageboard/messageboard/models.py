@@ -1,7 +1,7 @@
 # coding=utf8
 
 
-from CURD import Database, Model, Field, PrimaryKey
+from skylark import Database, Model, Field
 from messageboard import app
 
 

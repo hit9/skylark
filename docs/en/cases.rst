@@ -5,7 +5,7 @@ Use Cases
 
 .. Contents::
 
-This part contains some cases using CURD.py, hope this help you :)
+This part contains some cases using skylark, hope this help you :)
 
 Conditionally Insertion
 -----------------------
@@ -49,7 +49,7 @@ but to test if it's the last page needs the total rows count of table ``post``::
 Get next/previous record
 ------------------------
 
-We are building a blog using CURD.py, and we want to display
+We are building a blog using skylark, and we want to display
 next/previous article links on each article's page.
 
 Suppose the current post's id is 4.
