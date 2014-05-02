@@ -1,5 +1,5 @@
-![](http://i.imgur.com/Tat9ilM.png)
-===================================
+![](https://raw.githubusercontent.com/hit9/artworks/master/png/Skylark.png)
+===========================================================================
 
 A nice micro orm for python, mysql only. (Original named `CURD.py`).
 
