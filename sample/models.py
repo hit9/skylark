@@ -1,4 +1,4 @@
-from CURD import Database, Model, Field, PrimaryKey, ForeignKey
+from skylark import Database, Model, Field, PrimaryKey, ForeignKey
 
 
 class User(Model):

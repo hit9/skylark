@@ -4,7 +4,7 @@
 test*.py
 build/
 dist/
-CURD.py.egg-info
+*.egg-info
 docs/_build
 .ropeproject
 venv
@@ -12,3 +12,4 @@ venv-3.2
 testx
 docs/en/_build
 docs/zh/_build
+__pycache__

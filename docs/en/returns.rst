@@ -56,7 +56,7 @@ Return ``SelectResult object``::
 
     >>> results = User.where(name='jack').select().execute()
     >>> results
-    <CURD.SelectResult object at 0xb6f8df6c>
+    <skylark.SelectResult object at 0xb6f8df6c>
 
 And from ``SelectResult object``, we can fetch ``user``::
 

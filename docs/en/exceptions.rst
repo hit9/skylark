@@ -6,10 +6,10 @@ Exceptions
 
 .. Contents::
 
-CURDException
+SkylarkException
 -------------
 
-There was an ambiguous exception occurred within CURD.py
+There was an ambiguous exception occurred within Skylark.
 
 
 UnSupportedType
@@ -22,7 +22,7 @@ example::
     >>> User.where(id=object()).select()
     Traceback (most recent call last):
     .....
-    CURD.UnSupportedType
+    skylark.UnSupportedType
 
 ForeignKeyNotFound
 ------------------
@@ -38,14 +38,14 @@ example::
     >>> User & Post
     Traceback (most recent call last):
     .....
-    CURD.ForeignKeyNotFound
+    skylark.ForeignKeyNotFound
 
 PrimaryKeyValueNotFound
 -----------------------
 
 Primarykey value not found in this instance.
 
-example, ``id`` not selected, and CURD.py dosen't know which row to update::
+example, ``id`` not selected, and skylark dosen't know which row to update::
 
     >>> user = User.select(User.name).execute().one()
     >>> user.name
@@ -55,4 +55,4 @@ example, ``id`` not selected, and CURD.py dosen't know which row to update::
     Traceback (most recent call last):
     .....
         raise PrimaryKeyValueNotFound  # need its primarykey value to track this instance
-    CURD.PrimaryKeyValueNotFound
+    skylark.PrimaryKeyValueNotFound

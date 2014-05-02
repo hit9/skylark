@@ -74,7 +74,7 @@ Is there someone called 'Jack' in database? ::
 Use datetime object in queries
 -------------------------------
 
-CURD.py now support numbers, strings and datetime objects as values to
+Skylark now support numbers, strings and datetime objects as values to
 insert(or update) into table.
 
 ::
@@ -110,18 +110,15 @@ To get the user whose id is 3 (suppose id is the primary key)::
 
 A shorter one::
 
-    >>> from CURD import MetaModel
+    >>> from skylark import MetaModel
     >>> MetaModel.__getitem__ = lambda model, index: model.at(index).getone()
     >>> User[3]
     <models.User object at 0xb62eb78c>
 
-Of course, the "Mix-in" is not CURD.py's own skill, python developers play with
-it everywhere.
-
 Put all models in one script in your app
 ----------------------------------------
 
-When we are building web apps with CURD.py, it's good to pull all models into
+When we are building web apps with skylark, it's good to pull all models into
 one script.
 
 in models' file: models.py:

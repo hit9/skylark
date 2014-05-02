@@ -1,7 +1,7 @@
 Message-Board
 -------------
 
-Sample app with CURD.py and Flask.
+Sample app with skylark and Flask.
 
 ![](https://dl.dropboxusercontent.com/u/68191343/github/messageboard.png)
 

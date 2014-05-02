@@ -32,12 +32,12 @@ Model Definition
 We defined a model: ``User``, which has 3 fields:``name``, ``email``
 and ``id`` (``id`` - the default primarykey)
 
-To tell CURD.py the ``table_name`` of some model::
+To customize the ``table_name``::
 
     class SomeModel(Model):
         table_name = 'tablename_of_somemodel'
 
-By default, we take the "snake" case of model’s classname as ``table_name``, i.e.::
+By default, we take the "snake" case of model’s classname as its ``table_name``, i.e.::
 
     class User(Model):  # table_name: 'user'
         pass
@@ -51,8 +51,8 @@ Better to put all models into a single script,  name it ``models.py`` :
 
 .. literalinclude:: ../../sample/models.py
 
-* You **have to create tables in MySQL by hand**, CURD.py has no feature like ``create_tables``,
-  table user and post sql defination: https://github.com/hit9/CURD.py/blob/master/tests/tables.sql.
+* You **have to create tables in MySQL by hand**, skylark has no feature like ``create_tables``,
+  table user and post sql defination: https://github.com/hit9/skylark/blob/master/tests/tables.sql.
 
 .. _Create:
 
@@ -166,7 +166,7 @@ Execute a select-query will get a "select-result", which binds 4 methods for
 retrieving data::
 
     >>> result.one()
-    >>> <models.User object at 0x1056acd10>
+    <models.User object at 0x1056acd10>
 
     >>> [user for user in result.all()]
     [<models.User object at 0x1056b70d0>, <models.User object at 0x1056b7190>]
@@ -269,7 +269,7 @@ Group By
 
 ::
 
-    >>> from CURD import fn
+    >>> from skylark import fn
     >>> query = User.groupby(User.name).select(User.name, fn.count(User.id))
     # select user.name, count(user.id) from user group by user.name
     >>> [(user.name, func.count) for user, func in query]
@@ -281,7 +281,7 @@ Having
 
 ::
 
-    >>> from CURD import sql
+    >>> from skylark import sql
     >>> query = User.groupby(User.name).having(sql('count') > 1).select(User.name, fn.count(User.id).alias('count'))
     # select user.name, count(user.id) as count from user group by user.name having count > '1'
     >>> [(user.name, func.count) for user, func in query]
@@ -324,7 +324,7 @@ Distinct
 
 ::
 
-    >>> from CURD import distinct
+    >>> from skylark import distinct
     >>> [user.name for user in User.select(distinct(User.name))]
     [u'jack', u'Join', u'Amy']
     # select distinct(user.name) from user
@@ -388,7 +388,7 @@ We defined :ref:`two models <two_models>` in models.py: ``User``, ``Post``
 Now, join them::
 
     >>> Post & User
-    <CURD.JoinModel object at 0xb76f292c>
+    <skylark.JoinModel object at 0xb76f292c>
 
 
 Why not ``User & Post``:
@@ -428,7 +428,7 @@ SQL Functions
 
 Count users::
 
-    >>> from CURD import fn
+    >>> from skylark import fn
     >>> query = User.select(fn.count(User.id))
     # select count(user.id) from user
     >>> result = query.execute()
