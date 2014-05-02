@@ -1,4 +1,4 @@
-![](http://i.imgur.com/fxvhCoN.png)
+![](http://i.imgur.com/Tat9ilM.png)
 ===================================
 
 A nice micro orm for python, mysql only. (Original named `CURD.py`).
