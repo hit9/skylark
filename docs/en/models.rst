@@ -33,7 +33,7 @@ this table looks like:
 
 We should define its model class in Python like this::
 
-    from CURD import Model, Field, ForeignKey
+    from skylark import Model, Field, ForeignKey
 
     class Comment(Model):
         content = Field()
