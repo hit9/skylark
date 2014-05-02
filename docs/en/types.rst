@@ -19,7 +19,7 @@ Python Objects to SQL Literals
 ------------------------------
 
 Type mapping is required if we want to talk to mysql in Python language,
-CURD.py maps these types(shown in examples):
+skylark maps these types(shown in examples):
 
 ============  =====================  ======================
 Python Type   Python Value Example   SQL Literal
