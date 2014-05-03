@@ -402,6 +402,7 @@ class TestModel(Test):
         self.create_data(3, table=1)
         user = User.at(1).getone()
         assert user.destroy()
+        assert user._in_db is False
         assert User.at(1).getone() is None
 
         user = User.at(2).select(User.name).execute().one()

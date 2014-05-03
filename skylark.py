@@ -905,7 +905,10 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
         if self._in_db:
             if self._id is None:
                 raise PrimaryKeyValueNotFound
-            return type(self).at(self._id).delete().execute()
+            result = type(self).at(self._id).delete().execute()
+            if result:
+                self.set_in_db(False)
+            return result
         return None
 
     def aggregator(name):
