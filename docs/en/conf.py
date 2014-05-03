@@ -167,6 +167,11 @@ html_static_path = ['_static']
 html_title = u'Skylark | A nice micro orm for python, mysql only'
 sys.path.append(os.path.abspath('../_themes'))
 html_theme_path = ['../_themes']
-html_theme = 'rux'
+html_theme = 'plain'
+html_theme_options = {
+        'github': 'hit9',  # Here, fill in your own GitHub ID
+        'project_logo': 'https://raw.githubusercontent.com/hit9/artworks/master/png/Skylark.png'  # your project logo address
+
+}
 
 mathjax_path = '//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
