@@ -37,10 +37,7 @@ except ImportError:
     import pymysql as mysql
     from pymysql import NULL, escape_dict, escape_sequence
     from pymysql.converters import escape_str as string_literal
-    from pymysql.connections import Connection
     lib_pymysql = 1
-    setattr(Connection, 'open',
-            property(lambda self: self.socket and self._rfile))
 
 
 if sys.hexversion < 0x03000000:
@@ -117,65 +114,76 @@ def patch_mysqldb_cursor(cursor):
     return cursor
 
 
-class Database(object):
+def conn_is_up(conn):
+    if lib_pymysql:
+        return conn and conn.socket and conn._rfile
+    if lib_mysqldb:
+        return conn and conn.open
 
-    configs = {
-        'host': 'localhost',
-        'port': 3306,
-        'db': '',
-        'user': '',
-        'passwd': '',
-        'charset': 'utf8'
-    }
 
-    autocommit = True
+class DatabaseType(object):
 
-    conn = None
+    def __init__(self):
+        self.configs = {
+            'host': 'localhost',
+            'port': 3306,
+            'db': '',
+            'user': '',
+            'passwd': '',
+            'charset': 'utf8'
+        }
+        self.autocommit = True
+        self.conn = None
 
-    @classmethod
-    def config(cls, autocommit=True, **configs):
-        cls.configs.update(configs)
-        cls.autocommit = autocommit
+        self.conn_is_up = conn_is_up
+
+    def config(self, autocommit=True, **configs):
+        self.configs.update(configs)
+        self.autocommit = autocommit
 
         # close active connection on configs change
-        if cls.conn and cls.conn.open:
-            cls.conn.close()
+        if conn_is_up(self.conn):
+            self.conn.close()
 
-    @classmethod
-    def connect(cls):
-        cls.conn = mysql.connect(**cls.configs)
-        cls.conn.autocommit(cls.autocommit)
+    def connect(self):
+        self.conn = mysql.connect(**self.configs)
+        self.conn.autocommit(self.autocommit)
 
-    @classmethod
-    def get_conn(cls):
-        if not cls.conn or not cls.conn.open:
-            cls.connect()
+    def get_conn(self):
+        if not conn_is_up(self.conn):
+            self.connect()
 
         # make sure current connection is working
         try:
-            cls.conn.ping()
+            self.conn.ping()
         except mysql.OperationalError:
-            cls.connect()
+            self.connect()
 
-        return cls.conn
+        return self.conn
 
-    @classmethod
-    def execute(cls, sql):
-        cursor = cls.get_conn().cursor()
+    def __del__(self):
+        if self.conn_is_up(self.conn):
+            return self.conn.close()
+
+    def execute(self, sql):
+        cursor = self.get_conn().cursor()
         cursor.execute(sql)
         if lib_mysqldb:
-            patch_mysqldb_cursor(cursor)  # copy all data from origin cursor
+            # copy all data from origin cursor
+            patch_mysqldb_cursor(cursor)
         cursor.close()
         return cursor
 
-    @classmethod
-    def change(cls, db):
-        cls.configs['db'] = db
+    def change(self, db):
+        self.configs['db'] = db
 
-        if cls.conn and cls.conn.open:
-            cls.conn.select_db(db)
+        if conn_is_up(self.conn):
+            self.conn.select_db(db)
 
     select_db = change  # alias
+
+
+Database = database = DatabaseType()
 
 
 class Node(object):
