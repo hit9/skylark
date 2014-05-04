@@ -3,6 +3,13 @@
 Changes
 ========
 
+version 0.7.1
+--------------
+
+- Close cursor on each execution
+
+- Close connection on Database deled
+
 version 0.6.0
 -------------
 
