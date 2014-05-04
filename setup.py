@@ -51,7 +51,7 @@ from setuptools import setup
 
 setup(
     name='skylark',
-    version='0.7.0',
+    version='0.7.1',
     author='hit9',
     author_email='nz2324@126.com',
     description=('A nice micro orm for python, mysql only.'),

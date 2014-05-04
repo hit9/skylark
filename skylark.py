@@ -26,17 +26,18 @@
 import sys
 from datetime import date, datetime, time, timedelta
 
+lib_mysqldb = 0
+lib_pymysql = 0
 
 try:  # try to use MySQLdb, then pymysql
     import MySQLdb as mysql
     from _mysql import escape_dict, escape_sequence, NULL, string_literal
+    lib_mysqldb = 1
 except ImportError:
     import pymysql as mysql
     from pymysql import NULL, escape_dict, escape_sequence
     from pymysql.converters import escape_str as string_literal
-    from pymysql.connections import Connection
-    setattr(Connection, 'open',
-            property(lambda self: self.socket and self._rfile))
+    lib_pymysql = 1
 
 
 if sys.hexversion < 0x03000000:
@@ -49,7 +50,7 @@ if PY_VERSION == 3:
     from functools import reduce
 
 
-__version__ = '0.7.0'
+__version__ = '0.7.1'
 
 
 OP_LT = 1
@@ -89,62 +90,100 @@ class ForeignKeyNotFound(SkylarkException):
     pass
 
 
-class Database(object):
+def patch_mysqldb_cursor(cursor):
+    # let MySQLdb.cursor enable fetching after close
+    rows = tuple(cursor.fetchall())
 
-    configs = {
-        'host': 'localhost',
-        'port': 3306,
-        'db': '',
-        'user': '',
-        'passwd': '',
-        'charset': 'utf8'
-    }
+    def create_generator():
+        for row in rows:
+            yield row
 
-    autocommit = True
+    generator = create_generator()
 
-    conn = None
+    def fetchall():
+        return generator
 
-    @classmethod
-    def config(cls, autocommit=True, **configs):
-        cls.configs.update(configs)
-        cls.autocommit = autocommit
+    def fetchone():
+        try:
+            return generator.next()
+        except StopIteration:
+            pass
+
+    cursor.fetchall = fetchall
+    cursor.fetchone = fetchone
+    return cursor
+
+
+def conn_is_up(conn):
+    if lib_pymysql:
+        return conn and conn.socket and conn._rfile
+    if lib_mysqldb:
+        return conn and conn.open
+
+
+class DatabaseType(object):
+
+    def __init__(self):
+        self.configs = {
+            'host': 'localhost',
+            'port': 3306,
+            'db': '',
+            'user': '',
+            'passwd': '',
+            'charset': 'utf8'
+        }
+        self.autocommit = True
+        self.conn = None
+
+        self.conn_is_up = conn_is_up
+
+    def config(self, autocommit=True, **configs):
+        self.configs.update(configs)
+        self.autocommit = autocommit
 
         # close active connection on configs change
-        if cls.conn and cls.conn.open:
-            cls.conn.close()
+        if conn_is_up(self.conn):
+            self.conn.close()
 
-    @classmethod
-    def connect(cls):
-        cls.conn = mysql.connect(**cls.configs)
-        cls.conn.autocommit(cls.autocommit)
+    def connect(self):
+        self.conn = mysql.connect(**self.configs)
+        self.conn.autocommit(self.autocommit)
 
-    @classmethod
-    def get_conn(cls):
-        if not cls.conn or not cls.conn.open:
-            cls.connect()
+    def get_conn(self):
+        if not conn_is_up(self.conn):
+            self.connect()
 
         # make sure current connection is working
         try:
-            cls.conn.ping()
+            self.conn.ping()
         except mysql.OperationalError:
-            cls.connect()
+            self.connect()
 
-        return cls.conn
+        return self.conn
 
-    @classmethod
-    def execute(cls, sql):
-        cursor = cls.get_conn().cursor()
+    def __del__(self):
+        if self.conn_is_up(self.conn):
+            return self.conn.close()
+
+    def execute(self, sql):
+        cursor = self.get_conn().cursor()
         cursor.execute(sql)
+        if lib_mysqldb:
+            # copy all data from origin cursor
+            patch_mysqldb_cursor(cursor)
+        cursor.close()
         return cursor
 
-    @classmethod
-    def change(cls, db):
-        cls.configs['db'] = db
+    def change(self, db):
+        self.configs['db'] = db
 
-        if cls.conn and cls.conn.open:
-            cls.conn.select_db(db)
+        if conn_is_up(self.conn):
+            self.conn.select_db(db)
 
     select_db = change  # alias
+
+
+Database = database = DatabaseType()
 
 
 class Node(object):
@@ -383,6 +422,7 @@ class SelectResult(object):
     def __init__(self, cursor, model, nodes):
         self.cursor = cursor
         self.model = model
+        self.count = self.cursor.rowcount
 
         # distinct should be the first select node if it exists
         if len(nodes) >= 1 and isinstance(nodes[0], Distinct):
@@ -404,10 +444,6 @@ class SelectResult(object):
             self.returns = 1
         elif self.fields and self.funcs:
             self.returns = 2
-
-    @property
-    def count(self):
-        return self.cursor.rowcount
 
     def inst(self, model, row):
         inst = model()
@@ -905,7 +941,10 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
         if self._in_db:
             if self._id is None:
                 raise PrimaryKeyValueNotFound
-            return type(self).at(self._id).delete().execute()
+            result = type(self).at(self._id).delete().execute()
+            if result:
+                self.set_in_db(False)
+            return result
         return None
 
     def aggregator(name):

@@ -3,7 +3,7 @@
 
 A nice micro orm for python, mysql only. (Original named `CURD.py`).
 
-Latest version: [v0.7.0](https://github.com/hit9/skylark/releases/tag/v0.7.0)
+Latest version: [v0.7.1](https://github.com/hit9/skylark/releases/tag/v0.7.1)
 
 Development status: **4 - Beta**
 

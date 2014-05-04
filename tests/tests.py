@@ -9,6 +9,8 @@
 # Testxxx_ => Do Not Need Database Connection
 
 import sys
+import logging
+logging.basicConfig(level=logging.INFO)
 
 if sys.hexversion < 0x03000000:
     import ConfigParser
@@ -28,8 +30,10 @@ mysql_db = cf.get('MySQL', 'db')
 
 try:  # try to use MySQLdb, else pymysql
     import MySQLdb as mysql
+    logging.info('Using MySQLdb')
 except ImportError:
     import pymysql as mysql
+    logging.info('Using PyMySQL')
 
 conn = mysql.connect(db=mysql_db, user=mysql_user, passwd=mysql_passwd)
 
@@ -51,7 +55,7 @@ from models import User, Post, TestCustomTableName, TestTableName
 sys.path.insert(0, '..')
 from skylark import Database, Compiler, fn, distinct, sql, \
     PrimaryKeyValueNotFound, ForeignKeyNotFound, \
-    Models
+    Models, conn_is_up
 
 
 tostr = Compiler.tostr
@@ -102,10 +106,11 @@ class TestDatabase(Test):
 
     def test_connect(self):
         Database.connect()
-        assert Database.conn and Database.conn.open
+        assert conn_is_up(Database.conn)
 
     def test_execute(self):
-        Database.execute('insert into user set user.name="test"')
+        cursor = Database.execute('insert into user set user.name="test"')
+        assert cursor
 
     def test_change(self):
         conn = Database.conn
@@ -114,7 +119,7 @@ class TestDatabase(Test):
 
         Database.config(db=mysql_db)
         Database.execute('insert into user set user.name="test"')
-        assert Database.conn and Database.conn.open
+        assert conn_is_up(Database.conn)
         assert Database.conn is not conn
 
 
@@ -402,6 +407,7 @@ class TestModel(Test):
         self.create_data(3, table=1)
         user = User.at(1).getone()
         assert user.destroy()
+        assert user._in_db is False
         assert User.at(1).getone() is None
 
         user = User.at(2).select(User.name).execute().one()
