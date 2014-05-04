@@ -9,6 +9,8 @@
 # Testxxx_ => Do Not Need Database Connection
 
 import sys
+import logging
+logging.basicConfig(level=logging.INFO)
 
 if sys.hexversion < 0x03000000:
     import ConfigParser
@@ -28,8 +30,10 @@ mysql_db = cf.get('MySQL', 'db')
 
 try:  # try to use MySQLdb, else pymysql
     import MySQLdb as mysql
+    logging.info('Using MySQLdb')
 except ImportError:
     import pymysql as mysql
+    logging.info('Using PyMySQL')
 
 conn = mysql.connect(db=mysql_db, user=mysql_user, passwd=mysql_passwd)
 

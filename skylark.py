@@ -24,6 +24,7 @@
 """
 
 import sys
+import itertools
 from datetime import date, datetime, time, timedelta
 
 
@@ -89,27 +90,22 @@ class ForeignKeyNotFound(SkylarkException):
     pass
 
 
-class Cursor(object):
+def patch_mysqldb_cursor(cursor):
+    # let MySQLdb.cursor enable fetching after close
+    _, _cloned_generator = itertools.tee(cursor.fetchall())
 
-    def __init__(self, cursor):
-        self.cursor = cursor
-        self.rowcount = cursor.rowcount
-        self.lastrowid = cursor.lastrowid
+    def fetchall():
+        return _cloned_generator
 
-        def create_generator():
-            for row in cursor.fetchall():
-                yield row
-
-        self.generator = create_generator()
-
-    def fetchall(self):
-        return self.generator
-
-    def fetchone(self):
+    def fetchone():
         try:
-            return self.generator.next()
+            return _cloned_generator.next()
         except StopIteration:
             pass
+
+    cursor.fetchall = fetchall
+    cursor.fetchone = fetchone
+    return cursor
 
 
 class Database(object):
@@ -158,9 +154,10 @@ class Database(object):
     def execute(cls, sql):
         cursor = cls.get_conn().cursor()
         cursor.execute(sql)
-        _cursor = Cursor(cursor)
+        if mysql.__name__ == 'MySQLdb':
+            patch_mysqldb_cursor(cursor)  # copy all data from origin cursor
         cursor.close()
-        return _cursor
+        return cursor
 
     @classmethod
     def change(cls, db):
