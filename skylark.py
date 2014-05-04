@@ -89,6 +89,29 @@ class ForeignKeyNotFound(SkylarkException):
     pass
 
 
+class Cursor(object):
+
+    def __init__(self, cursor):
+        self.cursor = cursor
+        self.rowcount = cursor.rowcount
+        self.lastrowid = cursor.lastrowid
+
+        def create_generator():
+            for row in cursor.fetchall():
+                yield row
+
+        self.generator = create_generator()
+
+    def fetchall(self):
+        return self.generator
+
+    def fetchone(self):
+        try:
+            return self.generator.next()
+        except StopIteration:
+            pass
+
+
 class Database(object):
 
     configs = {
@@ -135,7 +158,9 @@ class Database(object):
     def execute(cls, sql):
         cursor = cls.get_conn().cursor()
         cursor.execute(sql)
-        return cursor
+        _cursor = Cursor(cursor)
+        cursor.close()
+        return _cursor
 
     @classmethod
     def change(cls, db):
