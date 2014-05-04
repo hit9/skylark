@@ -24,18 +24,21 @@
 """
 
 import sys
-import itertools
 from datetime import date, datetime, time, timedelta
 
+lib_mysqldb = 0
+lib_pymysql = 0
 
 try:  # try to use MySQLdb, then pymysql
     import MySQLdb as mysql
     from _mysql import escape_dict, escape_sequence, NULL, string_literal
+    lib_mysqldb = 1
 except ImportError:
     import pymysql as mysql
     from pymysql import NULL, escape_dict, escape_sequence
     from pymysql.converters import escape_str as string_literal
     from pymysql.connections import Connection
+    lib_pymysql = 1
     setattr(Connection, 'open',
             property(lambda self: self.socket and self._rfile))
 
@@ -92,14 +95,20 @@ class ForeignKeyNotFound(SkylarkException):
 
 def patch_mysqldb_cursor(cursor):
     # let MySQLdb.cursor enable fetching after close
-    _, _cloned_generator = itertools.tee(cursor.fetchall())
+    rows = tuple(cursor.fetchall())
+
+    def create_generator():
+        for row in rows:
+            yield row
+
+    generator = create_generator()
 
     def fetchall():
-        return _cloned_generator
+        return generator
 
     def fetchone():
         try:
-            return _cloned_generator.next()
+            return generator.next()
         except StopIteration:
             pass
 
@@ -154,7 +163,7 @@ class Database(object):
     def execute(cls, sql):
         cursor = cls.get_conn().cursor()
         cursor.execute(sql)
-        if mysql.__name__ == 'MySQLdb':
+        if lib_mysqldb:
             patch_mysqldb_cursor(cursor)  # copy all data from origin cursor
         cursor.close()
         return cursor
