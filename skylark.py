@@ -50,7 +50,7 @@ if PY_VERSION == 3:
     from functools import reduce
 
 
-__version__ = '0.7.0'
+__version__ = '0.7.1'
 
 
 OP_LT = 1
