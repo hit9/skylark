@@ -39,7 +39,7 @@ Sample
     1L
 
 More sample codes `here
-<https://github.com/hit9/skylark/tree/master/docs/sample>`_.
+<https://github.com/hit9/skylark/tree/dev/sample>`_
 
 
 .. _requirements:
