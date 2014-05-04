@@ -383,6 +383,7 @@ class SelectResult(object):
     def __init__(self, cursor, model, nodes):
         self.cursor = cursor
         self.model = model
+        self.count = self.cursor.rowcount
 
         # distinct should be the first select node if it exists
         if len(nodes) >= 1 and isinstance(nodes[0], Distinct):
@@ -404,10 +405,6 @@ class SelectResult(object):
             self.returns = 1
         elif self.fields and self.funcs:
             self.returns = 2
-
-    @property
-    def count(self):
-        return self.cursor.rowcount
 
     def inst(self, model, row):
         inst = model()
