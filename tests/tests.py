@@ -55,7 +55,7 @@ from models import User, Post, TestCustomTableName, TestTableName
 sys.path.insert(0, '..')
 from skylark import Database, Compiler, fn, distinct, sql, \
     PrimaryKeyValueNotFound, ForeignKeyNotFound, \
-    Models, conn_is_up
+    Models
 
 
 tostr = Compiler.tostr
@@ -106,7 +106,7 @@ class TestDatabase(Test):
 
     def test_connect(self):
         Database.connect()
-        assert conn_is_up(Database.conn)
+        assert Database.conn_is_up()
 
     def test_execute(self):
         cursor = Database.execute('insert into user set user.name="test"')
@@ -119,7 +119,7 @@ class TestDatabase(Test):
 
         Database.config(db=mysql_db)
         Database.execute('insert into user set user.name="test"')
-        assert conn_is_up(Database.conn)
+        assert Database.conn_is_up()
         assert Database.conn is not conn
 
 

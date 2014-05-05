@@ -114,13 +114,6 @@ def patch_mysqldb_cursor(cursor):
     return cursor
 
 
-def conn_is_up(conn):
-    if lib_pymysql:
-        return conn and conn.socket and conn._rfile
-    if lib_mysqldb:
-        return conn and conn.open
-
-
 class DatabaseType(object):
 
     def __init__(self):
@@ -135,14 +128,18 @@ class DatabaseType(object):
         self.autocommit = True
         self.conn = None
 
-        self.conn_is_up = conn_is_up
+    def conn_is_up(self):
+        if lib_pymysql:
+            return self.conn and self.conn.socket and self.conn._rfile
+        if lib_mysqldb:
+            return self.conn and self.conn.open
 
     def config(self, autocommit=True, **configs):
         self.configs.update(configs)
         self.autocommit = autocommit
 
         # close active connection on configs change
-        if conn_is_up(self.conn):
+        if self.conn_is_up():
             self.conn.close()
 
     def connect(self):
@@ -150,7 +147,7 @@ class DatabaseType(object):
         self.conn.autocommit(self.autocommit)
 
     def get_conn(self):
-        if not conn_is_up(self.conn):
+        if not self.conn_is_up():
             self.connect()
 
         # make sure current connection is working
@@ -162,7 +159,7 @@ class DatabaseType(object):
         return self.conn
 
     def __del__(self):
-        if self.conn_is_up(self.conn):
+        if self.conn_is_up():
             return self.conn.close()
 
     def execute(self, sql):
@@ -177,7 +174,7 @@ class DatabaseType(object):
     def change(self, db):
         self.configs['db'] = db
 
-        if conn_is_up(self.conn):
+        if self.conn_is_up():
             self.conn.select_db(db)
 
     select_db = change  # alias
