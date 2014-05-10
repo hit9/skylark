@@ -29,7 +29,6 @@ __version__ = '0.7.5'
 __all__ = [
     'SkylarkException',
     'UnSupportedDBAPI',
-    'Database', 'database',
 ]
 
 
@@ -42,11 +41,6 @@ else:
     PY_VERSION = 3
 
 
-DB_API_MySQLdb = 1
-DB_API_pymysql = 2
-DB_API_sqlite3 = 3
-
-
 class SkylarkException(Exception):
     pass
 
@@ -55,67 +49,62 @@ class UnSupportedDBAPI(SkylarkException):
     pass
 
 
-class SL(object):
-
-    def __repr__(self):
-        return '<%s %r>' % (type(self).__name__, self._repr)
-
-
-class DBAPI(SL):
-
-    mappings = {
-        'MySQLdb': DB_API_MySQLdb,
-        'pymysql': DB_API_pymysql,
-        'sqlite3': DB_API_sqlite3,
-    }
+class DBAPI(object):
 
     def __init__(self, module):
-        name = module.__name__
+        self.module = module
 
-        if name in self.mappings:
-            self.module = module
-            self.type = self.mappings[name]
-        else:
-            raise UnSupportedDBAPI
 
-        self._repr = name
+class MySQLdbAPI(DBAPI):
+
+    def __init__(self, module):
+        super(MySQLdbAPI, self).__init__(module)
 
     def conn_is_up(self, conn):
-        if self.type is DB_API_MySQLdb:
-            return conn and conn.open
-        if self.type is DB_API_pymysql:
-            return conn and conn.socket and conn._rfile
+        return conn and conn.open
 
 
-class DatabaseType(SL):
+class PyMySQLAPI(DBAPI):
+
+    def __init__(self, module):
+        super(MySQLdbAPI, self).__init__(module)
+
+    def conn_is_up(self, conn):
+        return conn and conn.socket and conn._rfile
+
+
+DBAPI_MAPPINGS = {
+    'MySQLdb': MySQLdbAPI,
+    'pymysql': PyMySQLAPI
+}
+
+
+DBAPI_LOAD_ORDER = ('MySQLdb', 'pymysql', 'sqlite3')
+
+
+class DatabaseType(object):
 
     def __init__(self):
         self.configs = {}
         self.autocommit = True
         self.conn = None
-        self.db_api = None
+        self.dbapi = None
 
-        for name in sorted(DBAPI.mappings.keys(),
-                           key=lambda k: DBAPI.mappings[k]):
+        for name in DBAPI_LOAD_ORDER:
             try:
                 module = __import__(name)
             except ImportError:
                 continue
-            self.set_db_api(module)
+            self.set_dbapi(module)
             break
 
-        self._repr = self.db_api._repr
+    def set_dbapi(self, module):
+        name = module.__name__
 
-    def set_db_api(self, module):
-        self.db_api = DBAPI(module)
-
-    def config(self, autocommit=True, **configs):
-        self.configs.update(configs)
-        self.autocommit = autocommit
-
-        # close active connection on configs change
-        if self.db_api.conn_is_up(self.conn):
-            self.conn.close()
+        if name in DBAPI_MAPPINGS:
+            self.dbapi = DBAPI_MAPPINGS[name](module)
+        else:
+            raise UnSupportedDBAPI
 
 
 database = Database = DatabaseType()
