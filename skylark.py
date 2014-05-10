@@ -242,7 +242,9 @@ class DatabaseType(object):
         return cursor
 
     def execute_sql(self, sql):  # execute a sql object
-        return self.execute(sql.literal, sql.params)
+        if sql.params:
+            return self.execute(sql.literal, sql.params)
+        return self.execute(sql.literal)
 
     def change(self, db):
         self.configs.update({'db': db})
@@ -302,6 +304,18 @@ class Leaf(Node):
 
     __or__ = _e(OP_OR)
 
+    def like(self, pattern):
+        return Expr(self, pattern, OP_LIKE)
+
+    def between(self, left, right):
+        return Expr(self, (left, right), OP_BETWEEN)
+
+    def _in(self, *values):
+        return Expr(self, values, OP_IN)
+
+    def not_in(self, *values):
+        return Expr(self, values, OP_NOT_IN)
+
 
 class Expr(Leaf):
 
@@ -309,3 +323,50 @@ class Expr(Leaf):
         self.left = left
         self.right = right
         self.op = op
+
+
+class FieldDescriptor(object):
+
+    def __init__(self, field):
+        self.field = field
+
+    def __get__(self, instance, type=None):
+        if instance:
+            return instance.data[self.field.name]
+        return self.field
+
+    def __set__(self, instance, value):
+        instance.data[self.field.name] = value
+
+
+class Field(Leaf):
+
+    def __init__(self, is_primarykey=False, is_foreignkey=False):
+        self.is_primarykey = is_primarykey
+        self.is_foreignkey = is_foreignkey
+
+    def describe(self, name, model):
+        self.name = name
+        self.model = model
+        self.fullname = '%s.%s' % (self.model.table_name, self.name)
+        setattr(model, name, FieldDescriptor(self))
+
+    def alias(self, _alias):
+        field = self.clone()
+        field.name = _alias
+        field.fullname = '%s as %s' % (self.fullname, _alias)
+        setattr(self.model, field.name, FieldDescriptor(field))
+        return field
+
+
+class PrimaryKey(Field):
+
+    def __init__(self):
+        super(PrimaryKey, self).__init__(is_primarykey=True)
+
+
+class ForeignKey(Field):
+
+    def __init__(self, point_to):
+        super(ForeignKey, self).__init__(is_foreignkey=True)
+        self.point_to = point_to
