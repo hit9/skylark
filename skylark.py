@@ -29,6 +29,7 @@ __version__ = '0.7.5'
 __all__ = [
     'SkylarkException',
     'UnSupportedDBAPI',
+    'DatabaseNotSupportFeature',
     'database', 'Database'
 ]
 
@@ -47,6 +48,10 @@ class SkylarkException(Exception):
 
 
 class UnSupportedDBAPI(SkylarkException):
+    pass
+
+
+class DatabaseNotSupportFeature(SkylarkException):
     pass
 
 
@@ -74,11 +79,50 @@ class DBAPI(object):
             return False
         return True
 
+    def get_cursor(self, conn):
+        return conn.cursor()
+
+    def execute_cursor(self, cursor):
+        return cursor.execute()
+
+    def close_cursor(self, cursor):
+        return cursor.close()
+
+    def select_db(self, conn, db):
+        return conn.select_db(db)
+
 
 class MySQLdbAPI(DBAPI):
 
     def __init__(self, module):
         super(MySQLdbAPI, self).__init__(module)
+
+    def __patch_mysqldb_cursor(self, cursor):
+        # let MySQLdb.cursor enable fetching after close
+        rows = tuple(cursor.fetchall())
+
+        def create_generator():
+            for row in rows:
+                yield row
+
+        generator = create_generator()
+
+        def fetchall():
+            return generator
+
+        def fetchone():
+            try:
+                return generator.next()
+            except StopIteration:
+                pass
+
+        cursor.fetchall = fetchall
+        cursor.fetchone = fetchone
+        return cursor
+
+    def close_cursor(self, cursor):
+        cursor = self.__patch_mysqldb_cursor(cursor)
+        return super(MySQLdbAPI, self).close_cursor()
 
 
 class PyMySQLAPI(DBAPI):
@@ -110,6 +154,9 @@ class Sqlite3API(DBAPI):
 
     def ping_conn(self):
         pass  # TODO
+
+    def select_db(self, conn, db):
+        raise DatabaseNotSupportFeature
 
 
 DBAPI_MAPPINGS = {
@@ -172,8 +219,22 @@ class DatabaseType(object):
         if self.dbapi.conn_is_up(self.conn):
             return self.dbapi.close_conn(self.conn)
 
-    def execute(self, sql, params=None):
-        pass
+    def execute(self, **args):  # args: sql(string), params(tuple/dict)
+        cursor = self.dbapi.get_cursor(self.get_conn())
+        self.dbapi.execute_cursor(cursor)
+        self.dbapi.close_cursor(cursor)
+        return cursor
+
+    def execute_sql(self, sql):  # execute a sql object
+        return self.execute(sql.literal, sql.params)
+
+    def change(self, db):
+        self.configs.update({'db': db})
+
+        if self.dbapi.conn_is_up(self.conn):
+            return self.dbapi.select_db(self.conn, db)
+
+    select_db = change  # alias
 
 
 database = Database = DatabaseType()
