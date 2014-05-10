@@ -54,14 +54,30 @@ class DBAPI(object):
     def __init__(self, module):
         self.module = module
 
+    def conn_is_up(self, conn):
+        return conn and conn.open
+
+    def close_conn(self, conn):
+        return conn.close()
+
+    def connect(self, **configs):
+        return self.module.connect(**configs)
+
+    def set_autocommit(self, autocommit, conn):
+        return conn.autocommit(autocommit)
+
+    def ping_conn(self, conn):
+        try:
+            conn.ping()
+        except self.module.OperationalError:
+            return False
+        return True
+
 
 class MySQLdbAPI(DBAPI):
 
     def __init__(self, module):
         super(MySQLdbAPI, self).__init__(module)
-
-    def conn_is_up(self, conn):
-        return conn and conn.open
 
 
 class PyMySQLAPI(DBAPI):
@@ -73,9 +89,32 @@ class PyMySQLAPI(DBAPI):
         return conn and conn.socket and conn._rfile
 
 
+class Sqlite3API(DBAPI):
+
+    def __init__(self, module):
+        super(Sqlite3API, self).__init__(module)
+
+    def conn_is_up(self, conn):
+        pass
+
+    def close_conn(self, conn):
+        return conn.close()
+
+    def connect(self, **configs):
+        db = configs['db']
+        return self.module.connect(db)
+
+    def set_autocommit(self, autocommit, conn):
+        conn.isolation_level = None
+
+    def ping_conn(self):
+        pass  # TODO
+
+
 DBAPI_MAPPINGS = {
     'MySQLdb': MySQLdbAPI,
-    'pymysql': PyMySQLAPI
+    'pymysql': PyMySQLAPI,
+    'sqlite3': Sqlite3API
 }
 
 
@@ -105,6 +144,35 @@ class DatabaseType(object):
             self.dbapi = DBAPI_MAPPINGS[name](module)
         else:
             raise UnSupportedDBAPI
+
+    def config(self, autocommit=True, **configs):
+        self.configs.update(configs)
+        self.autocommit = autocommit
+
+        # close active connection on configs change
+        if self.dbapi.conn_is_up(self.conn):
+            self.dbapi.close_conn(self.conn)
+
+    def connect(self):
+        self.conn = self.dbapi.connect(**self.configs)
+        self.dbapi.set_autocommit(self.autocommit, self.conn)
+
+    def get_conn(self):
+        if not self.dbapi.conn_is_up(self.conn):
+            self.connect()
+
+        # make sure current connection is working
+        if not self.dbapi.ping_conn(self.conn):
+            self.connect()
+
+        return self.conn
+
+    def __del__(self):
+        if self.dbapi.conn_is_up(self.conn):
+            return self.dbapi.close_conn(self.conn)
+
+    def execute(self, sql, params=None):
+        pass
 
 
 database = Database = DatabaseType()
