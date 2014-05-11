@@ -165,6 +165,9 @@ class Sqlite3API(DBAPI):
         if self.conn_is_open(conn):
             self.close_conn(conn)
 
+    def conn_is_alive(self, conn):
+        return 1   # sqlite is serverless
+
 
 class Psycopg2API(DBAPI):
 
@@ -179,6 +182,13 @@ class Psycopg2API(DBAPI):
         configs.update({'database': db})
         if self.conn_is_alive(conn):
             self.close_conn(conn)
+
+    def conn_is_alive(self, conn):
+        try:
+            conn.isolation_level
+        except self.module.OperationalError:
+            return False
+        return True
 
 
 DBAPI_MAPPINGS = {
