@@ -89,6 +89,9 @@ class DBAPI(object):
     def setdefault_autocommit(self, conn, configs):
         return conn.autocommit(configs.get('autocommit', True))
 
+    def get_autocommit(self, conn):
+        return bool(conn.autocommit)
+
     def conn_is_alive(self, conn):
         try:
             conn.ping()
@@ -138,7 +141,7 @@ class MySQLdbAPI(DBAPI):
 
     def close_cursor(self, cursor):
         cursor = self.__patch_mysqldb_cursor(cursor)
-        return super(MySQLdbAPI, self).close_cursor()
+        return super(MySQLdbAPI, self).close_cursor(cursor)
 
 
 class PyMySQLAPI(DBAPI):
@@ -150,7 +153,14 @@ class PyMySQLAPI(DBAPI):
 class Sqlite3API(DBAPI):
 
     def conn_is_open(self, conn):
-        return conn
+        if conn:
+            try:
+                # return the total number of db rows that have been modified
+                conn.total_changes
+            except self.module.ProgrammingError:
+                return False
+            return True
+        return False
 
     def connect(self, **configs):
         db = configs['db']
@@ -158,6 +168,11 @@ class Sqlite3API(DBAPI):
 
     def setdefault_autocommit(self, conn, configs):
         conn.isolation_level = configs.get('isolation_level', None)
+
+    def get_autocommit(self, conn):
+        if conn.isolation_level is None:
+            return True
+        return False
 
     def select_db(self, db, conn, configs):
         # for sqlite3, to change database, must create a new connection
@@ -239,6 +254,7 @@ class DatabaseType(object):
     def connect(self):
         self.conn = self.dbapi.connect(**self.configs)
         self.dbapi.setdefault_autocommit(self.conn, self.configs)
+        return self.conn
 
     def get_conn(self):
         if not (

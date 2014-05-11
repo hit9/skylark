@@ -13,3 +13,4 @@ testx
 docs/en/_build
 docs/zh/_build
 __pycache__
+skylarktests*
