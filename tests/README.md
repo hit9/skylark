@@ -3,11 +3,13 @@ How to run tests
 
 1. Install Requirements:
 
-    pip install toml.py
-    pip install nose
-    pip install MySQLdb
-    pip install pymysql
-    pip install psycopg2
+   ```
+   pip install toml.py
+   pip install nose
+   pip install MySQLdb
+   pip install pymysql
+   pip install psycopg2
+   ```
 
 2. Create databases:
 
@@ -16,7 +18,7 @@ How to run tests
    mysql> create database skylarktests;
    ```
 
-   for sqlite3: Nothing;
+   for sqlite3: None.
 
    for postgres(user: `postgres`, password: ``)
    ```
