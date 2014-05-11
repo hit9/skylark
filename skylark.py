@@ -23,18 +23,22 @@
     :license: BSD.
 """
 
-__version__ = '0.7.5'
-
 
 __all__ = [
+    '__version__',
     'SkylarkException',
     'UnSupportedDBAPI',
     'DatabaseNotSupportFeature',
     'database', 'Database',
     'sql', 'SQL',
-    'Field', 'PrimaryKey', 'ForeignKey',
+    'Field',
+    'PrimaryKey',
+    'ForeignKey',
     'fn'
 ]
+
+
+__version__ = '0.7.5'
 
 
 import sys
@@ -86,13 +90,16 @@ class DBAPI(object):
     def close_conn(self, conn):
         return conn.close()
 
-    def connect(self, **configs):
-        return self.module.connect(**configs)
+    def get_autocommit(self, configs):
+        return configs.get('autocommit', True)
 
     def set_autocommit(self, autocommit, conn):
         return conn.autocommit(autocommit)
 
-    def ping_conn(self, conn):
+    def connect(self, **configs):
+        return self.module.connect(**configs)
+
+    def conn_is_working(self, conn):
         try:
             conn.ping()
         except self.module.OperationalError:
@@ -102,8 +109,8 @@ class DBAPI(object):
     def get_cursor(self, conn):
         return conn.cursor()
 
-    def execute_cursor(self, cursor):
-        return cursor.execute()
+    def execute_cursor(self, cursor, *args):
+        return cursor.execute(*args)
 
     def close_cursor(self, cursor):
         return cursor.close()
@@ -113,9 +120,6 @@ class DBAPI(object):
 
 
 class MySQLdbAPI(DBAPI):
-
-    def __init__(self, module):
-        super(MySQLdbAPI, self).__init__(module)
 
     def __patch_mysqldb_cursor(self, cursor):
         # let MySQLdb.cursor enable fetching after close
@@ -147,53 +151,72 @@ class MySQLdbAPI(DBAPI):
 
 class PyMySQLAPI(DBAPI):
 
-    def __init__(self, module):
-        super(PyMySQLAPI, self).__init__(module)
-
     def conn_is_up(self, conn):
         return conn and conn.socket and conn._rfile
 
 
 class Sqlite3API(DBAPI):
 
-    def __init__(self, module):
-        super(Sqlite3API, self).__init__(module)
+    conn_config_key_db = 'db'
 
     def conn_is_up(self, conn):
-        pass
+        return conn
 
-    def close_conn(self, conn):
-        return conn.close()
+    def get_autocommit(self, configs):
+        return configs.get('isolation_level', None)
+
+    def set_autocommit(self, isolation_level, conn):
+        conn.isolation_level = isolation_level
 
     def connect(self, **configs):
-        db = configs['db']
+        db = configs[self.conn_config_key_db]
         return self.module.connect(db)
 
-    def set_autocommit(self, autocommit, conn):
-        conn.isolation_level = None
-
-    def ping_conn(self):
-        pass  # TODO
+    def conn_is_working(self, conn):  # pass
+        return self.conn_is_up(conn)
 
     def select_db(self, conn, db):
         raise DatabaseNotSupportFeature
 
 
+class Psycopg2API(DBAPI):
+
+    conn_config_key_db = 'database'
+
+    def conn_is_up(self, conn):
+        return conn and not conn.closed
+
+    def set_autocommit(self, autocommit, conn):
+        # either set autocommit or set_isolation_level to 0
+        conn.autocommit = autocommit
+
+    def conn_is_working(self, conn):
+        try:
+            conn.isolation_level
+        except self.module.OperationalError:
+            return False
+        return True
+
+    def select_db(self, conn, db):
+        # for psql, to change database, must create a new connection
+        pass
+
+
 DBAPI_MAPPINGS = {
     'MySQLdb': MySQLdbAPI,
     'pymysql': PyMySQLAPI,
-    'sqlite3': Sqlite3API
+    'sqlite3': Sqlite3API,
+    'psycopg2': Psycopg2API
 }
 
 
-DBAPI_LOAD_ORDER = ('MySQLdb', 'pymysql', 'sqlite3')
+DBAPI_LOAD_ORDER = ('MySQLdb', 'pymysql', 'psycopg2', 'sqlite3')
 
 
 class DatabaseType(object):
 
     def __init__(self):
-        self.configs = {}  # configs for connection
-        self.autocommit = True
+        self.configs = {}
         self.conn = None
         self.dbapi = None
 
@@ -213,9 +236,8 @@ class DatabaseType(object):
         else:
             raise UnSupportedDBAPI
 
-    def config(self, autocommit=True, **configs):
+    def config(self, **configs):
         self.configs.update(configs)
-        self.autocommit = autocommit
 
         # close active connection on configs change
         if self.dbapi.conn_is_up(self.conn):
@@ -223,14 +245,14 @@ class DatabaseType(object):
 
     def connect(self):
         self.conn = self.dbapi.connect(**self.configs)
-        self.dbapi.set_autocommit(self.autocommit, self.conn)
+        autocommit = self.dbapi.get_autocommit(self.configs)
+        self.dbapi.set_autocommit(autocommit, self.conn)
 
     def get_conn(self):
         if not self.dbapi.conn_is_up(self.conn):
             self.connect()
 
-        # make sure current connection is working
-        if not self.dbapi.ping_conn(self.conn):
+        if not self.dbapi.conn_is_working(self.conn):
             self.connect()
 
         return self.conn
@@ -239,16 +261,14 @@ class DatabaseType(object):
         if self.dbapi.conn_is_up(self.conn):
             return self.dbapi.close_conn(self.conn)
 
-    def execute(self, **args):  # args: sql(string), params(tuple/dict)
+    def execute(self, *args):  # args: sql string, params
         cursor = self.dbapi.get_cursor(self.get_conn())
-        self.dbapi.execute_cursor(cursor)
+        self.dbapi.execute_cursor(cursor, *args)
         self.dbapi.close_cursor(cursor)
         return cursor
 
     def execute_sql(self, sql):  # execute a sql object
-        if sql.params:
-            return self.execute(sql.literal, sql.params)
-        return self.execute(sql.literal)
+        return self.execute_sql(**((sql.literal, ) + sql.params))
 
     def change(self, db):
         self.configs.update({self.dbapi.conn_config_key_db: db})
