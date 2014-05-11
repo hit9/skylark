@@ -75,6 +75,8 @@ class DatabaseNotSupportFeature(SkylarkException):
 
 class DBAPI(object):
 
+    conn_config_key_db = 'db'
+
     def __init__(self, module):
         self.module = module
 
@@ -95,7 +97,7 @@ class DBAPI(object):
             conn.ping()
         except self.module.OperationalError:
             return False
-        return True
+        return True  # ok
 
     def get_cursor(self, conn):
         return conn.cursor()
@@ -190,7 +192,7 @@ DBAPI_LOAD_ORDER = ('MySQLdb', 'pymysql', 'sqlite3')
 class DatabaseType(object):
 
     def __init__(self):
-        self.configs = {}
+        self.configs = {}  # configs for connection
         self.autocommit = True
         self.conn = None
         self.dbapi = None
@@ -249,7 +251,7 @@ class DatabaseType(object):
         return self.execute(sql.literal)
 
     def change(self, db):
-        self.configs.update({'db': db})
+        self.configs.update({self.dbapi.conn_config_key_db: db})
 
         if self.dbapi.conn_is_up(self.conn):
             return self.dbapi.select_db(self.conn, db)
