@@ -31,7 +31,9 @@ __all__ = [
     'UnSupportedDBAPI',
     'DatabaseNotSupportFeature',
     'database', 'Database',
-    'sql', 'SQL'
+    'sql', 'SQL',
+    'Field', 'PrimaryKey', 'ForeignKey',
+    'fn'
 ]
 
 
@@ -144,7 +146,7 @@ class MySQLdbAPI(DBAPI):
 class PyMySQLAPI(DBAPI):
 
     def __init__(self, module):
-        super(MySQLdbAPI, self).__init__(module)
+        super(PyMySQLAPI, self).__init__(module)
 
     def conn_is_up(self, conn):
         return conn and conn.socket and conn._rfile
@@ -370,3 +372,47 @@ class ForeignKey(Field):
     def __init__(self, point_to):
         super(ForeignKey, self).__init__(is_foreignkey=True)
         self.point_to = point_to
+
+
+class Function(Leaf):
+
+    def __init__(self, name, *args):
+        self.name = name
+        self.args = args
+        self.fullname = '%s(%s)'  # pass
+
+    def alias(self, _alias):
+        fn = self.clone(self.name, *self.args)
+        fn.name = _alias
+        fn.fullname = '%s as %s' % (self.fullname, _alias)
+        return fn
+
+
+class Func(object):
+
+    def __init__(self, data=None):
+        if data is None:
+            data = {}
+        self.data = data
+
+    def __getattr__(self, name):
+        if name in self.data:
+            return self.data[name]
+        raise AttributeError
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+
+class Fn(object):
+
+    def _e(self, name):
+        def e(*args):
+            return Function(name, *args)
+        return e
+
+    def __getattr_(self, name):
+        return self._e(name)
+
+
+fn = Fn()
