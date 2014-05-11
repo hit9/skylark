@@ -1,14 +1,4 @@
 # coding=utf8
-#
-# How to Run tests:
-# Requirements:
-#    pip install toml.py
-#    pip install pymysql
-#    pip install MySQL-python
-#    pip install psycopg2
-#
-# ./runtests.sh
-
 
 import os
 import sys
