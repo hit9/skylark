@@ -17,7 +17,7 @@
     skylark
     ~~~~~~~
 
-    A nice micro orm for python (mysql, sqlite3, postgres).
+    Micro python orm for mysql, sqlite and postgres.
 
     :author: Chao Wang (Hit9).
     :license: BSD.
@@ -63,6 +63,11 @@ OP_BETWEEN = 11
 OP_IN = 12
 OP_NOT_IN = 13
 
+QUERY_INSERT = 21
+QUERY_UPDATE = 22
+QUERY_SELECT = 23
+QUERY_DELETE = 24
+
 
 class SkylarkException(Exception):
     pass
@@ -73,6 +78,8 @@ class UnSupportedDBAPI(SkylarkException):
 
 
 class DBAPI(object):
+
+    placeholder = '%s'
 
     def __init__(self, module):
         self.module = module
@@ -151,6 +158,8 @@ class PyMySQLAPI(DBAPI):
 
 
 class Sqlite3API(DBAPI):
+
+    placeholder = '?'
 
     def conn_is_open(self, conn):
         if conn:
@@ -288,26 +297,25 @@ database = Database = DatabaseType()
 
 class SQL(object):
 
-    def __init__(self, literal, params=None):
+    def __init__(self, literal, *params):
         self.literal = literal
-        if params is None:
-            params = tuple()
         self.params = params
+
+    def format(self, *args):
+        literal = self.literal % tuple(arg.literal for arg in args)
+        params = sum([arg.params for arg in args], tuple())
+        return sql(literal, *params)
+
+    def join(self, seq):
+        literal = self.literal.join(s.literal for s in seq)
+        params = sum([s.params for s in seq], tuple())
+        return sql(literal, *params)
 
 
 sql = SQL  # alias
 
 
-class Node(object):
-
-    def clone(self, *args, **kwargs):
-        obj = type(self)(*args, **kwargs)
-        for key, value in self.__dict__.items():
-            setattr(obj, key, value)
-        return obj
-
-
-class Leaf(Node):
+class Leaf(object):
 
     def _e(op):
         def e(self, right):
@@ -353,6 +361,15 @@ class Expr(Leaf):
         self.op = op
 
 
+class Alias(object):
+
+    def __init__(self, inst, _alias):
+        for key, value in inst.__dict__.items():
+            setattr(self, key, value)
+        self._alias = _alias
+        self._inst = inst
+
+
 class FieldDescriptor(object):
 
     def __init__(self, field):
@@ -376,15 +393,12 @@ class Field(Leaf):
     def describe(self, name, model):
         self.name = name
         self.model = model
-        self.fullname = '%s.%s' % (self.model.table_name, self.name)
         setattr(model, name, FieldDescriptor(self))
 
-    def alias(self, _alias):
-        field = self.clone()
-        field.name = _alias
-        field.fullname = '%s as %s' % (self.fullname, _alias)
-        setattr(self.model, field.name, FieldDescriptor(field))
-        return field
+    def alias(self, alias_name):
+        _alias = Alias(self, alias_name)
+        setattr(self.model, alias_name, FieldDescriptor(_alias))
+        return _alias
 
 
 class PrimaryKey(Field):
@@ -405,13 +419,9 @@ class Function(Leaf):
     def __init__(self, name, *args):
         self.name = name
         self.args = args
-        self.fullname = '%s(%s)'  # pass
 
-    def alias(self, _alias):
-        fn = self.clone(self.name, *self.args)
-        fn.name = _alias
-        fn.fullname = '%s as %s' % (self.fullname, _alias)
-        return fn
+    def alias(self, alias_name):
+        return Alias(self, alias_name)
 
 
 class Func(object):
@@ -444,14 +454,59 @@ class Fn(object):
 fn = Fn()
 
 
-class Distinct(Node):
+class Distinct(object):
     # 'distinct user.name, user.email..' -> legal
     # 'user.id distinct user.name' -> illegal
     # 'user.id, count(distinct user.name)' -> legal
 
     def __init__(self, *args):
         self.args = args
-        self.fullname = 'distinct(%s)'  # pass
 
 
 distinct = Distinct
+
+
+class Compiler(object):
+
+    mappings = {
+        OP_LT: '<',
+        OP_LE: '<=',
+        OP_GT: '>',
+        OP_GE: '>=',
+        OP_EQ: '=',
+        OP_NE: '<>',
+        OP_ADD: '+',
+        OP_AND: 'and',
+        OP_OR: 'or',
+        OP_LIKE: 'like',
+        OP_BETWEEN: 'between',
+        OP_IN: 'in',
+        OP_NOT_IN: 'not in'
+    }
+
+    def thing2sql(data):
+        return sql(database.dbapi.placeholder, data)
+
+    def field2sql(field):
+        return sql('%s.%s' % (field.model.name, field.name))
+
+    def function2sql(function):
+        spec = sql('%s(%%s)' % function.name)
+        args = sql(', ').join(map(compiler.sql, function.args))
+        return spec.format(args)
+
+    conversions = {
+        None: thing2sql,
+        Field: field2sql,
+        PrimaryKey: field2sql,
+        Function: function2sql,
+    }
+
+    def sql(self, e):
+        tp = type(e)
+        if tp in self.conversions:
+            return self.conversions[tp](e)
+        return self.conversions[None](e)
+
+
+compiler = Compiler()
