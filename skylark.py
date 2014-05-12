@@ -77,6 +77,18 @@ QUERY_SELECT = 23
 QUERY_DELETE = 24
 
 
+# runtimes with mappings (~20)
+RUNTIME_WHERE = 1
+RUNTIME_VALUES = 2
+RUNTIME_SET = 3
+# runtimes with sequence (20+)
+RUNTIME_ORDERBY = 21
+RUNTIME_SELECT = 22
+RUNTIME_LIMIT = 23
+RUNTIME_GROUPBY = 24
+RUNTIME_HAVING = 25
+
+
 class SkylarkException(Exception):
     pass
 
@@ -555,12 +567,52 @@ compiler = Compiler()
 
 class Runtime(object):
 
+    RUNTIMES = (
+        RUNTIME_WHERE,
+        RUNTIME_VALUES,
+        RUNTIME_SET,
+        RUNTIME_ORDERBY,
+        RUNTIME_SELECT,
+        RUNTIME_LIMIT,
+        RUNTIME_GROUPBY,
+        RUNTIME_HAVING
+    )
+
     def __init__(self, model):
         self.model = model
         self.reset_data()
 
     def reset_data(self):
-        pass
+        # dont use {}.fromkeys(keys, [])
+        self.data = dict((key, []) for key in self.RUNTIMES)
+
+    def e(tp):
+        if tp < 20:
+            def _e(self, lst):
+                self.data[tp] = list(lst)
+        else:
+            def _e(self, lst, dct):
+                lst = list(lst)
+                if self.model.single:
+                    lst.extend(self.fields[k] == v for k, v in dct.items())
+                self.data[tp] = lst
+        return _e
+
+    set_orderby = e(RUNTIME_ORDERBY)  # field/function, desc(boolean)
+
+    set_groupby = e(RUNTIME_GROUPBY)  # fields/functions
+
+    set_having = e(RUNTIME_HAVING)  # exprs
+
+    set_limit = e(RUNTIME_LIMIT)  # rows, offset
+
+    set_select = e(RUNTIME_SELECT)  # fields/functions/alias/distincts
+
+    set_set = e(RUNTIME_SET)  # value mappings to update
+
+    set_where = e(RUNTIME_WHERE)  # exprs/mappings
+
+    set_values = e(RUNTIME_VALUES)  # value mappings to insert
 
 
 class MetaModel(type):
