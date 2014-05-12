@@ -510,7 +510,6 @@ class Compiler(object):
 
     def expr2sql(expr):
         op = compiler.mappings[expr.op]
-
         left = compiler.sql(expr.left)
 
         if expr.op < 100:  # common operators
@@ -569,7 +568,7 @@ class MetaModel(type):
                     primarykey = value
             elif name == 'table_name':
                 table_name = value
-            elif name == 'table_preifx':
+            elif name == 'table_prefix':
                 table_prefix = value
 
         if table_name is None:

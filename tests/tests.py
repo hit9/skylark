@@ -8,7 +8,8 @@ logging.basicConfig(level=logging.INFO)
 import toml
 
 sys.path.insert(0, '..')
-from skylark import Database, database, DBAPI_MAPPINGS, DatabaseType
+from models import User, Post
+from skylark import Database, database, DBAPI_MAPPINGS, DatabaseType, Model
 
 dbapi_name = os.environ.get('DBAPI', 'MySQLdb')
 dbapi = __import__(dbapi_name)
@@ -150,3 +151,37 @@ class TestDatabase(Test):
         else:
             self.database.conn is not old_conn
             assert not self.database.dbapi.conn_is_open(old_conn)
+
+
+class TestModel:
+
+    def test_table_name(self):
+        class MyModel(Model):
+            pass
+        assert MyModel.table_name == 'my_model'
+
+        class Member(Model):
+            pass
+        assert Member.table_name == 'member'
+
+        class Cat(Model):
+            table_name = 'cute_cat'
+        assert Cat.table_name == 'cute_cat'
+
+    def test_table_prefix(self):
+        class Users(Model):
+            table_prefix = 't_'
+        assert Users.table_name == 't_users'
+
+        class CuteDog(Model):
+            table_prefix = 'dd_'
+        assert CuteDog.table_name == 'dd_cute_dog'
+
+        class Dog(Model):
+            table_name = 'custom_table_name'
+            table_prefix = 'd_'
+        assert Dog.table_name == 'd_custom_table_name'
+
+    def test_primarykey(self):
+        assert User.primarykey is User.id
+        assert Post.primarykey is Post.post_id
