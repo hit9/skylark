@@ -370,11 +370,11 @@ class Expr(Leaf):
 
 class Alias(object):
 
-    def __init__(self, inst, _alias):
+    def __init__(self, name, inst):
         for key, value in inst.__dict__.items():
             setattr(self, key, value)
-        self._alias = _alias
-        self._inst = inst
+        self.name = name
+        self.inst = inst
 
 
 class FieldDescriptor(object):
@@ -403,7 +403,7 @@ class Field(Leaf):
         setattr(model, name, FieldDescriptor(self))
 
     def alias(self, alias_name):
-        _alias = Alias(self, alias_name)
+        _alias = Alias(alias_name, self)
         setattr(self.model, alias_name, FieldDescriptor(_alias))
         return _alias
 
@@ -428,7 +428,7 @@ class Function(Leaf):
         self.args = args
 
     def alias(self, alias_name):
-        return Alias(self, alias_name)
+        return Alias(alias_name, self)
 
 
 class Func(object):
@@ -494,6 +494,10 @@ class Compiler(object):
     def thing2sql(data):
         return sql(database.dbapi.placeholder, data)
 
+    def alias2sql(alias):
+        spec = '%%s as %s' % alias.name
+        return sql.format(spec, compiler.sql(alias.inst))
+
     def field2sql(field):
         return sql('%s.%s' % (field.model.table_name, field.name))
 
@@ -504,6 +508,7 @@ class Compiler(object):
 
     conversions = {
         None: thing2sql,
+        Alias: alias2sql,
         Field: field2sql,
         PrimaryKey: field2sql,
         ForeignKey: field2sql,
