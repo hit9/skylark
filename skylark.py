@@ -33,7 +33,8 @@ __all__ = [
     'Field',
     'PrimaryKey',
     'ForeignKey',
-    'fn'
+    'fn',
+    'Model',
 ]
 
 
@@ -47,6 +48,10 @@ if sys.hexversion < 0x03000000:
     PY_VERSION = 2
 else:
     PY_VERSION = 3
+
+
+if PY_VERSION == 3:
+    from functools import reduce
 
 
 OP_LT = 1
@@ -301,15 +306,17 @@ class SQL(object):
         self.literal = literal
         self.params = params
 
-    def format(self, *args):
-        literal = self.literal % tuple(arg.literal for arg in args)
+    @classmethod
+    def format(cls, spec, *args):
+        literal = spec % tuple(arg.literal for arg in args)
         params = sum([arg.params for arg in args], tuple())
-        return sql(literal, *params)
+        return cls(literal, *params)
 
-    def join(self, seq):
-        literal = self.literal.join(s.literal for s in seq)
+    @classmethod
+    def join(cls, sptr, seq):
+        literal = sptr.join(s.literal for s in seq)
         params = sum([s.params for s in seq], tuple())
-        return sql(literal, *params)
+        return cls(literal, *params)
 
 
 sql = SQL  # alias
@@ -447,7 +454,7 @@ class Fn(object):
             return Function(name, *args)
         return e
 
-    def __getattr_(self, name):
+    def __getattr__(self, name):
         return self._e(name)
 
 
@@ -488,17 +495,18 @@ class Compiler(object):
         return sql(database.dbapi.placeholder, data)
 
     def field2sql(field):
-        return sql('%s.%s' % (field.model.name, field.name))
+        return sql('%s.%s' % (field.model.table_name, field.name))
 
     def function2sql(function):
-        spec = sql('%s(%%s)' % function.name)
-        args = sql(', ').join(map(compiler.sql, function.args))
-        return spec.format(args)
+        spec = '%s(%%s)' % function.name
+        args = sql.join(', ', map(compiler.sql, function.args))
+        return sql.format(spec, args)
 
     conversions = {
         None: thing2sql,
         Field: field2sql,
         PrimaryKey: field2sql,
+        ForeignKey: field2sql,
         Function: function2sql,
     }
 
@@ -510,3 +518,57 @@ class Compiler(object):
 
 
 compiler = Compiler()
+
+
+class Runtime(object):
+
+    def __init__(self, model=None):
+        pass
+
+
+class MetaModel(type):
+
+    def __init__(cls, name, bases, attrs):
+        table_name = None
+        table_prefix = None
+        primarykey = None
+        fields = {}
+
+        for name, value in cls.__dict__.items():
+            if isinstance(value, Field):
+                fields[name] = value
+                if value.is_primarykey:
+                    primarykey = value
+            elif name == 'table_name':
+                table_name = value
+            elif name == 'table_preifx':
+                table_prefix = value
+
+        if table_name is None:
+            table_name = cls.__default_table_name()
+
+        if table_prefix:
+            table_name = table_prefix + table_name
+
+        if primarykey is None:
+            fields['id'] = primarykey = PrimaryKey()
+
+        cls.primarykey = primarykey
+        cls.table_name = table_name
+        cls.fields = fields
+
+        for name, field in cls.fields.items():
+            field.describe(name, cls)
+
+        cls.runtime = Runtime(cls)
+
+    def __default_table_name(cls):
+        # default: 'User' => 'user', 'CuteCat' => 'cute_cat'
+        def e(x, y):
+            s = '_' if y.isupper() else ''
+            return s.join((x, y))
+        return reduce(e, list(cls.__name__)).lower()
+
+
+class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
+    pass
