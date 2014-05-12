@@ -70,6 +70,7 @@ OP_BETWEEN = 101
 OP_IN = 102
 OP_NOT_IN = 103
 
+# query types
 QUERY_INSERT = 21
 QUERY_UPDATE = 22
 QUERY_SELECT = 23
@@ -508,6 +509,10 @@ class Compiler(object):
         args = sql.join(', ', map(compiler.sql, function.args))
         return sql.format(spec, args)
 
+    def distinct2sql(distinct):
+        args = sql.join(', ', map(compiler.sql, distinct.args))
+        return sql.format('distinct(%s)', args)
+
     def expr2sql(expr):
         op = compiler.mappings[expr.op]
         left = compiler.sql(expr.left)
@@ -535,6 +540,7 @@ class Compiler(object):
         PrimaryKey: field2sql,
         ForeignKey: field2sql,
         Function: function2sql,
+        Distinct: distinct2sql
     }
 
     def sql(self, e):
@@ -549,7 +555,11 @@ compiler = Compiler()
 
 class Runtime(object):
 
-    def __init__(self, model=None):
+    def __init__(self, model):
+        self.model = model
+        self.reset_data()
+
+    def reset_data(self):
         pass
 
 
