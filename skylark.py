@@ -53,7 +53,7 @@ else:
 if PY_VERSION == 3:
     from functools import reduce
 
-
+# common operators (~100)
 OP_LT = 1
 OP_LE = 2
 OP_GT = 3
@@ -64,9 +64,11 @@ OP_ADD = 7
 OP_AND = 8
 OP_OR = 9
 OP_LIKE = 10
-OP_BETWEEN = 11
-OP_IN = 12
-OP_NOT_IN = 13
+
+# special operators (100+)
+OP_BETWEEN = 101
+OP_IN = 102
+OP_NOT_IN = 103
 
 QUERY_INSERT = 21
 QUERY_UPDATE = 22
@@ -506,8 +508,29 @@ class Compiler(object):
         args = sql.join(', ', map(compiler.sql, function.args))
         return sql.format(spec, args)
 
+    def expr2sql(expr):
+        op = compiler.mappings[expr.op]
+
+        left = compiler.sql(expr.left)
+
+        if expr.op < 100:  # common operators
+            right = compiler.sql(expr.right)
+        elif expr.op is OP_BETWEEN:
+            right = sql.join(' and ', map(compiler.sql, expr.right))
+        elif expr.op in (OP_IN, OP_NOT_IN):
+            right = sql.format(
+                '(%s)', sql.join(', ', map(compiler.sql, expr.right)))
+
+        spec = '%%s %s %%s' % op
+
+        if expr.op in (OP_AND, OP_OR):
+            spec = '(%s)' % spec
+
+        return sql.format(spec, left, right)
+
     conversions = {
         None: thing2sql,
+        Expr: expr2sql,
         Alias: alias2sql,
         Field: field2sql,
         PrimaryKey: field2sql,
