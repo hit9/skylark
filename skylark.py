@@ -77,16 +77,15 @@ QUERY_SELECT = 23
 QUERY_DELETE = 24
 
 
-# runtimes with mappings (~20)
+# runtimes
 RUNTIME_WHERE = 1
 RUNTIME_VALUES = 2
 RUNTIME_SET = 3
-# runtimes with sequence (20+)
-RUNTIME_ORDERBY = 21
-RUNTIME_SELECT = 22
-RUNTIME_LIMIT = 23
-RUNTIME_GROUPBY = 24
-RUNTIME_HAVING = 25
+RUNTIME_ORDERBY = 4
+RUNTIME_SELECT = 5
+RUNTIME_LIMIT = 6
+RUNTIME_GROUPBY = 7
+RUNTIME_HAVING = 8
 
 
 class SkylarkException(Exception):
@@ -578,8 +577,7 @@ class Runtime(object):
         RUNTIME_HAVING
     )
 
-    def __init__(self, model):
-        self.model = model
+    def __init__(self):
         self.reset_data()
 
     def reset_data(self):
@@ -587,15 +585,8 @@ class Runtime(object):
         self.data = dict((key, []) for key in self.RUNTIMES)
 
     def e(tp):
-        if tp < 20:
-            def _e(self, lst):
-                self.data[tp] = list(lst)
-        else:
-            def _e(self, lst, dct):
-                lst = list(lst)
-                if self.model.single:
-                    lst.extend(self.fields[k] == v for k, v in dct.items())
-                self.data[tp] = lst
+        def _e(self, lst):
+            self.data[tp] = list(lst)
         return _e
 
     set_orderby = e(RUNTIME_ORDERBY)  # field/function, desc(boolean)
@@ -649,7 +640,7 @@ class MetaModel(type):
         for name, field in cls.fields.items():
             field.describe(name, cls)
 
-        cls.runtime = Runtime(cls)
+        cls.runtime = Runtime()
 
     def __default_table_name(cls):
         # default: 'User' => 'user', 'CuteCat' => 'cute_cat'
