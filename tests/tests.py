@@ -185,3 +185,11 @@ class TestModel:
     def test_primarykey(self):
         assert User.primarykey is User.id
         assert Post.primarykey is Post.post_id
+
+    def test_fields(self):
+        field_names = set(User.fields.keys())
+        _field_names = set(('id', 'name', 'email'))
+        assert field_names == _field_names
+        field_names = set(Post.fields.keys())
+        _field_names = set(('post_id', 'name', 'user_id'))
+        assert field_names == _field_names
