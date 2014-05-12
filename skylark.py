@@ -17,7 +17,7 @@
     skylark
     ~~~~~~~
 
-    A nice micro orm for python, mysql only.
+    A nice micro orm for python (mysql, sqlite3, postgres).
 
     :author: Chao Wang (Hit9).
     :license: BSD.
@@ -442,3 +442,16 @@ class Fn(object):
 
 
 fn = Fn()
+
+
+class Distinct(Node):
+    # 'distinct user.name, user.email..' -> legal
+    # 'user.id distinct user.name' -> illegal
+    # 'user.id, count(distinct user.name)' -> legal
+
+    def __init__(self, *args):
+        self.args = args
+        self.fullname = 'distinct(%s)'  # pass
+
+
+distinct = Distinct
