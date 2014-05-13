@@ -414,6 +414,7 @@ class Field(Leaf):
     def describe(self, name, model):
         self.name = name
         self.model = model
+        self.fullname = '%s.%s' % (model.table_name, name)
         setattr(model, name, FieldDescriptor(self))
 
     def alias(self, alias_name):
@@ -518,8 +519,8 @@ class UpdateQuery(Query):
 class SelectQuery(Query):
 
     def __init__(self, runtime):
-        self.from_model = runtime.model
-        self.selects = runtime.data[RUNTIME_SELECT]
+        self.model = runtime.model
+        self.nodes = runtime.data[RUNTIME_SELECT]
         super(SelectQuery, self).__init__(QUERY_SELECT, runtime, None)
 
     def __iter__(self):
@@ -528,7 +529,7 @@ class SelectQuery(Query):
 
     def execute(self):
         cursor = database.execute_sql(self.sql)
-        return SelectResult(cursor, self.from_model, self.selects)
+        return SelectResult(cursor, self.model, self.nodes)
 
 
 class DeleteQuery(Query):
@@ -542,7 +543,87 @@ class DeleteQuery(Query):
 
 
 class SelectResult(object):
-    pass
+
+    def __init__(self, cursor, model, nodes):
+        self.cursor = cursor
+        self.model = model
+        self.count = self.cursor.rowcount
+
+        # distinct should be the first select node if it exists
+        if len(nodes) >= 1 and isinstance(nodes[0], Distinct):
+            nodes = list(nodes[0].args) + nodes[1:]
+
+        self.fields = {}
+        self.funcs = {}
+
+        for idx, node in enumerate(nodes):
+            if isinstance(node, Field):
+                self.fields[idx] = node
+            elif isinstance(node, Function):
+                self.funcs[idx] = node
+
+        # returns: 0->inst, 1->func, 2->inst, func
+        if self.fields and not self.funcs:
+            self.returns = 0
+        elif not self.fields and self.funcs:
+            self.returns = 1
+        elif self.fields and self.funcs:
+            self.returns = 2
+
+    def inst(self, model, row):
+        inst = model()
+        inst.set_in_db(True)
+
+        for idx, field in self.fields.items():
+            if field.model is model:
+                inst.data[field.name] = row[idx]
+        return inst
+
+    def func(self, row):
+        func = Func()
+
+        for idx, function in self.funcs.items():
+            func.data[function.name] = row[idx]
+        return func
+
+    def __one(self, row):
+        func = self.func(row)
+
+        if self.model.single:
+            inst = self.inst(self.model, row)
+            return {0: inst, 1: func, 2: (inst, func)}[self.returns]
+        else:
+            insts = tuple(map(lambda m: self.inst(m, row), self.model.models))
+            return {0: insts, 1: func, 2: insts + (func, )}[self.returns]
+
+    def one(self):
+        row = self.cursor.fetchone()
+
+        if row is None:
+            return None
+        return self.__one(row)
+
+    def all(self):
+        rows = self.cursor.fetchall()
+
+        for row in rows:
+            yield self.__one(row)
+
+    def tuples(self):
+        for row in self.cursor.fetchall():
+            yield row
+
+    def dicts(self):
+        for row in self.cursor.fetchall():
+            dct = {}
+            for idx, field in self.fields.items():
+                if field.name not in dct:
+                    dct[field.name] = row[idx]
+                else:
+                    dct[field.fullname] = row[idx]
+            for idx, func in self.funcs.items():
+                dct[func.name] = row[idx]
+            yield dct
 
 
 class Compiler(object):
@@ -624,11 +705,9 @@ class Compiler(object):
         return sql(database.dbapi.placeholder, inst)
 
     def orderby2sql(lst):
-        if lst:
-            node, desc = lst
-            spec = 'order by %%s%s' % (' desc' if desc else '')
-            return sql.format(spec, node)
-        return sql('')
+        node, desc = lst
+        spec = 'order by %%s%s' % (' desc' if desc else '')
+        return sql.format(spec, node)
 
     def groupby2sql(lst):
         spec = 'group by %s'
@@ -649,11 +728,9 @@ class Compiler(object):
         return sql.join(', ', map(compiler.sql, lst))
 
     def limit2sql(lst):
-        if lst:
-            offset, rows = lst
-            spec = 'limit %s%s'
-            return sql(spec % ('%s, ' % offset if offset else '', rows))
-        return sql('')
+        offset, rows = lst
+        spec = 'limit %s%s'
+        return sql(spec % ('%s, ' % offset if offset else '', rows))
 
     def set2sql(lst):
         return sql.join(', ', map(compiler.sql, lst))
@@ -696,14 +773,20 @@ class Compiler(object):
         if target is None:
             target = runtime.model
 
-        spec = self.query_specs[type].format({
+        spec = self.query_specs[type].format(**{
             'from': runtime.model.table_name,
             'target': target.table_name
         })
-        rts = self.query_runtimes[type]
-        args = tuple(
-            self.runtime_conversions[r](runtime.data[r]) for r in rts
-        )
+
+        args = []
+
+        for tp in self.query_runtimes[type]:
+            data = runtime.data[tp]
+            if data:
+                args.append(self.runtime_conversions[tp](data))
+            else:
+                args.append(sql(''))
+
         return sql.format(spec, *args)
 
 
@@ -798,4 +881,49 @@ class MetaModel(type):
 
 
 class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
-    pass
+
+    single = True
+
+    def __init__(self, *lst, **dct):
+        self.data = {}
+
+        for expr in lst:
+            field, value = expr.left, expr.right
+            self.data[field.name] = value
+
+        self.data.update(dct)
+        self._cache = self.data.copy()
+        self.set_in_db(True)
+
+    def set_in_db(self, boolean):
+        self._in_db = boolean
+
+    def __kwargs(func):
+        @classmethod
+        def _func(cls, *lst, **dct):
+            lst = list(lst)
+            if dct:
+                lst.extend([cls.fields[k] == v for k, v in dct.items()])
+            return func(cls, *lst)
+        return _func
+
+    @__kwargs
+    def insert(cls, *lst, **dct):
+        cls.runtime.set_values(lst)
+        return InsertQuery(cls.runtime, cls)
+
+    @__kwargs
+    def update(cls, *lst, **dct):
+        cls.runtime.set_set(lst)
+        return UpdateQuery(cls.runtime, cls)
+
+    @classmethod
+    def select(cls, *lst):
+        if not lst:
+            lst = cls.fields.values()
+        cls.runtime.set_select(lst)
+        return SelectQuery(cls.runtime)
+
+    @classmethod
+    def delete(cls):
+        return DeleteQuery(cls.runtime)
