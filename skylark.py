@@ -505,9 +505,6 @@ class Compiler(object):
         OP_NOT_IN: 'not in'
     }
 
-    def thing2sql(data):
-        return sql(database.dbapi.placeholder, data)
-
     def alias2sql(alias):
         spec = '%%s as %s' % alias.name
         return sql.format(spec, compiler.sql(alias.inst))
@@ -544,7 +541,6 @@ class Compiler(object):
         return sql.format(spec, left, right)
 
     conversions = {
-        None: thing2sql,
         Expr: expr2sql,
         Alias: alias2sql,
         Field: field2sql,
@@ -554,11 +550,11 @@ class Compiler(object):
         Distinct: distinct2sql
     }
 
-    def sql(self, e):
-        tp = type(e)
+    def sql(self, inst):
+        tp = type(inst)
         if tp in self.conversions:
-            return self.conversions[tp](e)
-        return self.conversions[None](e)
+            return self.conversions[tp](inst)
+        return sql(database.dbapi.placeholder, inst)
 
     def orderby2sql(lst):
         if lst:
@@ -615,6 +611,11 @@ class Compiler(object):
         RUNTIME_SET: set2sql,
         RUNTIME_VALUES: values2sql
     }
+
+    def compile_insert(self, runtime, target):
+        spec = 'insert into %s %%s' % target.table_name
+        func = self.runtime_conversions[RUNTIME_VALUES]
+        return sql.format(spec, func(runtime.data[RUNTIME_VALUES]))
 
 
 compiler = Compiler()
