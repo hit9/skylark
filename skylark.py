@@ -60,6 +60,9 @@ class DBAPI(object):
     def connect(self, configs):
         return self.module.connect(**configs)
 
+    def set_autocommit(self, conn, boolean):
+        return conn.autocommit(boolean)
+
     def setdefault_autocommit(self, conn, configs):
         return conn.autocommit(configs.get('autocommit', True))
 
@@ -150,6 +153,12 @@ class Sqlite3API(DBAPI):
             return True
         return False
 
+    def set_autocommit(self, conn, boolean):
+        if boolean:
+            conn.isolation_level = None
+        else:
+            conn.isolation_level = ''
+
     def select_db(self, db, conn, configs):
         # for sqlite3, to change database, must create a new connection
         configs.update({'db': db})
@@ -167,6 +176,9 @@ class Psycopg2API(DBAPI):
 
     def setdefault_autocommit(self, conn, configs):
         conn.autocommit = configs.get('autocommit', True)
+
+    def set_autocommit(self, conn, boolean):
+        conn.autocommit = boolean
 
     def select_db(self, db, conn, configs):
         # for postgres, to change database, must create a new connection
@@ -213,9 +225,10 @@ class DatabaseType(object):
 
         if name in DBAPI_MAPPINGS:
             # clear current configs and connection
-            self.configs = {}
             if self.dbapi and self.dbapi.conn_is_open(self.conn):
-                self.conn = None
+                self.conn.close()
+            self.configs = {}
+            self.conn = None
             self.dbapi = DBAPI_MAPPINGS[name](module)
         else:
             raise UnSupportedDBAPI
@@ -255,6 +268,9 @@ class DatabaseType(object):
 
     def change(self, db):
         return self.dbapi.select_db(db, self.conn, self.configs)
+
+    def set_autocommit(self, boolean):
+        return self.dbapi.set_autocommit(self.conn, boolean)
 
     select_db = change  # alias
 
