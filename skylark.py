@@ -90,6 +90,15 @@ class DBAPI(object):
         if self.conn_is_open(conn):
             conn.select_db(db)
 
+    def begin_transaction(self, conn):
+        pass
+
+    def commit_transaction(self, conn):
+        return conn.commit()
+
+    def rollback_transaction(self, conn):
+        return conn.rollback()
+
 
 class MySQLdbAPI(DBAPI):
 
@@ -272,7 +281,32 @@ class DatabaseType(object):
     def set_autocommit(self, boolean):
         return self.dbapi.set_autocommit(self.conn, boolean)
 
+    def transaction(self):
+        return Transaction(self)
+
     select_db = change  # alias
 
 
 database = Database = DatabaseType()
+
+
+class Transaction(object):
+
+    def __init__(self, database):
+        self.database = database
+
+    def begin(self):
+        return self.database.dbapi.begin_transaction(self.database.conn)
+
+    def commit(self):
+        return self.database.dbapi.commit_transaction(self.database.conn)
+
+    def rollback(self):
+        return self.database.dbapi.rollback_transaction(self.database.conn)
+
+    def __enter__(self):
+        self.begin()
+        return self
+
+    def __exit__(self, except_tp, except_val, trace):
+        return self.commit()
