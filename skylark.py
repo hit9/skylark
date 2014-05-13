@@ -303,7 +303,7 @@ class DatabaseType(object):
         return cursor
 
     def execute_sql(self, sql):  # execute a sql object
-        return self.execute(self, sql.literal, sql.params)
+        return self.execute(sql.literal, sql.params)
 
     def change(self, db):
         return self.dbapi.select_db(db, self.conn, self.configs)
@@ -898,7 +898,7 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
 
         self.data.update(dct)
         self._cache = self.data.copy()
-        self.set_in_db(True)
+        self.set_in_db(False)
 
     def set_in_db(self, boolean):
         self._in_db = boolean
@@ -932,3 +932,15 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
     @classmethod
     def delete(cls):
         return DeleteQuery(cls.runtime)
+
+    @classmethod
+    def create(cls, *lst, **dct):
+        query = cls.insert(*lst, **dct)
+        id = query.execute()
+
+        if id is not None:
+            dct[cls.primarykey.name] = id
+            inst = cls(*lst, **dct)
+            inst.set_in_db(True)
+            return inst
+        return None
