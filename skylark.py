@@ -561,6 +561,11 @@ class SelectResult(object):
                 self.fields[idx] = node
             elif isinstance(node, Function):
                 self.funcs[idx] = node
+            elif isinstance(node, Alias):
+                if isinstance(node.inst, Field):
+                    self.fields[idx] = node
+                elif isinstance(node.inst, Function):
+                    self.funcs[idx] = node
 
         # returns: 0->inst, 1->func, 2->inst, func
         if self.fields and not self.funcs:
