@@ -560,6 +560,49 @@ class Compiler(object):
             return self.conversions[tp](e)
         return self.conversions[None](e)
 
+    def orderby2sql(lst):
+        if lst:
+            node, desc = lst
+            spec = 'order by %%s%s' % (' desc' if desc else '')
+            return sql.format(spec, node)
+        return sql('')
+
+    def groupby2sql(lst):
+        return sql.join(', ', map(compiler.sql, lst))
+
+    def having2sql(lst):
+        return sql.join(' and ', map(compiler.sql, lst))
+
+    def where2sql(lst):
+        return sql.join(' and ', map(compiler.sql, lst))
+
+    def select2sql(lst):
+        return sql.join(', ', map(compiler.sql, lst))
+
+    def limit2sql(lst):
+        if lst:
+            offset, rows = lst
+            spec = 'limit %s%s'
+            return sql(spec % ('%s, ' % offset if offset else '', rows))
+        return sql('')
+
+    def set2sql(lst):
+        return sql.join(', ', map(compiler.sql, lst))
+
+    def values2sql(lst):
+        return sql.join(', ', map(compiler.sql, lst))
+
+    runtime_conversions = {
+        RUNTIME_ORDERBY: orderby2sql,
+        RUNTIME_GROUPBY: groupby2sql,
+        RUNTIME_HAVING: having2sql,
+        RUNTIME_WHERE: where2sql,
+        RUNTIME_SELECT: select2sql,
+        RUNTIME_LIMIT: limit2sql,
+        RUNTIME_SET: set2sql,
+        RUNTIME_VALUES: values2sql
+    }
+
 
 compiler = Compiler()
 
