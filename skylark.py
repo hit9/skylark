@@ -568,13 +568,19 @@ class Compiler(object):
         return sql('')
 
     def groupby2sql(lst):
-        return sql.join(', ', map(compiler.sql, lst))
+        spec = 'group by %s'
+        arg = sql.join(', ', map(compiler.sql, lst))
+        return sql.format(spec, arg)
 
     def having2sql(lst):
-        return sql.join(' and ', map(compiler.sql, lst))
+        spec = 'having %s'
+        arg = sql.join(' and ', map(compiler.sql, lst))
+        return sql.format(spec, arg)
 
     def where2sql(lst):
-        return sql.join(' and ', map(compiler.sql, lst))
+        spec = 'where %s'
+        arg = sql.join(' and ', map(compiler.sql, lst))
+        return sql.format(spec, arg)
 
     def select2sql(lst):
         return sql.join(', ', map(compiler.sql, lst))
@@ -587,10 +593,17 @@ class Compiler(object):
         return sql('')
 
     def set2sql(lst):
-        return sql.join(', ', map(compiler.sql, lst))
+        spec = 'update %s'
+        arg = sql.join(', ', map(compiler.sql, lst))
+        return sql.format(spec, arg)
 
     def values2sql(lst):
-        return sql.join(', ', map(compiler.sql, lst))
+        spec = '(%s) values (%s)'
+        keys = [expr.left for expr in lst]
+        values = [expr.right for expr in lst]
+        keys_sql = sql.join(', ', map(compiler.sql, keys))
+        values_sql = sql.join(', ', map(compiler.sql, values))
+        return sql.format(spec, keys_sql, values_sql)
 
     runtime_conversions = {
         RUNTIME_ORDERBY: orderby2sql,
