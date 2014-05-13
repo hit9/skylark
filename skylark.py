@@ -78,14 +78,14 @@ QUERY_DELETE = 24
 
 
 # runtimes
-RUNTIME_WHERE = 1
+RUNTIME_SET = 1
 RUNTIME_VALUES = 2
-RUNTIME_SET = 3
-RUNTIME_ORDERBY = 4
-RUNTIME_SELECT = 5
-RUNTIME_LIMIT = 6
-RUNTIME_GROUPBY = 7
-RUNTIME_HAVING = 8
+RUNTIME_SELECT = 3
+RUNTIME_WHERE = 4
+RUNTIME_GROUPBY = 5
+RUNTIME_HAVING = 6
+RUNTIME_ORDERBY = 7
+RUNTIME_LIMIT = 8
 
 
 class SkylarkException(Exception):
@@ -612,10 +612,38 @@ class Compiler(object):
         RUNTIME_VALUES: values2sql
     }
 
+    def _compile(func):
+        def _func(self, runtime, *args):
+            spec, rts = func(runtime, *args)
+            args = tuple(
+                self.runtime_conversions[r](runtime.data[r]) for r in rts)
+            return sql.format(spec, *args)
+        return _func
+
+    @_compile
     def compile_insert(self, runtime, target):
         spec = 'insert into %s %%s' % target.table_name
-        func = self.runtime_conversions[RUNTIME_VALUES]
-        return sql.format(spec, func(runtime.data[RUNTIME_VALUES]))
+        rts = [RUNTIME_VALUES]
+        return spec, rts
+
+    @_compile
+    def compile_update(self, runtime, target):
+        spec = 'update %s %%s %%s' % target.table_name
+        rts = [RUNTIME_SET, RUNTIME_WHERE]
+        return spec, rts
+
+    @_compile
+    def compile_select(self, runtime, _from):
+        spec = 'select %%s from %s %%s %%s %%s %%s %%s'
+        rts = [RUNTIME_SELECT, RUNTIME_WHERE, RUNTIME_GROUPBY,
+               RUNTIME_HAVING, RUNTIME_ORDERBY, RUNTIME_LIMIT]
+        return spec, rts
+
+    @_compile
+    def compile_delete(self, runtime, target, _from):
+        spec = 'delete %s from %s %%s'
+        rts = [RUNTIME_WHERE]
+        return spec, rts
 
 
 compiler = Compiler()
