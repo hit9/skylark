@@ -487,6 +487,64 @@ class Distinct(object):
 distinct = Distinct
 
 
+class Query(object):
+
+    def __init__(self, type, runtime, target=None):
+        self.type = type
+        self.sql = compiler.compile(self.type, runtime, target)
+        runtime.reset_data()
+
+
+class InsertQuery(Query):
+
+    def __init__(self, runtime, target=None):
+        super(InsertQuery, self).__init__(QUERY_INSERT, runtime, target)
+
+    def execute(self):
+        cursor = database.execute_sql(self.sql)
+        return cursor.lastrowid if cursor.rowcount else None
+
+
+class UpdateQuery(Query):
+
+    def __init__(self, runtime, target=None):
+        super(UpdateQuery, self).__init__(QUERY_UPDATE, runtime, target)
+
+    def execute(self):
+        cursor = database.execute_sql(self.sql)
+        return cursor.rowcount
+
+
+class SelectQuery(Query):
+
+    def __init__(self, runtime):
+        self.from_model = runtime.model
+        self.selects = runtime.data[RUNTIME_SELECT]
+        super(SelectQuery, self).__init__(QUERY_SELECT, runtime, None)
+
+    def __iter__(self):
+        results = self.execute()
+        return results.all()
+
+    def execute(self):
+        cursor = database.execute_sql(self.sql)
+        return SelectResult(cursor, self.from_model, self.selects)
+
+
+class DeleteQuery(Query):
+
+    def __init__(self, runtime, target=None):
+        super(DeleteQuery, self).__init__(QUERY_DELETE, runtime, target)
+
+    def execute(self):
+        cursor = database.execute_sql(self.sql)
+        return cursor.rowcount
+
+
+class SelectResult(object):
+    pass
+
+
 class Compiler(object):
 
     mappings = {
@@ -504,6 +562,10 @@ class Compiler(object):
         OP_IN: 'in',
         OP_NOT_IN: 'not in'
     }
+
+    def query2sql(query):
+        spec = '(%s)'
+        return sql.format(spec, query.sql)
 
     def alias2sql(alias):
         spec = '%%s as %s' % alias.name
@@ -547,7 +609,12 @@ class Compiler(object):
         PrimaryKey: field2sql,
         ForeignKey: field2sql,
         Function: function2sql,
-        Distinct: distinct2sql
+        Distinct: distinct2sql,
+        Query: query2sql,
+        InsertQuery: query2sql,
+        UpdateQuery: query2sql,
+        SelectQuery: query2sql,
+        DeleteQuery: query2sql
     }
 
     def sql(self, inst):
@@ -589,9 +656,7 @@ class Compiler(object):
         return sql('')
 
     def set2sql(lst):
-        spec = 'update %s'
-        arg = sql.join(', ', map(compiler.sql, lst))
-        return sql.format(spec, arg)
+        return sql.join(', ', map(compiler.sql, lst))
 
     def values2sql(lst):
         spec = '(%s) values (%s)'
@@ -612,38 +677,34 @@ class Compiler(object):
         RUNTIME_VALUES: values2sql
     }
 
-    def _compile(func):
-        def _func(self, runtime, *args):
-            spec, rts = func(runtime, *args)
-            args = tuple(
-                self.runtime_conversions[r](runtime.data[r]) for r in rts)
-            return sql.format(spec, *args)
-        return _func
+    query_specs = {
+        QUERY_INSERT: 'insert into {target} %s',
+        QUERY_UPDATE: 'update {target} %s %s',
+        QUERY_SELECT: 'select %s from {from} %s %s %s %s %s',
+        QUERY_DELETE: 'delete {target} from {from} %s'
+    }
 
-    @_compile
-    def compile_insert(self, runtime, target):
-        spec = 'insert into %s %%s' % target.table_name
-        rts = [RUNTIME_VALUES]
-        return spec, rts
+    query_runtimes = {
+        QUERY_INSERT: [RUNTIME_VALUES],
+        QUERY_UPDATE: [RUNTIME_SET, RUNTIME_WHERE],
+        QUERY_SELECT: [RUNTIME_SELECT, RUNTIME_WHERE, RUNTIME_GROUPBY,
+                       RUNTIME_HAVING, RUNTIME_ORDERBY, RUNTIME_LIMIT],
+        QUERY_DELETE: [RUNTIME_WHERE]
+    }
 
-    @_compile
-    def compile_update(self, runtime, target):
-        spec = 'update %s %%s %%s' % target.table_name
-        rts = [RUNTIME_SET, RUNTIME_WHERE]
-        return spec, rts
+    def compile(self, type, runtime, target=None):
+        if target is None:
+            target = runtime.model
 
-    @_compile
-    def compile_select(self, runtime, _from):
-        spec = 'select %%s from %s %%s %%s %%s %%s %%s'
-        rts = [RUNTIME_SELECT, RUNTIME_WHERE, RUNTIME_GROUPBY,
-               RUNTIME_HAVING, RUNTIME_ORDERBY, RUNTIME_LIMIT]
-        return spec, rts
-
-    @_compile
-    def compile_delete(self, runtime, target, _from):
-        spec = 'delete %s from %s %%s'
-        rts = [RUNTIME_WHERE]
-        return spec, rts
+        spec = self.query_specs[type].format({
+            'from': runtime.model.table_name,
+            'target': target.table_name
+        })
+        rts = self.query_runtimes[type]
+        args = tuple(
+            self.runtime_conversions[r](runtime.data[r]) for r in rts
+        )
+        return sql.format(spec, *args)
 
 
 compiler = Compiler()
@@ -662,7 +723,8 @@ class Runtime(object):
         RUNTIME_HAVING
     )
 
-    def __init__(self):
+    def __init__(self, model):
+        self.model = model
         self.reset_data()
 
     def reset_data(self):
@@ -725,7 +787,7 @@ class MetaModel(type):
         for name, field in cls.fields.items():
             field.describe(name, cls)
 
-        cls.runtime = Runtime()
+        cls.runtime = Runtime(cls)
 
     def __default_table_name(cls):
         # default: 'User' => 'user', 'CuteCat' => 'cute_cat'
