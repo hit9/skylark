@@ -303,7 +303,7 @@ class DatabaseType(object):
         return cursor
 
     def execute_sql(self, sql):  # execute a sql object
-        return self.execute_sql(*((sql.literal, ) + sql.params))
+        return self.execute(self, sql.literal, sql.params)
 
     def change(self, db):
         return self.dbapi.select_db(db, self.conn, self.configs)
