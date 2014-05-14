@@ -17,7 +17,7 @@
     skylark
     ~~~~~~~
 
-    Micro python orm for mysql, sqlite and postgres.
+    Nice micro python orm for mysql, sqlite and postgres.
 
     :author: Chao Wang (Hit9).
     :license: BSD.
@@ -364,6 +364,7 @@ class Leaf(object):
     __ge__ = _e(OP_GE)
     __eq__ = _e(OP_EQ)
     __ne__ = _e(OP_NE)
+
     __add__ = _e(OP_ADD)
     __sub__ = _e(OP_SUB)
     __mul__ = _e(OP_MUL)
@@ -371,6 +372,7 @@ class Leaf(object):
     __mod__ = _e(OP_MOD)
     __and__ = _e(OP_AND)
     __or__ = _e(OP_OR)
+
     __radd__ = _e(OP_ADD, invert=True)
     __rsub__ = _e(OP_SUB, invert=True)
     __rmul__ = _e(OP_MUL, invert=True)
