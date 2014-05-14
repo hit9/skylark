@@ -66,6 +66,14 @@ RT_OD = 7
 RT_LM = 8
 
 
+# query types
+
+QUERY_INSERT = 1
+QUERY_UPDATE = 2
+QUERY_SELECT = 3
+QUERY_DELETE = 4
+
+
 class SkylarkException(Exception):
     pass
 
@@ -583,6 +591,81 @@ class Compiler(object):
         if tp in self.conversions:
             return self.conversions[tp](inst)
         return sql(database.dbapi.placeholder, inst)
+
+    def od2sql(lst):
+        node, desc = lst
+        spec = 'order by %%s%s' % (' desc' if desc else '')
+        return sql.format(spec, node)
+
+    def gp2sql(lst):
+        spec = 'group by %s'
+        arg = sql.join(', ', map(compiler.sql, lst))
+        return sql.format(spec, arg)
+
+    def hv2sql(lst):
+        spec = 'having %s'
+        arg = sql.join(' and ', map(compiler.sql, lst))
+        return sql.format(spec, arg)
+
+    def wh2sql(lst):
+        spec = 'where %s'
+        arg = sql.join(' and ', map(compiler.sql, lst))
+        return sql.format(spec, arg)
+
+    def sl2sql(lst):
+        return sql.join(', ', map(compiler.sql, lst))
+
+    def lm2sql(lst):
+        offset, rows = lst
+        literal = 'limit %s%s' % ('%s, ' % offset if offset else '')
+        return sql(literal)
+
+    def st2sql(lst):
+        pairs = [
+            sql.format('%s=%%s' % expr.left.name, compiler.sql(expr.right))
+            for expr in lst]
+        return sql.join(', ', pairs)
+
+    def vl2sql(lst):
+        keys = ', '.join([expr.left.name for expr in lst])
+        vals = map(compiler.sql, [expr.right for expr in lst])
+        spec = '(%s) values (%%s)' % keys
+        arg = sql.join(', ', vals)
+        return sql.format(spec, arg)
+
+    rt_conversions = {
+        RT_OD: od2sql,
+        RT_GP: gp2sql,
+        RT_HV: hv2sql,
+        RT_WH: wh2sql,
+        RT_SL: sl2sql,
+        RT_LM: lm2sql,
+        RT_ST: st2sql,
+        RT_VL: vl2sql
+    }
+
+    patterns = {
+        QUERY_INSERT: ('insert into {table} %s', (RT_VL,)),
+        QUERY_UPDATE: ('update {table} set %s %s', (RT_ST, RT_WH)),
+        QUERY_SELECT: ('select %s from {table} %s %s %s %s %s',
+                       (RT_SL, RT_WH, RT_GP, RT_HV, RT_OD, RT_LM)),
+        QUERY_DELETE: ('delete from {table} %s', (RT_WH,))
+    }
+
+    def compile(self, type, runtime):
+        pattern = self.patterns[type]
+        spec = pattern[0].format(table=runtime.model.table_name)
+
+        args = []
+
+        for tp in pattern[1]:
+            data = runtime.data[tp]
+            if data:
+                args.append(self.rt_conversions[tp](data))
+            else:
+                args.append(sql(''))
+
+        return sql.format(spec, *args)
 
 
 compiler = Compiler()
