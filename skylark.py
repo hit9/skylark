@@ -66,9 +66,6 @@ class DBAPI(object):
     def setdefault_autocommit(self, conn, configs):
         return conn.autocommit(configs.get('autocommit', True))
 
-    def get_autocommit(self, conn):
-        return bool(conn.autocommit)
-
     def conn_is_alive(self, conn):
         try:
             conn.ping()
@@ -81,9 +78,6 @@ class DBAPI(object):
 
     def execute_cursor(self, cursor, args):
         return cursor.execute(*args)
-
-    def close_cursor(self, cursor):
-        return cursor.close()
 
     def select_db(self, db, conn, configs):
         configs.update({'db': db})
@@ -101,33 +95,7 @@ class DBAPI(object):
 
 
 class MySQLdbAPI(DBAPI):
-
-    def __patch_mysqldb_cursor(self, cursor):
-        # let MySQLdb.cursor enable fetching after close
-        rows = tuple(cursor.fetchall())
-
-        def create_generator():
-            for row in rows:
-                yield row
-
-        generator = create_generator()
-
-        def fetchall():
-            return generator
-
-        def fetchone():
-            try:
-                return generator.next()
-            except StopIteration:
-                pass
-
-        cursor.fetchall = fetchall
-        cursor.fetchone = fetchone
-        return cursor
-
-    def close_cursor(self, cursor):
-        cursor = self.__patch_mysqldb_cursor(cursor)
-        return super(MySQLdbAPI, self).close_cursor(cursor)
+    pass
 
 
 class PyMySQLAPI(DBAPI):
@@ -156,11 +124,6 @@ class Sqlite3API(DBAPI):
 
     def setdefault_autocommit(self, conn, configs):
         conn.isolation_level = configs.get('isolation_level', None)
-
-    def get_autocommit(self, conn):
-        if conn.isolation_level is None:
-            return True
-        return False
 
     def set_autocommit(self, conn, boolean):
         if boolean:
@@ -268,8 +231,7 @@ class DatabaseType(object):
 
     def execute(self, *args):
         cursor = self.dbapi.get_cursor(self.get_conn())
-        self.dbapi.execute_cursor(cursor, args)
-        self.dbapi.close_cursor(cursor)
+        self.dbapi.execute_cursor(cursor, args)  # should close the cursor?
         return cursor
 
     def execute_sql(self, sql):  # execute a sql object
@@ -280,6 +242,15 @@ class DatabaseType(object):
 
     def set_autocommit(self, boolean):
         return self.dbapi.set_autocommit(self.conn, boolean)
+
+    def begin(self):
+        return self.dbapi.begin_transaction(self.conn)
+
+    def commit(self):
+        return self.dbapi.commit_transaction(self.conn)
+
+    def rollback(self):
+        return self.dbapi.rollback_transaction(self.conn)
 
     def transaction(self):
         return Transaction(self)
@@ -296,13 +267,13 @@ class Transaction(object):
         self.database = database
 
     def begin(self):
-        return self.database.dbapi.begin_transaction(self.database.conn)
+        return self.database.begin()
 
     def commit(self):
-        return self.database.dbapi.commit_transaction(self.database.conn)
+        return self.database.commit()
 
     def rollback(self):
-        return self.database.dbapi.rollback_transaction(self.database.conn)
+        return self.database.rollback()
 
     def __enter__(self):
         self.begin()

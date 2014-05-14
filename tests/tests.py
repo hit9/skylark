@@ -8,8 +8,7 @@ logging.basicConfig(level=logging.INFO)
 import toml
 
 sys.path.insert(0, '..')
-from models import User, Post
-from skylark import Database, database, DBAPI_MAPPINGS, DatabaseType, Model
+from skylark import Database, database, DBAPI_MAPPINGS, DatabaseType
 
 dbapi_name = os.environ.get('DBAPI', 'MySQLdb')
 dbapi = __import__(dbapi_name)
@@ -108,7 +107,6 @@ class TestDatabase(Test):
         assert conn1 is not conn2
         assert self.database.dbapi.conn_is_open(conn1)
         assert self.database.dbapi.conn_is_open(conn2)
-        assert self.database.dbapi.get_autocommit(self.database.conn) is True
 
     def test_get_conn(self):
         assert self.database.conn is None
@@ -152,44 +150,27 @@ class TestDatabase(Test):
             self.database.conn is not old_conn
             assert not self.database.dbapi.conn_is_open(old_conn)
 
+    def test_transaction(self):
+        db = self.database
+        db.config(**configs)
+        db.execute("insert into t_user (name, email) values ('j', 'j@i.com')")
+        db.set_autocommit(False)
+        t = db.transaction()
+        try:
+            db.execute("insert into t_user set x;")  # syntax error
+        except Exception:
+            t.rollback()
+        else:
+            raise Exception
+        cursor = db.execute('select count(*) from t_user;')
+        db.conn.commit()  # !important
+        assert cursor.fetchone()[0] == 1
 
-class TestModel:
-
-    def test_table_name(self):
-        class MyModel(Model):
-            pass
-        assert MyModel.table_name == 'my_model'
-
-        class Member(Model):
-            pass
-        assert Member.table_name == 'member'
-
-        class Cat(Model):
-            table_name = 'cute_cat'
-        assert Cat.table_name == 'cute_cat'
-
-    def test_table_prefix(self):
-        class Users(Model):
-            table_prefix = 't_'
-        assert Users.table_name == 't_users'
-
-        class CuteDog(Model):
-            table_prefix = 'dd_'
-        assert CuteDog.table_name == 'dd_cute_dog'
-
-        class Dog(Model):
-            table_name = 'custom_table_name'
-            table_prefix = 'd_'
-        assert Dog.table_name == 'd_custom_table_name'
-
-    def test_primarykey(self):
-        assert User.primarykey is User.id
-        assert Post.primarykey is Post.post_id
-
-    def test_fields(self):
-        field_names = set(User.fields.keys())
-        _field_names = set(('id', 'name', 'email'))
-        assert field_names == _field_names
-        field_names = set(Post.fields.keys())
-        _field_names = set(('post_id', 'name', 'user_id'))
-        assert field_names == _field_names
+        with db.transaction() as t:
+            db.execute(
+                "insert into t_user (name, email) values ('a', 'a@b.com')")
+            db.execute(
+                "insert into t_user (name, email) values ('a', 'a@b.com')")
+        cursor = db.execute('select count(*) from t_user')
+        db.commit()
+        assert cursor.fetchone()[0] == 3
