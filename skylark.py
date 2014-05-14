@@ -67,7 +67,6 @@ RT_LM = 8
 
 
 # query types
-
 QUERY_INSERT = 1
 QUERY_UPDATE = 2
 QUERY_SELECT = 3
@@ -496,23 +495,56 @@ distinct = Distinct
 
 
 class Query(object):
-    pass
+
+    def __init__(self, type, runtime):
+        self.type = type
+        self.sql = compiler.compile(self.type, runtime)
+        runtime.reset_data()
 
 
 class InsertQuery(Query):
-    pass
+
+    def __init__(self, runtime):
+        super(InsertQuery, self).__init__(QUERY_INSERT, runtime)
+
+    def execute(self):
+        cursor = database.execute_sql(self.sql)
+        return cursor.lastrowid if cursor.rowcount else None
 
 
 class UpdateQuery(Query):
-    pass
+
+    def __init__(self, runtime):
+        super(UpdateQuery, self).__init__(QUERY_UPDATE, runtime)
+
+    def execute(self):
+        cursor = database.execute_sql(self.sql)
+        return cursor.rowcount
 
 
 class SelectQuery(Query):
-    pass
+
+    def __init__(self, runtime):
+        self.model = runtime.model
+        self.nodes = runtime.data[RT_SL]
+        super(SelectQuery, self).__init__(QUERY_SELECT, runtime)
+
+    def execute(self):
+        pass
+
+    def __iter__(self):
+        results = self.execute()
+        return results.all()
 
 
 class DeleteQuery(Query):
-    pass
+
+    def __init__(self, runtime):
+        super(DeleteQuery, self).__init__(QUERY_DELETE, runtime)
+
+    def execute(self):
+        cursor = database.execute_sql(self.sql)
+        return cursor.rowcount
 
 
 class Compiler(object):
