@@ -35,6 +35,9 @@ if sys.hexversion < 0x03000000:
 else:
     PY_VERSION = 3
 
+if PY_VERSION == 3:
+    from functools import reduce
+
 
 # common operators (~100)
 OP_LT = 1
@@ -51,6 +54,16 @@ OP_LIKE = 10
 OP_BETWEEN = 101
 OP_IN = 102
 OP_NOT_IN = 103
+
+# runtimes
+RT_ST = 1
+RT_VL = 2
+RT_SL = 3
+RT_WH = 4
+RT_GP = 5
+RT_HV = 6
+RT_OD = 7
+RT_LM = 8
 
 
 class SkylarkException(Exception):
@@ -391,7 +404,7 @@ class FieldDescriptor(object):
         inst.data[self.field.name] = val
 
 
-class Field(object):
+class Field(Leaf):
 
     def __init__(self, is_primarykey=False, is_foreignkey=False):
         self.is_primarykey = is_primarykey
@@ -523,7 +536,7 @@ class Compiler(object):
         return sql(field.fullname)
 
     def function2sql(function):
-        spec = '%s%%s' % function.name
+        spec = '%s(%%s)' % function.name
         args = sql.join(', ', map(compiler.sql, function.args))
         return sql.format(spec, args)
 
@@ -573,3 +586,93 @@ class Compiler(object):
 
 
 compiler = Compiler()
+
+
+class Runtime(object):
+
+    RUNTIMES = (
+        RT_ST,  # update set
+        RT_VL,  # insert values
+        RT_SL,  # select fields
+        RT_WH,  # where
+        RT_GP,  # group by
+        RT_HV,  # having
+        RT_OD,  # order by
+        RT_LM   # limit
+    )
+
+    def __init__(self, model):
+        self.model = model
+        self.reset_data()
+
+    def reset_data(self):
+        self.data = dict((k, []) for k in self.RUNTIMES)
+
+    def _e(tp):
+        def e(self, lst):
+            self.data[tp] = list(lst)
+        return e
+
+    set_st = _e(RT_ST)
+
+    set_vl = _e(RT_VL)
+
+    set_sl = _e(RT_SL)
+
+    set_wh = _e(RT_WH)
+
+    set_gp = _e(RT_GP)
+
+    set_hv = _e(RT_HV)
+
+    set_od = _e(RT_OD)
+
+    set_lm = _e(RT_LM)
+
+
+class MetaModel(type):
+
+    def __init__(cls, name, bases, attrs):
+
+        dct = cls.__dict__
+
+        # set table_name
+        table_name = dct.get('table_name', cls.__default_table_name())
+        table_prefix = dct.get('table_prefix', None)
+
+        if table_prefix:
+            table_name = table_prefix + table_name
+        cls.table_name = table_name
+
+        # set fields
+        primarykey = None
+        fields = {}
+
+        for key, val in dct.items():
+            if isinstance(val, Field):
+                fields[key] = val
+                if val.is_primarykey:
+                    primarykey = val
+
+        if primarykey is None:
+            fields['id'] = primarykey = PrimaryKey()
+
+        for name, field in fields.items():
+            field.describe(name, cls)
+
+        cls.fields = fields
+        cls.primarykey = primarykey
+
+        # set runtime
+        cls.runtime = Runtime(cls)
+
+    def __default_table_name(cls):
+        def _e(x, y):
+            s = '_' if y.isupper() else ''
+            return s.join((x, y))
+        return reduce(_e, list(cls.__name__)).lower()
+
+
+class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
+
+    single = True
