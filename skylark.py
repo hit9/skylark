@@ -40,6 +40,7 @@ if PY_VERSION == 3:
 
 
 # common operators (~100)
+OP_OP = 0  # custom op
 OP_LT = 1
 OP_LE = 2
 OP_GT = 3
@@ -332,28 +333,6 @@ class Transaction(object):
         return self.commit()
 
 
-class SQL(object):
-
-    def __init__(self, literal, *params):
-        self.literal = ' '.join(literal.split())
-        self.params = params
-
-    @classmethod
-    def format(cls, spec, *args):
-        literal = spec % tuple(arg.literal for arg in args)
-        params = sum([arg.params for arg in args], tuple())
-        return cls(literal, *params)
-
-    @classmethod
-    def join(cls, sptr, seq):
-        literal = sptr.join(sql.literal for sql in seq)
-        params = sum([sql.params for sql in seq], tuple())
-        return cls(literal, *params)
-
-
-sql = SQL
-
-
 class Leaf(object):
 
     def _e(op, invert=False):
@@ -396,13 +375,41 @@ class Leaf(object):
     def not_in(self, *vals):
         return Expr(self, vals, OP_NOT_IN)
 
+    def op(self, op_str):
+        def func(other):
+            return Expr(self, other, OP_OP, op_str=op_str)
+        return func
+
+
+class SQL(Leaf):
+
+    def __init__(self, literal, *params):
+        self.literal = ' '.join(literal.split())
+        self.params = params
+
+    @classmethod
+    def format(cls, spec, *args):
+        literal = spec % tuple(arg.literal for arg in args)
+        params = sum([arg.params for arg in args], tuple())
+        return cls(literal, *params)
+
+    @classmethod
+    def join(cls, sptr, seq):
+        literal = sptr.join(sql.literal for sql in seq)
+        params = sum([sql.params for sql in seq], tuple())
+        return cls(literal, *params)
+
+
+sql = SQL
+
 
 class Expr(Leaf):
 
-    def __init__(self, left, right, op):
+    def __init__(self, left, right, op, op_str=None):
         self.left = left
         self.right = right
         self.op = op
+        self.op_str = op_str
 
 
 class Alias(object):
@@ -586,6 +593,9 @@ class Compiler(object):
         OP_NOT_IN: 'not in',
     }
 
+    def sql2sql(sql):
+        return sql
+
     def query2sql(query):
         return sql.format('(%s)', query.sql)
 
@@ -606,7 +616,11 @@ class Compiler(object):
         return sql.format('distinct(%s)', args)
 
     def expr2sql(expr):
-        op = compiler.mappings[expr.op]
+        if expr.op_str is None:
+            op_str = compiler.mappings[expr.op]
+        else:
+            op_str = expr.op_str
+
         left = compiler.sql(expr.left)
 
         if expr.op < 100:  # common ops
@@ -617,7 +631,7 @@ class Compiler(object):
             vals = sql.join(', ', map(compiler.sql, expr.right))
             right = sql.format('(%s)', vals)
 
-        spec = '%%s %s %%s' % op
+        spec = '%%s %s %%s' % op_str
 
         if expr.op in (OP_AND, OP_OR):
             spec = '(%s)' % spec
@@ -625,6 +639,7 @@ class Compiler(object):
         return sql.format(spec, left, right)
 
     conversions = {
+        SQL: sql2sql,
         Expr: expr2sql,
         Alias: alias2sql,
         Field: field2sql,
