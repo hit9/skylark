@@ -36,6 +36,23 @@ else:
     PY_VERSION = 3
 
 
+# common operators (~100)
+OP_LT = 1
+OP_LE = 2
+OP_GT = 3
+OP_GE = 4
+OP_EQ = 5
+OP_NE = 6
+OP_ADD = 7
+OP_AND = 8
+OP_OR = 9
+OP_LIKE = 10
+# special operators (100+)
+OP_BETWEEN = 101
+OP_IN = 102
+OP_NOT_IN = 103
+
+
 class SkylarkException(Exception):
     pass
 
@@ -240,7 +257,7 @@ class DatabaseType(object):
     def change(self, db):
         return self.dbapi.select_db(db, self.conn, self.configs)
 
-    def set_autocommit(self, boolean):
+    def autocommit(self, boolean):
         return self.dbapi.set_autocommit(self.conn, boolean)
 
     def begin(self):
@@ -281,3 +298,71 @@ class Transaction(object):
 
     def __exit__(self, except_tp, except_val, trace):
         return self.commit()
+
+
+class SQL(object):
+
+    def __init__(self, literal, *params):
+        self.literal = literal
+        self.params = params
+
+    @classmethod
+    def format(cls, spec, *args):
+        literal = spec % tuple(arg.literal for arg in args)
+        params = sum([arg.params for arg in args], tuple())
+        return cls(literal, *params)
+
+    @classmethod
+    def join(cls, sptr, seq):
+        literal = sptr.join(sql.literal for sql in seq)
+        params = sum([sql.params for sql in seq], tuple())
+        return cls(literal, *params)
+
+
+sql = SQL
+
+
+class Leaf(object):
+
+    def _e(op):
+        def e(self, right):
+            return Expr(self, right, op)
+        return e
+
+    __lt__ = _e(OP_LT)
+
+    __le__ = _e(OP_LE)
+
+    __gt__ = _e(OP_GT)
+
+    __ge__ = _e(OP_GE)
+
+    __eq__ = _e(OP_EQ)
+
+    __ne__ = _e(OP_NE)
+
+    __add__ = _e(OP_ADD)
+
+    __and__ = _e(OP_AND)
+
+    __or__ = _e(OP_OR)
+
+    def like(self, pattern):
+        return Expr(self, pattern, OP_LIKE)
+
+    def between(self, left, right):
+        return Expr(self, (left, right), OP_BETWEEN)
+
+    def _in(self, *vals):
+        return Expr(self, vals, OP_IN)
+
+    def not_in(self, *vals):
+        return Expr(self, vals, OP_NOT_IN)
+
+
+class Expr(Leaf):
+
+    def __init__(self, left, right, op):
+        self.left = left
+        self.right = right
+        self.op = op

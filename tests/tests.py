@@ -154,7 +154,7 @@ class TestDatabase(Test):
         db = self.database
         db.config(**configs)
         db.execute("insert into t_user (name, email) values ('j', 'j@i.com')")
-        db.set_autocommit(False)
+        db.autocommit(False)
         t = db.transaction()
         try:
             db.execute("insert into t_user set x;")  # syntax error
