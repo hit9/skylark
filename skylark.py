@@ -47,9 +47,21 @@ OP_GE = 4
 OP_EQ = 5
 OP_NE = 6
 OP_ADD = 7
-OP_AND = 8
-OP_OR = 9
-OP_LIKE = 10
+OP_SUB = 8
+OP_MUL = 9
+OP_DIV = 10
+OP_MOD = 11
+OP_AND = 12
+OP_OR = 13
+OP_RADD = 27
+OP_RSUB = 28
+OP_RMUL = 29
+OP_RDIV = 30
+OP_RMOD = 31
+OP_RAND = 32
+OP_ROR = 33
+OP_LIKE = 99
+
 # special operators (100+)
 OP_BETWEEN = 101
 OP_IN = 102
@@ -344,28 +356,33 @@ sql = SQL
 
 class Leaf(object):
 
-    def _e(op):
+    def _e(op, invert=False):
         def e(self, right):
+            if invert:
+                return Expr(right, self, op)
             return Expr(self, right, op)
         return e
 
     __lt__ = _e(OP_LT)
-
     __le__ = _e(OP_LE)
-
     __gt__ = _e(OP_GT)
-
     __ge__ = _e(OP_GE)
-
     __eq__ = _e(OP_EQ)
-
     __ne__ = _e(OP_NE)
-
     __add__ = _e(OP_ADD)
-
+    __sub__ = _e(OP_SUB)
+    __mul__ = _e(OP_MUL)
+    __div__ = _e(OP_DIV)
+    __mod__ = _e(OP_MOD)
     __and__ = _e(OP_AND)
-
     __or__ = _e(OP_OR)
+    __radd__ = _e(OP_ADD, invert=True)
+    __rsub__ = _e(OP_SUB, invert=True)
+    __rmul__ = _e(OP_MUL, invert=True)
+    __rdiv__ = _e(OP_DIV, invert=True)
+    __rmod__ = _e(OP_MOD, invert=True)
+    __rand__ = _e(OP_AND, invert=True)
+    __ror__ = _e(OP_OR, invert=True)
 
     def like(self, pattern):
         return Expr(self, pattern, OP_LIKE)
@@ -557,12 +574,16 @@ class Compiler(object):
         OP_EQ: '=',
         OP_NE: '<>',
         OP_ADD: '+',
+        OP_SUB: '-',
+        OP_MUL: '*',
+        OP_DIV: '/',
+        OP_MOD: '%%',  # escape '%'
         OP_AND: 'and',
         OP_OR: 'or',
         OP_LIKE: 'like',
         OP_BETWEEN: 'between',
         OP_IN: 'in',
-        OP_NOT_IN: 'not in'
+        OP_NOT_IN: 'not in',
     }
 
     def query2sql(query):
@@ -627,7 +648,7 @@ class Compiler(object):
     def od2sql(lst):
         node, desc = lst
         spec = 'order by %%s%s' % (' desc' if desc else '')
-        return sql.format(spec, node)
+        return sql.format(spec, compiler.sql(node))
 
     def gp2sql(lst):
         spec = 'group by %s'
@@ -649,7 +670,7 @@ class Compiler(object):
 
     def lm2sql(lst):
         offset, rows = lst
-        literal = 'limit %s%s' % ('%s, ' % offset if offset else '')
+        literal = 'limit %s%s' % ('%s, ' % offset if offset else '', rows)
         return sql(literal)
 
     def st2sql(lst):
@@ -847,3 +868,32 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
             inst.set_in_db(True)
             return inst
         return None
+
+    @__kwargs
+    def where(cls, *lst, **dct):
+        cls.runtime.set_wh(lst)
+        return cls
+
+    @classmethod
+    def at(cls, id):
+        return cls.where(cls.primarykey == id)
+
+    @classmethod
+    def orderby(cls, field, desc=False):
+        cls.runtime.set_od((field, desc))
+        return cls
+
+    @classmethod
+    def groupby(cls, *lst):
+        cls.runtime.set_gp(lst)
+        return cls
+
+    @classmethod
+    def having(cls, *lst):
+        cls.runtime.set_hv(lst)
+        return cls
+
+    @classmethod
+    def limit(cls, rows, offset=None):
+        cls.runtime.set_lm((offset, rows))
+        return cls
