@@ -272,7 +272,7 @@ class DatabaseType(object):
         return cursor
 
     def execute_sql(self, sql):  # execute a sql object
-        return self.execute(self, sql.literal, sql.params)
+        return self.execute(sql.literal, sql.params)
 
     def change(self, db):
         return self.dbapi.select_db(db, self.conn, self.configs)
@@ -323,7 +323,7 @@ class Transaction(object):
 class SQL(object):
 
     def __init__(self, literal, *params):
-        self.literal = literal
+        self.literal = ' '.join(literal.split())
         self.params = params
 
     @classmethod
@@ -791,3 +791,59 @@ class MetaModel(type):
 class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
 
     single = True
+
+    def __init__(self, *lst, **dct):
+        self.data = {}
+
+        for expr in lst:
+            field, val = expr.left, expr.right
+            self.data[field.name] = val
+
+        self.data.update(dct)
+        self._cache = self.data.copy()
+        self.set_in_db(False)
+
+    def set_in_db(self, boolean):
+        self._in_db = boolean
+
+    def __kwargs(func):
+        @classmethod
+        def _func(cls, *lst, **dct):
+            lst = list(lst)
+            if dct:
+                lst.extend([cls.fields[k] == v for k, v in dct.items()])
+            return func(cls, *lst)
+        return _func
+
+    @__kwargs
+    def insert(cls, *lst, **dct):
+        cls.runtime.set_vl(lst)
+        return InsertQuery(cls.runtime)
+
+    @__kwargs
+    def update(cls, *lst, **dct):
+        cls.runtime.set_st(lst)
+        return UpdateQuery(cls.runtime)
+
+    @classmethod
+    def select(cls, *lst):
+        if not lst:
+            lst = cls.fields.values()
+        cls.runtime.set_sl(lst)
+        return SelectQuery(cls.runtime)
+
+    @classmethod
+    def delete(cls):
+        return DeleteQuery(cls.runtime)
+
+    @classmethod
+    def create(cls, *lst, **dct):
+        query = cls.insert(*lst, **dct)
+        id = query.execute()
+
+        if id is not None:
+            dct[cls.primarykey.name] = id
+            inst = cls(*lst, **dct)
+            inst.set_in_db(True)
+            return inst
+        return None
