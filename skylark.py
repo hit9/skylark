@@ -366,3 +366,210 @@ class Expr(Leaf):
         self.left = left
         self.right = right
         self.op = op
+
+
+class Alias(object):
+
+    def __init__(self, name, inst):
+        for key, val in inst.__dict__.items():
+            setattr(self, key, val)
+        self.name = name
+        self.inst = inst
+
+
+class FieldDescriptor(object):
+
+    def __init__(self, field):
+        self.field = field
+
+    def __get__(self, inst, type=None):
+        if inst:
+            return inst.data[self.field.name]
+        return self.field
+
+    def __set__(self, inst, val):
+        inst.data[self.field.name] = val
+
+
+class Field(object):
+
+    def __init__(self, is_primarykey=False, is_foreignkey=False):
+        self.is_primarykey = is_primarykey
+        self.is_foreignkey = is_foreignkey
+
+    def describe(self, name, model):
+        self.name = name
+        self.model = model
+        self.fullname = '%s.%s' % (model.table_name, name)
+        setattr(model, name, FieldDescriptor(self))
+
+    def alias(self, name):
+        _alias = Alias(name, self)
+        setattr(self.model, name, FieldDescriptor(_alias))
+        return _alias
+
+
+class PrimaryKey(Field):
+
+    def __init__(self):
+        super(PrimaryKey, self).__init__(is_primarykey=True)
+
+
+class ForeignKey(Field):
+
+    def __init__(self, reference):
+        super(ForeignKey, self).__init__(is_foreignkey=True)
+        self.reference = reference
+
+
+class Function(Leaf):
+
+    def __init__(self, name, *args):
+        self.name = name
+        self.args = args
+
+    def alias(self, name):
+        return Alias(name, self)
+
+
+class Func(object):
+
+    def __init__(self, data=None):
+        if data is None:
+            data = {}
+        self.data = data
+
+    def __getattr__(self, name):
+        if name in self.data:
+            return self.data[name]
+        raise AttributeError
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+
+class Fn(object):
+
+    def _e(self, name):
+        def e(*args):
+            return Function(name, *args)
+        return e
+
+    def __getattr__(self, name):
+        return self._e(name)
+
+
+fn = Fn()
+
+
+class Distinct(object):
+    # 'distinct user.name, user.email..' -> legal
+    # 'user.id distinct user.name' -> illegal
+    # 'user.id, count(distinct user.name)' -> legal
+
+    def __init__(self, *args):
+        self.args = args
+
+
+distinct = Distinct
+
+
+class Query(object):
+    pass
+
+
+class InsertQuery(Query):
+    pass
+
+
+class UpdateQuery(Query):
+    pass
+
+
+class SelectQuery(Query):
+    pass
+
+
+class DeleteQuery(Query):
+    pass
+
+
+class Compiler(object):
+
+    mappings = {
+        OP_LT: '<',
+        OP_LE: '<=',
+        OP_GT: '>',
+        OP_GE: '>=',
+        OP_EQ: '=',
+        OP_NE: '<>',
+        OP_ADD: '+',
+        OP_AND: 'and',
+        OP_OR: 'or',
+        OP_LIKE: 'like',
+        OP_BETWEEN: 'between',
+        OP_IN: 'in',
+        OP_NOT_IN: 'not in'
+    }
+
+    def query2sql(query):
+        return sql.format('(%s)', query.sql)
+
+    def alias2sql(alias):
+        spec = '%%s as %s' % alias.name
+        return sql.format(spec, compiler.sql(alias.inst))
+
+    def field2sql(field):
+        return sql(field.fullname)
+
+    def function2sql(function):
+        spec = '%s%%s' % function.name
+        args = sql.join(', ', map(compiler.sql, function.args))
+        return sql.format(spec, args)
+
+    def distinct2sql(distinct):
+        args = sql.join(', ', map(compiler.sql, distinct.args))
+        return sql.format('distinct(%s)', args)
+
+    def expr2sql(expr):
+        op = compiler.mappings[expr.op]
+        left = compiler.sql(expr.left)
+
+        if expr.op < 100:  # common ops
+            right = compiler.sql(expr.right)
+        elif expr.op is OP_BETWEEN:
+            right = sql.join(' and ', map(compiler.sql, expr.right))
+        elif expr.op in (OP_IN, OP_NOT_IN):
+            vals = sql.join(', ', map(compiler.sql, expr.right))
+            right = sql.format('(%s)', vals)
+
+        spec = '%%s %s %%s' % op
+
+        if expr.op in (OP_AND, OP_OR):
+            spec = '(%s)' % spec
+
+        return sql.format(spec, left, right)
+
+    conversions = {
+        Expr: expr2sql,
+        Alias: alias2sql,
+        Field: field2sql,
+        PrimaryKey: field2sql,
+        ForeignKey: field2sql,
+        Function: function2sql,
+        Distinct: distinct2sql,
+        Query: query2sql,
+        InsertQuery: query2sql,
+        UpdateQuery: query2sql,
+        SelectQuery: query2sql,
+        DeleteQuery: query2sql
+    }
+
+    def sql(self, inst):
+        tp = type(inst)
+        if tp in self.conversions:
+            return self.conversions[tp](inst)
+        return sql(database.dbapi.placeholder, inst)
+
+
+compiler = Compiler()
