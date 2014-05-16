@@ -393,6 +393,8 @@ class SQL(Leaf):
 
     @classmethod
     def join(cls, sptr, seq):
+        # seq maybe a generator, so cast it static to iter twice
+        seq = list(seq)
         literal = sptr.join(sql.literal for sql in seq)
         params = sum([sql.params for sql in seq], tuple())
         return cls(literal, *params)
@@ -588,7 +590,7 @@ class SelectResult(object):
 
     def one(self):
         try:
-            row = self._rows.next()
+            row = next(self._rows)  # py2.6+/3.0+
         except StopIteration:
             return None
         return self.__one(row)
