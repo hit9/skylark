@@ -870,6 +870,14 @@ class MetaModel(type):
             return s.join((x, y))
         return reduce(_e, list(cls.__name__)).lower()
 
+    def __contains__(cls, inst):
+        if isinstance(inst, cls):
+            query = cls.where(**inst.data).select()
+            result = query.execute()
+            if result.count > 0:
+                return True
+        return False
+
 
 class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
 
@@ -959,3 +967,23 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
     def limit(cls, rows, offset=None):
         cls.runtime.set_lm((offset, rows))
         return cls
+
+    @classmethod
+    def findone(cls, *lst, **dct):
+        query = cls.where(*lst, **dct).select()
+        result = query.execute()
+        return result.one()
+
+    @classmethod
+    def findall(cls, *lst, **dct):
+        query = cls.where(*lst, **dct)
+        result = query.execute()
+        return result.all()
+
+    @classmethod
+    def getone(cls):
+        return cls.select().execute().one()
+
+    @classmethod
+    def getall(cls):
+        return cls.select().execute().all()
