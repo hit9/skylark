@@ -134,9 +134,6 @@ class DBAPI(object):
     def set_autocommit(self, conn, boolean):
         return conn.autocommit(boolean)
 
-    def setdefault_autocommit(self, conn, configs):
-        return conn.autocommit(configs.get('autocommit', True))
-
     def conn_is_alive(self, conn):
         try:
             conn.ping()
@@ -193,9 +190,6 @@ class Sqlite3API(DBAPI):
         db = configs['db']
         return self.module.connect(db)
 
-    def setdefault_autocommit(self, conn, configs):
-        conn.isolation_level = configs.get('isolation_level', None)
-
     def set_autocommit(self, conn, boolean):
         if boolean:
             conn.isolation_level = None
@@ -216,9 +210,6 @@ class Psycopg2API(DBAPI):
 
     def conn_is_open(self, conn):
         return conn and not conn.closed
-
-    def setdefault_autocommit(self, conn, configs):
-        conn.autocommit = configs.get('autocommit', True)
 
     def set_autocommit(self, conn, boolean):
         conn.autocommit = boolean
@@ -254,6 +245,7 @@ class DatabaseType(object):
         self.dbapi = None
         self.conn = None
         self.configs = {}
+        self.autocommit = None
 
         for name in DBAPI_LOAD_ORDER:
             try:
@@ -277,6 +269,7 @@ class DatabaseType(object):
             raise UnSupportedDBAPI
 
     def config(self, **configs):
+        self.autocommit = configs.pop('autocommit', True)
         self.configs.update(configs)
 
         # close active connection on configs change
@@ -285,7 +278,7 @@ class DatabaseType(object):
 
     def connect(self):
         self.conn = self.dbapi.connect(self.configs)
-        self.dbapi.setdefault_autocommit(self.conn, self.configs)
+        self.dbapi.set_autocommit(self.conn, self.autocommit)
         return self.conn
 
     def get_conn(self):
@@ -311,8 +304,10 @@ class DatabaseType(object):
     def change(self, db):
         return self.dbapi.select_db(db, self.conn, self.configs)
 
-    def autocommit(self, boolean):
-        return self.dbapi.set_autocommit(self.conn, boolean)
+    def set_autocommit(self, boolean):
+        self.autocommit = boolean
+        if self.dbapi.conn_is_open(self.conn):
+            return self.dbapi.set_autocommit(self.conn, boolean)
 
     def begin(self):
         return self.dbapi.begin_transaction(self.conn)
