@@ -18,6 +18,7 @@ branches:
     - dev
 
 before_script:
+  - pip install toml.py
   - mysql -e 'create database skylarktests;'
 
 script: ./runtests.sh
