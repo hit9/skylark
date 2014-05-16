@@ -13,6 +13,7 @@ from skylark import Database, database, DBAPI_MAPPINGS, DatabaseType,\
 
 from models import User, Post
 
+
 dbapi_name = os.environ.get('DBAPI', 'MySQLdb')
 dbapi = __import__(dbapi_name)
 configs = toml.loads(open('conf.toml').read())[dbapi_name]
@@ -21,7 +22,6 @@ db_type_mappings = {
     'pymysql': 'mysql',
     'MySQLdb': 'mysql',
     'sqlite3': 'sqlite',
-    'psycopg2': 'postgres'
 }
 
 db_type = db_type_mappings[dbapi_name]
@@ -29,23 +29,29 @@ db_type = db_type_mappings[dbapi_name]
 user_sql = open('%s.user.sql' % db_type).read()
 post_sql = open('%s.post.sql' % db_type).read()
 
-db = DatabaseType()
-db.set_dbapi(dbapi)
-db.config(**configs)
+
+database.set_dbapi(dbapi)
+database.config(**configs)
+database.set_autocommit(True)
+
+###################################
 
 
 class Test(object):
 
     def setUp(self):
-        db.execute(user_sql)
-        db.execute(post_sql)
+        database.execute(user_sql)
+        database.execute(post_sql)
 
     def tearDown(self):
-        db.execute("drop table t_post")
-        db.execute("drop table t_user")
+        database.execute("drop table t_post")
+        database.execute("drop table t_user")
 
 
 class TestDatabase_:
+
+    def setUp(self):
+        self.database = DatabaseType()
 
     def test_alias(self):
         assert database is Database
@@ -58,31 +64,26 @@ class TestDatabase_:
             pass
 
     def test_init(self):
-        assert database.conn is None
-        assert database.configs == {}
-        assert database.dbapi.module.__name__ in DBAPI_MAPPINGS
+        assert self.database.conn is None
+        assert self.database.configs == {}
+        assert self.database.dbapi.module.__name__ in DBAPI_MAPPINGS
 
         # test load orders
-        name = database.dbapi.module.__name__
+        name = self.database.dbapi.module.__name__
 
         if name == 'MySQLdb':
             assert __import__('MySQLdb')
         elif name == 'pymysql':
             assert __import__('pymysql')
             self.__shouldnt_import('MySQLdb')
-        elif name == 'psycopg2':
-            assert __import__('psycopg2')
-            self.__shouldnt_import('MySQLdb')
-            self.__shouldnt_import('pymysql')
         elif name == 'sqlite3':
             assert __import__('sqlite3')
             self.__shouldnt_import('MySQLdb')
             self.__shouldnt_import('pymysql')
-            self.__shouldnt_import('psycopg2')
 
     def test_set_dbapi(self):
-        database.set_dbapi(dbapi)
-        assert database.dbapi.module.__name__ == dbapi_name
+        self.database.set_dbapi(dbapi)
+        assert self.database.dbapi.module.__name__ == dbapi_name
 
 
 class TestDatabase(Test):
@@ -132,10 +133,7 @@ class TestDatabase(Test):
         self.database.config(**configs)
         cursor = self.database.execute(
             "insert into t_user (name, email) values ('jack', 'i@gmail.com')")
-        if db_type == 'postgres':
-            assert cursor.lastrowid == 0
-        else:
-            assert cursor.lastrowid == 1
+        assert cursor.lastrowid == 1
 
     def test_execute_sql(self):
         pass
@@ -157,7 +155,7 @@ class TestDatabase(Test):
         db = self.database
         db.config(**configs)
         db.execute("insert into t_user (name, email) values ('j', 'j@i.com')")
-        db.autocommit(False)
+        db.set_autocommit(False)
         t = db.transaction()
         try:
             db.execute("insert into t_user set x;")  # syntax error
@@ -179,7 +177,68 @@ class TestDatabase(Test):
         assert cursor.fetchone()[0] == 3
 
 
-class TestModel:
+class TestField_:
+
+    def test_name(self):
+        assert User.name.name == 'name'
+        assert User.email.name == 'email'
+        assert Post.name.name == 'name'
+        assert Post.user_id.name == 'user_id'
+
+    def test_fullname(self):
+        assert User.name.fullname == 't_user.name'
+        assert User.email.fullname == 't_user.email'
+        assert Post.name.fullname == 't_post.name'
+        assert Post.user_id.fullname == 't_post.user_id'
+
+    def test_model(self):
+        assert User.id.model is User
+        assert User.name.model is User
+        assert User.email.model is User
+        assert Post.name.model is Post
+        assert Post.user_id.model is Post
+
+    def test_alias(self):
+        fd = User.id.alias('user_id')
+        assert fd.name == 'user_id'
+        assert fd.inst is User.id
+
+
+class TestPrimaryKey_:
+
+    def test_is_primarykey(self):
+        assert User.id.is_primarykey is True
+        assert User.name.is_primarykey is False
+        assert User.email.is_primarykey is False
+        assert Post.post_id.is_primarykey is True
+        assert Post.user_id.is_primarykey is False
+        assert Post.name.is_primarykey is False
+
+
+class TestForeignKey_:
+
+    def test_is_foreignkey(self):
+        assert User.id.is_foreignkey is False
+        assert User.name.is_foreignkey is False
+        assert User.email.is_foreignkey is False
+        assert Post.post_id.is_foreignkey is False
+        assert Post.name.is_foreignkey is False
+        assert Post.user_id.is_foreignkey is True
+
+
+class TestAlias_:
+
+    def setUp(self):
+        self._alias = User.name.alias('username')
+
+    def test_name(self):
+        assert self._alias.name == 'username'
+
+    def test_inst(self):
+        assert self._alias.inst is User.name
+
+
+class TestModel_:
 
     def test_table_name(self):
         class MyModel(Model):
@@ -208,6 +267,21 @@ class TestModel:
             table_prefix = 'd_'
         assert Dog.table_name == 'd_custom_table_name'
 
+    def test_table_prefix_is_inheritable(self):
+        class X(Model):
+            table_prefix = 't_'
+
+        class A(X):
+            pass
+
+        class B(X):
+            pass
+
+        assert A.table_prefix is X.table_prefix
+        assert B.table_prefix is X.table_prefix
+        assert A.table_name == 't_a'
+        assert B.table_name == 't_b'
+
     def test_primarykey(self):
         assert User.primarykey is User.id
         assert Post.primarykey is Post.post_id
@@ -219,3 +293,26 @@ class TestModel:
         field_names = set(Post.fields.keys())
         _field_names = set(('post_id', 'name', 'user_id'))
         assert field_names == _field_names
+
+
+class TestModel(Test):
+
+    def test_insert(self):
+        query = User.insert(name='jack', email='jack@gmail.com')
+        assert query.execute() == 1
+        assert User.count() == 1
+        user = User.getone()
+        assert user.name == 'jack' and user.email == 'jack@gmail.com'
+
+    def test_update(self):
+        user = User.create(name='jack', email='jack@gmail.com')
+        assert user.id == 1
+        assert user.name == 'jack'
+        assert user.email == 'jack@gmail.com'
+        assert User.count() == 1
+
+        query = User.at(1).update(email='jack@g.com')
+        result = query.execute()
+        assert result == 1
+        user = User.getone()
+        assert user.id == 1 and user.email == 'jack@g.com'

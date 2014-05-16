@@ -17,7 +17,7 @@
     skylark
     ~~~~~~~
 
-    Nice micro python orm for mysql, sqlite and postgres.
+    Nice micro python orm for mysql and sqlite.
 
     :author: Chao Wang (Hit9).
     :license: BSD.
@@ -206,37 +206,14 @@ class Sqlite3API(DBAPI):
         return 1   # sqlite is serverless
 
 
-class Psycopg2API(DBAPI):
-
-    def conn_is_open(self, conn):
-        return conn and not conn.closed
-
-    def set_autocommit(self, conn, boolean):
-        conn.autocommit = boolean
-
-    def select_db(self, db, conn, configs):
-        # for postgres, to change database, must create a new connection
-        configs.update({'database': db})
-        if self.conn_is_alive(conn):
-            self.close_conn(conn)
-
-    def conn_is_alive(self, conn):
-        try:
-            conn.isolation_level
-        except self.module.OperationalError:
-            return False
-        return True
-
-
 DBAPI_MAPPINGS = {
     'MySQLdb': MySQLdbAPI,
     'pymysql': PyMySQLAPI,
     'sqlite3': Sqlite3API,
-    'psycopg2': Psycopg2API
 }
 
 
-DBAPI_LOAD_ORDER = ('MySQLdb', 'pymysql', 'psycopg2', 'sqlite3')
+DBAPI_LOAD_ORDER = ('MySQLdb', 'pymysql', 'sqlite3')
 
 
 class DatabaseType(object):

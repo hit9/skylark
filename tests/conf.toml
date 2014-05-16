@@ -10,8 +10,3 @@ db = "skylarktests"
 
 [sqlite3]
 db ="skylarktests"
-
-[psycopg2]
-database = "skylarktests"
-user = "postgres"
-password = ""
