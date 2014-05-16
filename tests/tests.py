@@ -31,6 +31,7 @@ post_sql = open('%s.post.sql' % db_type).read()
 
 
 database.set_dbapi(dbapi)
+logging.info('Using DBAPI %s' % dbapi_name)
 database.config(**configs)
 database.set_autocommit(True)
 
