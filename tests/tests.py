@@ -372,6 +372,24 @@ class TestModel(Test):
             'name': 'jack', 'email': 'jack@gmail.com', 'id': 1
         }
         assert user in User
+        assert user._in_db
+        assert User.count() == 1
+
+        _user = User.getone()
+        assert _user.data == user.data
+        assert _user._in_db
+
+    def test_where(self):
+        User.create(name='jack', email='jack@gmail.com')
+        User.create(name='amy', email='amy@gmail.com')
+        User.create(name='tom', email='tom@gmail.com')
+
+        assert ['jack'] == [
+            user.name for user in User.where(name='jack').select()]
+
+        assert [1] == [
+            user.id for user in User.where(id=1).select()
+        ]
 
 
 class TestSelectResult(Test):
@@ -384,3 +402,10 @@ class TestSelectResult(Test):
 
     def test_tuples(self):
         pass
+
+    def test_selected_inst_in_db(self):
+        pass
+
+
+class TestOperators(Test):
+    pass
