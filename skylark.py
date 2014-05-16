@@ -511,7 +511,11 @@ class InsertQuery(Query):
 
     def execute(self):
         cursor = database.execute_sql(self.sql)
-        return cursor.lastrowid if cursor.rowcount else None
+        last_insert_id = cursor.lastrowid
+        rows_affected = cursor.rowcount
+        cursor.close()
+        if rows_affected:
+            return last_insert_id
 
 
 class UpdateQuery(Query):
@@ -521,7 +525,9 @@ class UpdateQuery(Query):
 
     def execute(self):
         cursor = database.execute_sql(self.sql)
-        return cursor.rowcount
+        rows_affected = cursor.rowcount
+        cursor.close()
+        return rows_affected
 
 
 class SelectQuery(Query):
@@ -533,7 +539,9 @@ class SelectQuery(Query):
 
     def execute(self):
         cursor = database.execute_sql(self.sql)
-        return SelectResult(cursor, self.model, self.nodes)
+        result = SelectResult(tuple(cursor.fetchall()), self.model, self.nodes)
+        cursor.close()
+        return result
 
     def __iter__(self):
         results = self.execute()
@@ -547,16 +555,19 @@ class DeleteQuery(Query):
 
     def execute(self):
         cursor = database.execute_sql(self.sql)
-        return cursor.rowcount
+        rows_affected = cursor.rowcount
+        cursor.close()
+        return rows_affected
 
 
 class SelectResult(object):
 
-    def __init__(self, cursor, model, nodes):
-        self.cursor = cursor
+    def __init__(self, rows, model, nodes, rowcount=-1):
+        self.rows = rows
         self.model = model
-        self.count = self.cursor.rowcount
         self.nodes = nodes
+        self.count = rowcount if rowcount > 0 else len(rows)
+        self._rows = (row for row in self.rows)
 
     def inst(self, model, row):
         inst = model()
@@ -575,21 +586,17 @@ class SelectResult(object):
         return tuple(map(lambda m: self.inst(m, row), self.model.models))
 
     def one(self):
-        row = self.cursor.fetchone()
-
-        if row is None:
+        try:
+            row = self._rows.next()
+        except StopIteration:
             return None
         return self.__one(row)
 
     def all(self):
-        rows = self.cursor.fetchone()
-
-        for row in rows:
-            yield self.__one(row)
+        return tuple(map(self.__one, self.rows))
 
     def tuples(self):
-        for row in self.cursor.fetchall():
-            yield row
+        return self.rows
 
 
 class Compiler(object):
@@ -839,9 +846,9 @@ class MetaModel(type):
 
     def __contains__(cls, inst):
         if isinstance(inst, cls):
-            query = cls.where(**inst.data).select()
+            query = cls.where(**inst.data).select(fn.count(cls.primarykey))
             result = query.execute()
-            if result.count > 0:
+            if tuple(result.tuples())[0][0] > 0:
                 return True
         return False
 
