@@ -405,6 +405,9 @@ class SQL(Leaf):
         self.literal = ' '.join(literal.split())
         self.params = params
 
+    def __repr__(self):
+        return '<sql %r %r>' % (self.literal, self.params)
+
     @classmethod
     def format(cls, spec, *args):
         literal = spec % tuple(arg.literal for arg in args)
@@ -556,7 +559,8 @@ class SelectQuery(Query):
         super(SelectQuery, self).__init__(QUERY_SELECT, runtime)
 
     def execute(self):
-        pass
+        cursor = database.execute_sql(self.sql)
+        return SelectResult(cursor, self.model, self.nodes)
 
     def __iter__(self):
         results = self.execute()
