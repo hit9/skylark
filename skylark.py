@@ -544,8 +544,8 @@ class SelectQuery(Query):
         return result
 
     def __iter__(self):
-        results = self.execute()
-        return results.all()
+        result = self.execute()
+        return iter(result.all())
 
 
 class DeleteQuery(Query):
@@ -851,7 +851,7 @@ class MetaModel(type):
                 return True
             query = cls.where(**inst.data).select(fn.count(cls.primarykey))
             result = query.execute()
-            if tuple(result.tuples())[0][0] > 0:
+            if result.tuples()[0][0] > 0:
                 return True
         return False
 
@@ -1012,7 +1012,7 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
             function = Function(name, arg)
             query = cls.select(function)
             result = query.execute()
-            return tuple(result.tuples())[0][0]
+            return result.tuples()[0][0]
         return _func
 
     count = aggregator('count')
