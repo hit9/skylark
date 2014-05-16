@@ -579,6 +579,39 @@ class SelectResult(object):
         self.cursor = cursor
         self.model = model
         self.count = self.cursor.rowcount
+        self.nodes = nodes
+
+    def inst(self, model, row):
+        inst = model()
+        inst.set_in_db(True)
+
+        for idx, node in enumerate(self.nodes):
+            if isinstance(node, Field) or (isinstance(node, Alias)
+                                           and isinstance(node.inst, Field)):
+                inst.data[node.name] = row[idx]
+        return inst
+
+    def __one(self, row):
+        if self.model.single:
+            return self.inst(self.model, row)
+        return tuple(map(lambda m: self.inst(m, row), self.model.models))
+
+    def one(self):
+        row = self.cursor.fetchone()
+
+        if row is None:
+            return None
+        return self.__one(row)
+
+    def all(self):
+        rows = self.cursor.fetchone()
+
+        for row in rows:
+            yield self.__one(row)
+
+    def tuples(self):
+        for row in self.cursor.fetchall():
+            yield row
 
 
 class Compiler(object):
