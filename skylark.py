@@ -474,9 +474,7 @@ class Field(Leaf):
         setattr(model, name, FieldDescriptor(self))
 
     def alias(self, name):
-        _alias = Alias(name, self)
-        setattr(self.model, name, FieldDescriptor(_alias))
-        return _alias
+        return Alias(name, self)
 
 
 class PrimaryKey(Field):
@@ -595,9 +593,10 @@ class SelectResult(object):
         inst.set_in_db(True)
 
         for idx, node in enumerate(self.nodes):
-            if isinstance(node, Field) or (isinstance(node, Alias)
-                                           and isinstance(node.inst, Field)):
+            if isinstance(node, Field):
                 inst.data[node.name] = row[idx]
+            if isinstance(node, Alias) and isinstance(node.inst, Field):
+                setattr(inst, node.name, row[idx])
         return inst
 
     def __one(self, row):
