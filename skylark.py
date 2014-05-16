@@ -441,8 +441,6 @@ class Expr(Leaf):
 class Alias(object):
 
     def __init__(self, name, inst):
-        for key, val in inst.__dict__.items():
-            setattr(self, key, val)
         self.name = name
         self.inst = inst
 
