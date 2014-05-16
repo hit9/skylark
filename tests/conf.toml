@@ -1,0 +1,12 @@
+[MySQLdb]
+user = "root"
+passwd = ""
+db = "skylarktests"
+
+[pymysql]
+user = "root"
+passwd = ""
+db = "skylarktests"
+
+[sqlite3]
+db ="skylarktests"
