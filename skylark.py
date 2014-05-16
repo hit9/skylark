@@ -31,6 +31,7 @@ __all__ = (
     '__version__',
     'SkylarkException',
     'UnSupportedDBAPI',
+    'PrimaryKeyValueNotFound',
     'Database', 'database',
     'sql', 'SQL',
     'Field',
@@ -107,6 +108,10 @@ class SkylarkException(Exception):
 
 
 class UnSupportedDBAPI(SkylarkException):
+    pass
+
+
+class PrimaryKeyValueNotFound(SkylarkException):
     pass
 
 
@@ -987,3 +992,63 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
     @classmethod
     def getall(cls):
         return cls.select().execute().all()
+
+    @property
+    def _id(self):
+        return self.data.get(type(self).primarykey.name, None)
+
+    def save(self):
+        model = type(self)
+
+        if not self._in_db:  # insert
+            id = model.insert(**self.data).execute()
+
+            if id is not None:
+                self.data[model.primarykey] = id
+                self.set_in_db(True)
+                self._cache = self.data.copy()  # sync cache on saving
+            return id
+        else:  # update
+            dct = dict(set(self.data.items()) - set(self._cache.items()))
+
+            if self._id is None:
+                raise PrimaryKeyValueNotFound
+
+            if dct:
+                query = model.at(self._id).update(**dct)
+                rows_affected = query.execute()
+            else:
+                rows_affected = 0
+            self._cache = self.data.copy()
+            return rows_affected
+
+    def destroy(self):
+        if self._in_db:
+            if self._id is None:
+                raise PrimaryKeyValueNotFound
+            result = type(self).at(self._id).delete().execute()
+            if result:
+                self.set_in_db(False)
+            return result
+        return None
+
+    def aggregator(name):
+        @classmethod
+        def _func(cls, arg=None):
+            if arg is None:
+                arg = cls.primarykey
+            function = Function(name, arg)
+            query = cls.select(function)
+            result = query.execute()
+            return tuple(result.tuples())[0][0]
+        return _func
+
+    count = aggregator('count')
+
+    sum = aggregator('sum')
+
+    max = aggregator('max')
+
+    min = aggregator('min')
+
+    avg = aggregator('avg')
