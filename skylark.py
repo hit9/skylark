@@ -394,7 +394,7 @@ class SQL(Leaf):
     @classmethod
     def join(cls, sptr, seq):
         # seq maybe a generator, so cast it static to iter twice
-        seq = list(seq)
+        seq = tuple(seq)
         literal = sptr.join(sql.literal for sql in seq)
         params = sum([sql.params for sql in seq], tuple())
         return cls(literal, *params)
