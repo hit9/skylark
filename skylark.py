@@ -494,22 +494,6 @@ class Function(Leaf):
         return Alias(name, self)
 
 
-class Func(object):
-
-    def __init__(self, data=None):
-        if data is None:
-            data = {}
-        self.data = data
-
-    def __getattr__(self, name):
-        if name in self.data:
-            return self.data[name]
-        raise AttributeError
-
-    def __getitem__(self, key):
-        return self.data[key]
-
-
 class Fn(object):
 
     def _e(self, name):
@@ -587,6 +571,14 @@ class DeleteQuery(Query):
     def execute(self):
         cursor = database.execute_sql(self.sql)
         return cursor.rowcount
+
+
+class SelectResult(object):
+
+    def __init__(self, cursor, model, nodes):
+        self.cursor = cursor
+        self.model = model
+        self.count = self.cursor.rowcount
 
 
 class Compiler(object):
