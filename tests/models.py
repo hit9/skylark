@@ -6,12 +6,16 @@ sys.path.insert(0, '..')
 from skylark import Model, PrimaryKey, Field, ForeignKey
 
 
-class User(Model):
+class BaseModel(Model):
+    table_prefix = 't_'
+
+
+class User(BaseModel):
     name = Field()
     email = Field()
 
 
-class Post(Model):
+class Post(BaseModel):
     post_id = PrimaryKey()
     name = Field()
     user_id = ForeignKey(User.id)

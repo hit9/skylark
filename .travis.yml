@@ -20,4 +20,4 @@ branches:
 before_script:
   - mysql -e 'create database skylarktests;'
 
-script: NOSE_NOCAPTURE=1 nosetests -w tests -x -v --nologcapture --process-timeout=10
+script: ./runtests.sh

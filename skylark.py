@@ -17,7 +17,7 @@
     skylark
     ~~~~~~~
 
-    Micro python orm for mysql, sqlite and postgres.
+    Nice micro python orm for mysql and sqlite.
 
     :author: Chao Wang (Hit9).
     :license: BSD.
@@ -31,6 +31,7 @@ __all__ = (
     '__version__',
     'SkylarkException',
     'UnSupportedDBAPI',
+    'PrimaryKeyValueNotFound',
     'Database', 'database',
     'sql', 'SQL',
     'Field',
@@ -110,6 +111,10 @@ class UnSupportedDBAPI(SkylarkException):
     pass
 
 
+class PrimaryKeyValueNotFound(SkylarkException):
+    pass
+
+
 class DBAPI(object):
 
     placeholder = '%s'
@@ -128,9 +133,6 @@ class DBAPI(object):
 
     def set_autocommit(self, conn, boolean):
         return conn.autocommit(boolean)
-
-    def setdefault_autocommit(self, conn, configs):
-        return conn.autocommit(configs.get('autocommit', True))
 
     def conn_is_alive(self, conn):
         try:
@@ -188,9 +190,6 @@ class Sqlite3API(DBAPI):
         db = configs['db']
         return self.module.connect(db)
 
-    def setdefault_autocommit(self, conn, configs):
-        conn.isolation_level = configs.get('isolation_level', None)
-
     def set_autocommit(self, conn, boolean):
         if boolean:
             conn.isolation_level = None
@@ -207,40 +206,14 @@ class Sqlite3API(DBAPI):
         return 1   # sqlite is serverless
 
 
-class Psycopg2API(DBAPI):
-
-    def conn_is_open(self, conn):
-        return conn and not conn.closed
-
-    def setdefault_autocommit(self, conn, configs):
-        conn.autocommit = configs.get('autocommit', True)
-
-    def set_autocommit(self, conn, boolean):
-        conn.autocommit = boolean
-
-    def select_db(self, db, conn, configs):
-        # for postgres, to change database, must create a new connection
-        configs.update({'database': db})
-        if self.conn_is_alive(conn):
-            self.close_conn(conn)
-
-    def conn_is_alive(self, conn):
-        try:
-            conn.isolation_level
-        except self.module.OperationalError:
-            return False
-        return True
-
-
 DBAPI_MAPPINGS = {
     'MySQLdb': MySQLdbAPI,
     'pymysql': PyMySQLAPI,
     'sqlite3': Sqlite3API,
-    'psycopg2': Psycopg2API
 }
 
 
-DBAPI_LOAD_ORDER = ('MySQLdb', 'pymysql', 'psycopg2', 'sqlite3')
+DBAPI_LOAD_ORDER = ('MySQLdb', 'pymysql', 'sqlite3')
 
 
 class DatabaseType(object):
@@ -249,6 +222,7 @@ class DatabaseType(object):
         self.dbapi = None
         self.conn = None
         self.configs = {}
+        self.autocommit = None
 
         for name in DBAPI_LOAD_ORDER:
             try:
@@ -272,6 +246,7 @@ class DatabaseType(object):
             raise UnSupportedDBAPI
 
     def config(self, **configs):
+        self.autocommit = configs.pop('autocommit', True)
         self.configs.update(configs)
 
         # close active connection on configs change
@@ -280,7 +255,7 @@ class DatabaseType(object):
 
     def connect(self):
         self.conn = self.dbapi.connect(self.configs)
-        self.dbapi.setdefault_autocommit(self.conn, self.configs)
+        self.dbapi.set_autocommit(self.conn, self.autocommit)
         return self.conn
 
     def get_conn(self):
@@ -297,7 +272,7 @@ class DatabaseType(object):
 
     def execute(self, *args):
         cursor = self.dbapi.get_cursor(self.get_conn())
-        self.dbapi.execute_cursor(cursor, args)  # should close the cursor?
+        self.dbapi.execute_cursor(cursor, args)
         return cursor
 
     def execute_sql(self, sql):  # execute a sql object
@@ -306,8 +281,10 @@ class DatabaseType(object):
     def change(self, db):
         return self.dbapi.select_db(db, self.conn, self.configs)
 
-    def autocommit(self, boolean):
-        return self.dbapi.set_autocommit(self.conn, boolean)
+    def set_autocommit(self, boolean):
+        self.autocommit = boolean
+        if self.dbapi.conn_is_open(self.conn):
+            return self.dbapi.set_autocommit(self.conn, boolean)
 
     def begin(self):
         return self.dbapi.begin_transaction(self.conn)
@@ -364,6 +341,7 @@ class Leaf(object):
     __ge__ = _e(OP_GE)
     __eq__ = _e(OP_EQ)
     __ne__ = _e(OP_NE)
+
     __add__ = _e(OP_ADD)
     __sub__ = _e(OP_SUB)
     __mul__ = _e(OP_MUL)
@@ -371,6 +349,7 @@ class Leaf(object):
     __mod__ = _e(OP_MOD)
     __and__ = _e(OP_AND)
     __or__ = _e(OP_OR)
+
     __radd__ = _e(OP_ADD, invert=True)
     __rsub__ = _e(OP_SUB, invert=True)
     __rmul__ = _e(OP_MUL, invert=True)
@@ -403,6 +382,9 @@ class SQL(Leaf):
         self.literal = ' '.join(literal.split())
         self.params = params
 
+    def __repr__(self):
+        return '<sql %r %r>' % (self.literal, self.params)
+
     @classmethod
     def format(cls, spec, *args):
         literal = spec % tuple(arg.literal for arg in args)
@@ -431,8 +413,6 @@ class Expr(Leaf):
 class Alias(object):
 
     def __init__(self, name, inst):
-        for key, val in inst.__dict__.items():
-            setattr(self, key, val)
         self.name = name
         self.inst = inst
 
@@ -464,9 +444,7 @@ class Field(Leaf):
         setattr(model, name, FieldDescriptor(self))
 
     def alias(self, name):
-        _alias = Alias(name, self)
-        setattr(self.model, name, FieldDescriptor(_alias))
-        return _alias
+        return Alias(name, self)
 
 
 class PrimaryKey(Field):
@@ -490,22 +468,6 @@ class Function(Leaf):
 
     def alias(self, name):
         return Alias(name, self)
-
-
-class Func(object):
-
-    def __init__(self, data=None):
-        if data is None:
-            data = {}
-        self.data = data
-
-    def __getattr__(self, name):
-        if name in self.data:
-            return self.data[name]
-        raise AttributeError
-
-    def __getitem__(self, key):
-        return self.data[key]
 
 
 class Fn(object):
@@ -549,7 +511,11 @@ class InsertQuery(Query):
 
     def execute(self):
         cursor = database.execute_sql(self.sql)
-        return cursor.lastrowid if cursor.rowcount else None
+        last_insert_id = cursor.lastrowid
+        rows_affected = cursor.rowcount
+        cursor.close()
+        if rows_affected:
+            return last_insert_id
 
 
 class UpdateQuery(Query):
@@ -559,7 +525,9 @@ class UpdateQuery(Query):
 
     def execute(self):
         cursor = database.execute_sql(self.sql)
-        return cursor.rowcount
+        rows_affected = cursor.rowcount
+        cursor.close()
+        return rows_affected
 
 
 class SelectQuery(Query):
@@ -570,11 +538,14 @@ class SelectQuery(Query):
         super(SelectQuery, self).__init__(QUERY_SELECT, runtime)
 
     def execute(self):
-        pass
+        cursor = database.execute_sql(self.sql)
+        result = SelectResult(tuple(cursor.fetchall()), self.model, self.nodes)
+        cursor.close()
+        return result
 
     def __iter__(self):
-        results = self.execute()
-        return results.all()
+        result = self.execute()
+        return iter(result.all())
 
 
 class DeleteQuery(Query):
@@ -584,7 +555,49 @@ class DeleteQuery(Query):
 
     def execute(self):
         cursor = database.execute_sql(self.sql)
-        return cursor.rowcount
+        rows_affected = cursor.rowcount
+        cursor.close()
+        return rows_affected
+
+
+class SelectResult(object):
+
+    def __init__(self, rows, model, nodes, rowcount=-1):
+        self.rows = rows
+        self.model = model
+        self.nodes = nodes
+        # for sqlite3, DBAPI2 said rowcount on select will always be -1
+        self.count = rowcount if rowcount > 0 else len(rows)
+        self._rows = (row for row in self.rows)
+
+    def inst(self, model, row):
+        inst = model()
+        inst.set_in_db(True)
+
+        for idx, node in enumerate(self.nodes):
+            if isinstance(node, Field):
+                inst.data[node.name] = row[idx]
+            if isinstance(node, Alias) and isinstance(node.inst, Field):
+                setattr(inst, node.name, row[idx])
+        return inst
+
+    def __one(self, row):
+        if self.model.single:
+            return self.inst(self.model, row)
+        return tuple(map(lambda m: self.inst(m, row), self.model.models))
+
+    def one(self):
+        try:
+            row = self._rows.next()
+        except StopIteration:
+            return None
+        return self.__one(row)
+
+    def all(self):
+        return tuple(map(self.__one, self.rows))
+
+    def tuples(self):
+        return self.rows
 
 
 class Compiler(object):
@@ -800,37 +813,30 @@ class Runtime(object):
 class MetaModel(type):
 
     def __init__(cls, name, bases, attrs):
-
-        dct = cls.__dict__
-
-        # set table_name
-        table_name = dct.get('table_name', cls.__default_table_name())
-        table_prefix = dct.get('table_prefix', None)
-
+        # table_name is not inheritable
+        table_name = cls.__dict__.get(
+            'table_name', cls.__default_table_name())
+        # table_prefix is inheritable
+        table_prefix = getattr(cls, 'table_prefix', None)
         if table_prefix:
             table_name = table_prefix + table_name
         cls.table_name = table_name
+        cls.table_prefix = table_prefix
 
-        # set fields
         primarykey = None
         fields = {}
-
-        for key, val in dct.items():
+        for key, val in cls.__dict__.items():
             if isinstance(val, Field):
                 fields[key] = val
                 if val.is_primarykey:
                     primarykey = val
-
         if primarykey is None:
             fields['id'] = primarykey = PrimaryKey()
-
         for name, field in fields.items():
             field.describe(name, cls)
 
         cls.fields = fields
         cls.primarykey = primarykey
-
-        # set runtime
         cls.runtime = Runtime(cls)
 
     def __default_table_name(cls):
@@ -838,6 +844,16 @@ class MetaModel(type):
             s = '_' if y.isupper() else ''
             return s.join((x, y))
         return reduce(_e, list(cls.__name__)).lower()
+
+    def __contains__(cls, inst):
+        if isinstance(inst, cls):
+            if inst._in_db:
+                return True
+            query = cls.where(**inst.data).select(fn.count(cls.primarykey))
+            result = query.execute()
+            if result.tuples()[0][0] > 0:
+                return True
+        return False
 
 
 class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
@@ -928,3 +944,83 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
     def limit(cls, rows, offset=None):
         cls.runtime.set_lm((offset, rows))
         return cls
+
+    @classmethod
+    def findone(cls, *lst, **dct):
+        query = cls.where(*lst, **dct).select()
+        result = query.execute()
+        return result.one()
+
+    @classmethod
+    def findall(cls, *lst, **dct):
+        query = cls.where(*lst, **dct)
+        result = query.execute()
+        return result.all()
+
+    @classmethod
+    def getone(cls):
+        return cls.select().execute().one()
+
+    @classmethod
+    def getall(cls):
+        return cls.select().execute().all()
+
+    @property
+    def _id(self):
+        return self.data.get(type(self).primarykey.name, None)
+
+    def save(self):
+        model = type(self)
+
+        if not self._in_db:  # insert
+            id = model.insert(**self.data).execute()
+
+            if id is not None:
+                self.data[model.primarykey] = id
+                self.set_in_db(True)
+                self._cache = self.data.copy()  # sync cache on saving
+            return id
+        else:  # update
+            dct = dict(set(self.data.items()) - set(self._cache.items()))
+
+            if self._id is None:
+                raise PrimaryKeyValueNotFound
+
+            if dct:
+                query = model.at(self._id).update(**dct)
+                rows_affected = query.execute()
+            else:
+                rows_affected = 0
+            self._cache = self.data.copy()
+            return rows_affected
+
+    def destroy(self):
+        if self._in_db:
+            if self._id is None:
+                raise PrimaryKeyValueNotFound
+            result = type(self).at(self._id).delete().execute()
+            if result:
+                self.set_in_db(False)
+            return result
+        return None
+
+    def aggregator(name):
+        @classmethod
+        def _func(cls, arg=None):
+            if arg is None:
+                arg = cls.primarykey
+            function = Function(name, arg)
+            query = cls.select(function)
+            result = query.execute()
+            return result.tuples()[0][0]
+        return _func
+
+    count = aggregator('count')
+
+    sum = aggregator('sum')
+
+    max = aggregator('max')
+
+    min = aggregator('min')
+
+    avg = aggregator('avg')
