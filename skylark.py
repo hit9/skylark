@@ -837,37 +837,35 @@ class MetaModel(type):
 
     def __init__(cls, name, bases, attrs):
 
-        dct = cls.__dict__
+        if name not in ('BaseModel', 'Model'):
+            table_name = getattr(cls, 'table_name', cls.__default_table_name())
+            table_prefix = getattr(cls, 'table_prefix', None)
 
-        # set table_name
-        table_name = dct.get('table_name', cls.__default_table_name())
-        table_prefix = dct.get('table_prefix', None)
+            if table_prefix:
+                table_name = table_prefix + table_name
 
-        if table_prefix:
-            table_name = table_prefix + table_name
-        cls.table_name = table_name
+            cls.table_name = table_name
 
-        # set fields
-        primarykey = None
-        fields = {}
+            primarykey = None
+            fields = {}
 
-        for key, val in dct.items():
-            if isinstance(val, Field):
-                fields[key] = val
-                if val.is_primarykey:
-                    primarykey = val
+            for key, val in cls.__dict__.items():
+                if isinstance(val, Field):
+                    fields[key] = val
+                    if val.is_primarykey:
+                        primarykey = val
 
-        if primarykey is None:
-            fields['id'] = primarykey = PrimaryKey()
+            if primarykey is None:
+                fields['id'] = primarykey = PrimaryKey()
 
-        for name, field in fields.items():
-            field.describe(name, cls)
+            for name, field in fields.items():
+                field.describe(name, cls)
 
-        cls.fields = fields
-        cls.primarykey = primarykey
+            cls.fields = fields
+            cls.primarykey = primarykey
 
-        # set runtime
-        cls.runtime = Runtime(cls)
+            # set runtime
+            cls.runtime = Runtime(cls)
 
     def __default_table_name(cls):
         def _e(x, y):
@@ -884,7 +882,7 @@ class MetaModel(type):
         return False
 
 
-class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
+class Model(MetaModel('BaseModel', (object, ), {})):  # py3 compat
 
     single = True
 
