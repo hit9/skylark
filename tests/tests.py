@@ -34,8 +34,6 @@ database.set_dbapi(dbapi)
 database.config(**configs)
 database.set_autocommit(True)
 
-###################################
-
 
 class Test(object):
 
@@ -312,7 +310,77 @@ class TestModel(Test):
         assert User.count() == 1
 
         query = User.at(1).update(email='jack@g.com')
-        result = query.execute()
-        assert result == 1
+        rows_affected = query.execute()
+        assert rows_affected == 1
         user = User.getone()
         assert user.id == 1 and user.email == 'jack@g.com'
+
+    def test_inst_in_model(self):
+        user = User.create(name='jack', email='jack@gmail.com')
+
+        # inst with `_in_db=True` won't call db to run a query
+        database.conn.close()  # close conn to test if any sql was executed
+        database.conn = None
+        assert user in User
+        assert database.conn is None
+
+        # inst without `_in_db=True` call a query
+        assert User(name='amy') not in User
+        assert database.conn is not None
+
+    def test_select(self):
+        User.create(name='jack', email='jack@gmail.com')
+        User.create(name='amy', email='amy@gmail.com')
+        User.create(name='tom', email='tom@gmail.com')
+        ### select all fields
+        query = User.select()
+        result = query.execute()
+        assert result.count == 3
+        for user in result.all():
+            assert '%s@gmail.com' % user.name == user.email
+        ### select part fields
+        query = User.select(User.name)
+        result = query.execute()
+        assert result.count == 3
+        jack = result.one()
+        assert jack.name == 'jack'
+        amy = result.one()
+        assert amy.name == 'amy'
+        tom = result.one()
+        assert tom.name == 'tom'
+        assert result.one() is None
+        ### select with where
+        query = User.where(name='jack').select()
+        result = query.execute()
+        assert result.count == 1
+        assert result.one().name == 'jack'
+
+    def test_delete(self):
+        User.create(name='jack', email='jack@gmail.com')
+        User.create(name='amy', email='amy@gmail.com')
+        query = User.at(3).delete()
+        rows_affected = query.execute()
+        assert rows_affected == 0
+        query = User.at(1).delete()
+        rows_affected = query.execute()
+        assert rows_affected == 1
+        assert User.count() == 1
+
+    def test_create(self):
+        user = User.create(name='jack', email='jack@gmail.com')
+        assert user.data == {
+            'name': 'jack', 'email': 'jack@gmail.com', 'id': 1
+        }
+        assert user in User
+
+
+class TestSelectResult(Test):
+
+    def test_count(self):
+        pass
+
+    def test_one(self):
+        pass
+
+    def test_tuples(self):
+        pass

@@ -272,7 +272,7 @@ class DatabaseType(object):
 
     def execute(self, *args):
         cursor = self.dbapi.get_cursor(self.get_conn())
-        self.dbapi.execute_cursor(cursor, args)  # should close the cursor?
+        self.dbapi.execute_cursor(cursor, args)
         return cursor
 
     def execute_sql(self, sql):  # execute a sql object
@@ -566,6 +566,7 @@ class SelectResult(object):
         self.rows = rows
         self.model = model
         self.nodes = nodes
+        # for sqlite3, DBAPI2 said rowcount on select will always be -1
         self.count = rowcount if rowcount > 0 else len(rows)
         self._rows = (row for row in self.rows)
 
@@ -846,6 +847,8 @@ class MetaModel(type):
 
     def __contains__(cls, inst):
         if isinstance(inst, cls):
+            if inst._in_db:
+                return True
             query = cls.where(**inst.data).select(fn.count(cls.primarykey))
             result = query.execute()
             if tuple(result.tuples())[0][0] > 0:
