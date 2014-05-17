@@ -126,6 +126,7 @@ class TestDatabase(Test):
         conn = self.database.conn
         dbapi = self.database.dbapi
         del self.database
+        conn = None
         assert not dbapi.conn_is_open(conn)
 
     def test_execute(self):
