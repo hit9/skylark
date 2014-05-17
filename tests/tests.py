@@ -9,7 +9,7 @@ import toml
 
 sys.path.insert(0, '..')
 from skylark import Database, database, DBAPI_MAPPINGS, DatabaseType,\
-    Model
+    Model, fn, sql, distinct
 
 from models import User, Post
 
@@ -45,6 +45,19 @@ class Test(object):
     def tearDown(self):
         database.execute("drop table t_post")
         database.execute("drop table t_user")
+
+    def create_data(self, count, table=None):
+        if table is 1:  # only create data in table `user`
+            for i in range(1, count + 1):
+                User.create(name='name' + str(i), email='email' + str(i))
+        elif table is 2:  # only create data in table `post`
+            for i in range(1, count + 1):
+                Post.create(name='name' + str(i), user_id=count + 1 - i)
+        else:  # both, default
+            for i in range(1, count + 1):
+                User.create(name='name' + str(i), email='email' + str(i))
+            for i in range(1, count + 1):
+                Post.create(name='name' + str(i), user_id=count + 1 - i)
 
 
 class TestDatabase_:
@@ -238,6 +251,33 @@ class TestAlias_:
         assert self._alias.inst is User.name
 
 
+class TestAlias(Test):
+
+    def test_function_alias(self):
+        User.create(name='jack', email='jack@g.cn')
+        User.create(name='jack', email='jack@gg.cn')
+        User.create(name='amy', email='amy@g.cn')
+        query = User.groupby(User.name).having(sql('count') >= 2).select(
+            User.name, fn.count(User.id).alias('count')
+        )
+        result = query.execute()
+        assert result.tuples()[0][1] == 2
+        assert result.one().name == 'jack'
+
+    def test_field_alias(self):
+        User.create(name='jack', email='jack@g.cn')
+        User.create(name='jack', email='jack@g.cn')
+        User.create(name='amy', email='amy@g.cn')
+
+        query = User.groupby(User.name).having(
+            sql('em').like('%@g.cn')).orderby(User.id).select(
+            User.name, User.email.alias('em'))
+
+        assert [(user.name, user.em) for user in query] == [
+            ('jack', 'jack@g.cn'), ('amy', 'amy@g.cn')
+        ]
+
+
 class TestModel_:
 
     def test_table_name(self):
@@ -393,6 +433,103 @@ class TestModel(Test):
             user.id for user in User.where(id=1).select()
         ]
 
+        assert ['tom'] == [
+            user.name for user in User.where(User.name.like('t%')).select()]
+
+    def test_at(self):
+        User.create(name='jack', email='jack@gmail.com')
+        assert User.at(1).getone().name == 'jack'
+        assert User.at(2).getone() is None
+        assert User.at(-1).select().execute().count == 0
+
+    def test_orderby(self):
+        User.create(name='jack', email='jack@gmail.com')
+        User.create(name='amy', email='amy@gmail.com')
+        User.create(name='tom', email='tom@gmail.com')
+
+        query = User.orderby(User.id).select()
+        result = query.execute()
+        users = result.all()
+        assert [(user.id, user.name) for user in users] == [
+            (1, 'jack'), (2, 'amy'), (3, 'tom')
+        ]
+
+        query = User.orderby(User.id, desc=True).select()
+        result = query.execute()
+        users = result.all()
+        assert [(user.id, user.name) for user in users] == [
+            (3, 'tom'), (2, 'amy'), (1, 'jack')
+        ]
+
+    def test_groupby(self):
+        for x in range(2):
+            User.create(name='jack', email='jack@github.com')
+        for x in range(3):
+            User.create(name='tom', email='jack@github.com')
+
+        query = User.groupby(User.name).orderby(sql('count')).select(
+            fn.count(User.id).alias('count'), User.name)
+        result = query.execute()
+        assert result.tuples() == (
+            (2, 'jack'), (3, 'tom')
+        )
+
+    def test_having(self):
+        for x in range(2):
+            User.create(name='jack', email='jack@github.com')
+        for x in range(3):
+            User.create(name='tom', email='jack@github.com')
+
+        query = User.groupby(User.name).having(sql('count') > 2).select(
+            fn.count(User.id).alias('count'), User.name)
+        result = query.execute()
+        user = result.one()
+        count = result.tuples()[0][0]
+        assert count == 3 and user.name == 'tom'
+
+    def test_limit(self):
+        self.create_data(10)
+        query = User.limit(4).select()
+        result = query.execute()
+        assert result.count == 4
+        query = User.limit(9, offset=1).select(User.id)
+        result = query.execute()
+        assert result.count == 9
+        query = User.limit(100, offset=9).select(User.id)
+        result = query.execute()
+        assert result.count == 1
+
+    def test_distinct(self):
+        assert User.create(name='jack', email='jack@github.com')
+        assert User.create(name='jack', email='jack@ele.me')
+        assert User.create(name='wangchao', email='nz2324@126.com')
+        assert User.create(name='hit9', email='nz2324@126.com')
+        query = User.select(fn.count(distinct(User.name)))
+        result = query.execute()
+        count = result.tuples()[0][0]
+        assert count == 3
+
+        query = User.orderby(User.id).select(distinct(User.email))
+        result = query.execute()
+        assert result.tuples() == (
+            ('jack@github.com',), ('jack@ele.me',), ('nz2324@126.com', )
+        )
+
+        emails = [user.email for user in result.all()]
+        assert len(emails) == len(set(emails))
+
+        query = User.orderby(User.id).select(distinct(User.name, User.email))
+        try:
+            result = query.execute()
+        except Exception:  # should raise an error
+            pass
+        else:
+            raise Exception
+
+        query = User.orderby(User.id).select(distinct(User.name), User.email)
+        result = query.execute()
+        assert result.count == 4
+
 
 class TestSelectResult(Test):
 
@@ -406,6 +543,9 @@ class TestSelectResult(Test):
         pass
 
     def test_selected_inst_in_db(self):
+        pass
+
+    def test_distinct_nodes(self):
         pass
 
 
