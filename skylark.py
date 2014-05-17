@@ -567,10 +567,14 @@ class SelectResult(object):
     def __init__(self, rows, model, nodes, rowcount=-1):
         self.rows = rows
         self.model = model
-        self.nodes = nodes
         # for sqlite3, DBAPI2 said rowcount on select will always be -1
         self.count = rowcount if rowcount > 0 else len(rows)
         self._rows = (row for row in self.rows)
+
+        # distinct should be the first select node if it exists
+        if nodes and isinstance(nodes[0], Distinct):
+            nodes = list(nodes[0].args) + nodes[1:]
+        self.nodes = nodes
 
     def inst(self, model, row):
         inst = model()
