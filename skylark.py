@@ -568,7 +568,7 @@ class SelectResult(object):
         self.rows = rows
         self.model = model
         # for sqlite3, DBAPI2 said rowcount on select will always be -1
-        self.count = rowcount if rowcount > 0 else len(rows)
+        self.count = rowcount if rowcount >= 0 else len(rows)
         self._rows = (row for row in self.rows)
 
         # distinct should be the first select node if it exists
@@ -982,7 +982,7 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
             id = model.insert(**self.data).execute()
 
             if id is not None:
-                self.data[model.primarykey] = id
+                self.data[model.primarykey.name] = id
                 self.set_in_db(True)
                 self._cache = self.data.copy()  # sync cache on saving
             return id
