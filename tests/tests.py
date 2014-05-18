@@ -9,7 +9,7 @@ import toml
 
 sys.path.insert(0, '..')
 from skylark import Database, database, DBAPI_MAPPINGS, DatabaseType,\
-    Model, fn, sql, distinct
+    Model, fn, sql, distinct, PrimaryKeyValueNotFound
 
 from models import User, Post
 
@@ -530,11 +530,64 @@ class TestModel(Test):
         result = query.execute()
         assert result.count == 4
 
+    def test_findone(self):
+        assert User.create(name='jack', email='jack@gmail.com')
+        assert User.create(name='amy', email='amy@gmail.com')
+        jack = User.findone(name='jack')
+        amy = User.findone(name='amy')
+        assert jack.email == 'jack@gmail.com'
+        assert amy.email == 'amy@gmail.com'
+
+    def test_inst_save(self):
+        user = User(name='jack', email='jack@gmail.com')
+        assert user.save() == 1  # insert
+        assert user._in_db and user in User
+        assert User.count() == 1
+        assert User.getone().name == 'jack'
+        user.email = 'hack@gmail.com'
+        assert user.save() == 1  # update
+        assert User.getone().email == 'hack@gmail.com'
+        # test inst._cache
+        assert user.save() == 0  # nothing change
+
+        user = User(name='jack', email='jack@g.cn')
+        user.set_in_db(True)
+        try:
+            user.save()
+        except PrimaryKeyValueNotFound:
+            pass
+        else:
+            raise Exception
+
+    def test_inst_desctroy(self):
+        user = User(name='jack', email='jack@gmail.com')
+        assert user.save() == 1  # insert
+        assert user.destroy() == 1  # delete
+        user = User.create(name='i', email='b')
+        assert user.destroy() == 1  # rows_affected
+        user = User(name='a', email='b')
+        assert user.destroy() is None
+
+    def test_subquery(self):
+        self.create_data(10)
+
+        query = User.where(User.id._in(Post.select(Post.user_id))).select()
+        print query.sql
+        result = query.execute()
+        print result.tuples()
+        assert result.count == 10
+
 
 class TestSelectResult(Test):
 
     def test_count(self):
-        pass
+        self.create_data(4, table=1)
+        query = User.where(User.id > 4).select()
+        result = query.execute()
+        assert result.count == 0
+        query = User.where(User.id > 3).select()
+        result = query.execute()
+        assert result.count == 1
 
     def test_one(self):
         pass
