@@ -538,6 +538,29 @@ class TestModel(Test):
         assert jack.email == 'jack@gmail.com'
         assert amy.email == 'amy@gmail.com'
 
+    def test_findall(self):
+        assert User.create(name='jack', email='jack@gmail.com')
+        assert User.create(name='amy', email='amy@gmail.com')
+
+        query = User.where(User.email.like('%@gmail.com')).select(User.name)
+        assert ['jack', 'amy'] == [user.name for user in query]
+
+    def test_getone(self):
+        assert User.create(name='jack', email='jack@gmail.com')
+        assert User.create(name='amy', email='amy@gmail.com')
+
+        user = User.at(1).getone()
+        assert user.name == 'jack' and user.id == 1
+
+        user = User.at(10).getone()
+        assert user is None
+
+    def test_getall(self):
+        assert User.create(name='jack', email='jack@gmail.com')
+        assert User.create(name='amy', email='amy@gmail.com')
+        users = User.getall()
+        assert ['jack', 'amy'] == [user.name for user in users]
+
     def test_inst_save(self):
         user = User(name='jack', email='jack@gmail.com')
         assert user.save() == 1  # insert
@@ -575,6 +598,16 @@ class TestModel(Test):
         result = query.execute()
         assert result.count == 10
 
+        query = User.where(id=(Post.select(fn.max(Post.user_id)))).select()
+        result = query.execute()
+        assert result.count == 1
+        assert result.one().id == 10
+
+        query = User.where(
+            User.id < Post.select(fn.min(Post.user_id))).select()
+        result = query.execute()
+        assert result.count == 0
+
 
 class TestSelectResult(Test):
 
@@ -601,4 +634,22 @@ class TestSelectResult(Test):
 
 
 class TestOperators(Test):
-    pass
+
+    def test_expr_priority(self):
+        assert User.create(name='jack', email='jack@gmail.com')
+        # query should be:
+        #  "(id < 0) and (name='jack' or email='jack@gmail.com')" => 0 rows
+        # but not be:
+        #  "id < 0 and name = 'jack' or email='jack@gmail.com'" => 1 rows
+        query = User.where(
+            (User.id < 0) & (
+                (User.name == 'jack') | (User.email == 'jack@gmail.com')
+            )
+        ).select()
+        assert query.execute().count == 0  # not 1
+
+        query = User.where(
+            (User.id < 0) & (
+                User.name == 'jack') | (User.email == 'jack@gmail.com')
+        ).select()
+        assert query.execute().count == 1
