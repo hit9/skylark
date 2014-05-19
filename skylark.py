@@ -115,6 +115,10 @@ class PrimaryKeyValueNotFound(SkylarkException):
     pass
 
 
+class SQLSyntaxError(SkylarkException):
+    pass
+
+
 class DBAPI(object):
 
     placeholder = '%s'
@@ -379,7 +383,7 @@ class Leaf(object):
 class SQL(Leaf):
 
     def __init__(self, literal, *params):
-        self.literal = ' '.join(literal.split())
+        self.literal = literal
         self.params = params
 
     def __repr__(self):
@@ -398,6 +402,38 @@ class SQL(Leaf):
         literal = sptr.join(sql.literal for sql in seq)
         params = sum([sql.params for sql in seq], tuple())
         return cls(literal, *params)
+
+    def normalize(self):
+        # let sql literal behave normal
+        self.literal = ' '.join(self.literal.split())  # remove spaces
+        # remove unnecessary parentheses
+        size = len(self.literal)
+        count = 0
+        pairs = []
+
+        for p in range(size):
+            if self.literal[p] != '(':
+                continue
+            for q in range(p, size):
+                if self.literal[q] == '(':
+                    count += 1
+                if self.literal[q] == ')':
+                    count -= 1
+                if count == 0:
+                    break
+            if count != 0:
+                raise SQLSyntaxError  # unbalanced '()'
+            pairs.append((p, q))
+
+        blacklist = []
+
+        for p, q in pairs:
+            if (p + 1, q - 1) in pairs:
+                blacklist.append(p)
+                blacklist.append(q)
+
+        self.literal = ''.join(v for k, v in enumerate(self.literal)
+                               if k not in blacklist)
 
 
 sql = SQL
@@ -768,7 +804,9 @@ class Compiler(object):
             else:
                 args.append(sql(''))
 
-        return sql.format(spec, *args)
+        sq = sql.format(spec, *args)
+        sq.normalize()
+        return sq
 
 
 compiler = Compiler()

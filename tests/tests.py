@@ -572,9 +572,7 @@ class TestModel(Test):
         self.create_data(10)
 
         query = User.where(User.id._in(Post.select(Post.user_id))).select()
-        print query.sql
         result = query.execute()
-        print result.tuples()
         assert result.count == 10
 
 
