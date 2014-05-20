@@ -44,7 +44,6 @@ __all__ = (
     'distinct', 'Distinct'
     'Model',
     'Models',
-    'JoinModel',
 )
 
 
@@ -946,9 +945,6 @@ class MetaModel(type):
                 return True
         return False
 
-    def __and__(cls, join):
-        return JoinModel(cls, join)
-
 
 class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
 
@@ -1193,35 +1189,3 @@ class Models(object):
 
     def getall(self):
         return self.select().execute().all()
-
-
-class JoinModel(Models):
-
-    def __init__(self, main, join):
-        super(JoinModel, self).__init__(main, join)
-
-        for field in main.fields.values():
-            if field.is_foreignkey and field.reference is join.primarykey:
-                self.bridge = field
-        else:
-            raise ForeignKeyNotFound
-
-    def _bridge(func):
-        def e(self, *args, **kwargs):
-            self.runtime.data[RT_WH].append(
-                self.bridge == self.bridge.reference
-            )
-            return func(self, *args, **kwargs)
-        return e
-
-    @_bridge
-    def select(self, *lst):
-        return super(JoinModel, self).select(*lst)
-
-    @_bridge
-    def update(self, *lst):
-        return super(JoinModel, self).update(*lst)
-
-    @_bridge
-    def delete(self):
-        return super(JoinModel, self).delete()
