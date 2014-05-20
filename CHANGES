@@ -1,3 +1,25 @@
+version 0.9.0 (**not backward compatiable**)
+--------------------------------------------
+
+Add:
+    
+- Support for field/function/sql on the right side of an expression
+- Support for custom operator (like bitwise operators)
+- Support for sqlite3.
+- Ability to set DBAPI.
+- Transaction
+- join methods: `User.join(Post)`, ..
+- method `Database.set_autocommit`
+
+Deprecated:
+
+- JoinModel and `Post & User` syntax
+
+Non-compatiable Changes:
+
+- selectresult.one()/all() return only instances of models
+- fetch function/expression result from selectresult by method tuples()
+
 version 0.7.1
 --------------
 
