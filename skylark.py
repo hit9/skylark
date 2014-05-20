@@ -43,7 +43,7 @@ __all__ = (
     'fn',
     'distinct', 'Distinct'
     'Model',
-    'Models',
+    'MultiModels', 'Models'
 )
 
 
@@ -1133,7 +1133,7 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
     avg = aggregator('avg')
 
 
-class Models(object):
+class MultiModels(object):
 
     single = False
 
@@ -1189,3 +1189,6 @@ class Models(object):
 
     def getall(self):
         return self.select().execute().all()
+
+
+Models = MultiModels
