@@ -608,6 +608,45 @@ class TestModel(Test):
         result = query.execute()
         assert result.count == 0
 
+    def test_transaction(self):
+        database.set_autocommit(False)
+        with database.transaction() as t:
+            User.create(name='jack', email='jack@gmail.com')
+
+        with database.transaction() as t:
+            try:
+                User.create(name='amy', id=1)
+            except:
+                t.rollback()
+        database.set_autocommit(True)
+        assert User.count() == 1
+
+    def test_join(self):
+        User.create(name='jack', email='jack@gmail.com')
+        User.create(name='amy', email='amy@gmail.com')
+        Post.create(name='Hello world', user_id=1)
+        query = User.join(Post).select(User.name)
+        result = query.execute()
+        assert result.count == 1
+        user = result.one()
+        assert user.name == 'jack'
+
+    def test_left_join(self):
+        User.create(name='jack', email='jack@gmail.com')
+        User.create(name='amy', email='amy@gmail.com')
+        Post.create(name='Hello world', user_id=1)
+        query = User.left_join(Post).select(User.name)
+        result = query.execute()
+        assert result.count == 2
+
+    def test_right_join(self):
+        User.create(name='jack', email='jack@gmail.com')
+        User.create(name='amy', email='amy@gmail.com')
+        Post.create(name='Hello world', user_id=1)
+        query = Post.right_join(User).select()
+        result = query.execute()
+        assert result.count == 2
+
 
 class TestSelectResult(Test):
 
