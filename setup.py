@@ -4,7 +4,7 @@
 skylark
 -------
 
-A nice micro orm for python, mysql only.
+Nice micro python orm for mysql and sqlite.
 
 Sample Usage
 ````````````
@@ -51,12 +51,12 @@ from setuptools import setup
 
 setup(
     name='skylark',
-    version='0.7.1',
+    version='0.9.0',
     author='hit9',
     author_email='nz2324@126.com',
     description=('A nice micro orm for python, mysql only.'),
     license='BSD',
-    keywords='ORM MySQL Python tiny micro database',
+    keywords='ORM MySQL Sqlite tiny micro database',
     url='https://github.com/hit9/skylark',
     py_modules=['skylark'],
     long_description=__doc__,
