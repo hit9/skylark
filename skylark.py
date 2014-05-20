@@ -1049,8 +1049,8 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
         return cls.join(model, on=on, prefix='right')
 
     @classmethod
-    def inner_join(cls, model, on=None):
-        return cls.join(model, on=on, prefix='inner')
+    def full_join(cls, model, on=None):
+        return cls.join(model, on=on, prefix='full')
 
     @classmethod
     def findone(cls, *lst, **dct):
