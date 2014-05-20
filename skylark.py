@@ -98,6 +98,7 @@ RT_GP = 5
 RT_HV = 6
 RT_OD = 7
 RT_LM = 8
+RT_JN = 9
 
 
 # query types
@@ -739,6 +740,33 @@ class Compiler(object):
             return self.conversions[tp](inst)
         return sql(database.dbapi.placeholder, inst)
 
+    def jn2sql(lst):
+        prefix, main, join, expr = lst
+
+        if prefix is None:
+            prefix = ''
+        else:
+            prefix += ' '
+
+        if expr is None:
+            models = (main, join)
+            foreignkey = None
+            for i, m in enumerate(models):
+                for field in m.fields.values():
+                    j = models[1 ^ i]
+                    if field.is_foreignkey and field.reference is j.primarykey:
+                        foreignkey = field
+                        break
+                if foreignkey:
+                    break
+            if foreignkey is None:
+                raise ForeignKeyNotFound
+
+            expr = foreignkey == foreignkey.reference
+
+        spec = '%sjoin %s on %%s' % (prefix, join.table_name)
+        return sql.format(spec, compiler.sql(expr))
+
     def od2sql(lst):
         node, desc = lst
         spec = 'order by %%s%s' % (' desc' if desc else '')
@@ -789,14 +817,15 @@ class Compiler(object):
         RT_SL: sl2sql,
         RT_LM: lm2sql,
         RT_ST: st2sql,
-        RT_VL: vl2sql
+        RT_VL: vl2sql,
+        RT_JN: jn2sql,
     }
 
     patterns = {
         QUERY_INSERT: ('insert into {table} %s', (RT_VL,)),
         QUERY_UPDATE: ('update {table} set %s %s', (RT_ST, RT_WH)),
-        QUERY_SELECT: ('select %s from {table} %s %s %s %s %s',
-                       (RT_SL, RT_WH, RT_GP, RT_HV, RT_OD, RT_LM)),
+        QUERY_SELECT: ('select %s from {table} %s %s %s %s %s %s',
+                       (RT_SL, RT_JN, RT_WH, RT_GP, RT_HV, RT_OD, RT_LM)),
         QUERY_DELETE: ('delete from {table} %s', (RT_WH,))
     }
 
@@ -837,7 +866,8 @@ class Runtime(object):
         RT_GP,  # group by
         RT_HV,  # having
         RT_OD,  # order by
-        RT_LM   # limit
+        RT_LM,  # limit
+        RT_JN,  # join (inner, left, inner)
     )
 
     def __init__(self, model):
@@ -867,6 +897,8 @@ class Runtime(object):
     set_od = _e(RT_OD)
 
     set_lm = _e(RT_LM)
+
+    set_jn = _e(RT_JN)
 
 
 class MetaModel(type):
@@ -1006,6 +1038,23 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
     def limit(cls, rows, offset=None):
         cls.runtime.set_lm((offset, rows))
         return cls
+
+    @classmethod
+    def join(cls, model, on=None, prefix=None):
+        cls.runtime.set_jn((prefix, cls, model, on))
+        return cls
+
+    @classmethod
+    def left_join(cls, model, on=None):
+        return cls.join(model, on=on, prefix='left')
+
+    @classmethod
+    def right_join(cls, model, on=None):
+        return cls.join(model, on=on, prefix='right')
+
+    @classmethod
+    def inner_join(cls, model, on=None):
+        return cls.join(model, on=on, prefix='inner')
 
     @classmethod
     def findone(cls, *lst, **dct):
