@@ -32,6 +32,8 @@ __all__ = (
     'SkylarkException',
     'UnSupportedDBAPI',
     'PrimaryKeyValueNotFound',
+    'SQLSyntaxError',
+    'ForeignKeyNotFound',
     'Database', 'database',
     'sql', 'SQL',
     'Field',
@@ -41,6 +43,8 @@ __all__ = (
     'fn',
     'distinct', 'Distinct'
     'Model',
+    'Models',
+    'JoinModel',
 )
 
 
@@ -116,6 +120,10 @@ class PrimaryKeyValueNotFound(SkylarkException):
 
 
 class SQLSyntaxError(SkylarkException):
+    pass
+
+
+class ForeignKeyNotFound(SkylarkException):
     pass
 
 
@@ -756,7 +764,8 @@ class Compiler(object):
 
     def lm2sql(lst):
         offset, rows = lst
-        literal = 'limit %s%s' % ('%s, ' % offset if offset else '', rows)
+        literal = 'limit %s%s' % (
+            '%s, ' % offset if offset is not None else '', rows)
         return sql(literal)
 
     def st2sql(lst):
@@ -793,7 +802,13 @@ class Compiler(object):
 
     def compile(self, type, runtime):
         pattern = self.patterns[type]
-        spec = pattern[0].format(table=runtime.model.table_name)
+
+        if runtime.model.single:
+            table = runtime.model.table_name
+        else:
+            table = ', '.join(m.table_name for m in runtime.model.models)
+
+        spec = pattern[0].format(table=table)
 
         args = []
 
@@ -898,6 +913,9 @@ class MetaModel(type):
             if result.tuples()[0][0] > 0:
                 return True
         return False
+
+    def __and__(cls, join):
+        return JoinModel(cls, join)
 
 
 class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
@@ -1068,3 +1086,93 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
     min = aggregator('min')
 
     avg = aggregator('avg')
+
+
+class Models(object):
+
+    single = False
+
+    def __init__(self, *models):
+        self.models = models
+        self.runtime = Runtime(self)
+
+    def select(self, *lst):
+        if not lst:
+            lst = sum([list(m.fields.values()) for m in self.models], [])
+        self.runtime.set_sl(lst)
+        return SelectQuery(self.runtime)
+
+    def update(self, *lst):
+        self.runtime.set_st(lst)
+        return UpdateQuery(self.runtime)
+
+    def delete(self):
+        return DeleteQuery(self.runtime)
+
+    def where(self, *lst):
+        self.runtime.set_wh(lst)
+        return self
+
+    def orderby(self, field, desc=False):
+        self.runtime.set_od((field, desc))
+        return self
+
+    def groupby(self, *lst):
+        self.runtime.set_gp(lst)
+        return self
+
+    def having(self, *lst):
+        self.runtime.set_hv(lst)
+        return self
+
+    def limit(self, rows, offset=None):
+        self.runtime.set_lm((offset, rows))
+        return self
+
+    def findone(self, *lst):
+        query = self.where(*lst).select()
+        result = query.execute()
+        return result.one()
+
+    def findall(self, *lst):
+        query = self.where(*lst).select()
+        result = query.execute()
+        return result.all()
+
+    def getone(self):
+        return self.select().execute().one()
+
+    def getall(self):
+        return self.select().execute().all()
+
+
+class JoinModel(Models):
+
+    def __init__(self, main, join):
+        super(JoinModel, self).__init__(main, join)
+
+        for field in main.fields.values():
+            if field.is_foreignkey and field.reference is join.primarykey:
+                self.bridge = field
+        else:
+            raise ForeignKeyNotFound
+
+    def _bridge(func):
+        def e(self, *args, **kwargs):
+            self.runtime.data[RT_WH].append(
+                self.bridge == self.bridge.reference
+            )
+            return func(self, *args, **kwargs)
+        return e
+
+    @_bridge
+    def select(self, *lst):
+        return super(JoinModel, self).select(*lst)
+
+    @_bridge
+    def update(self, *lst):
+        return super(JoinModel, self).update(*lst)
+
+    @_bridge
+    def delete(self):
+        return super(JoinModel, self).delete()
