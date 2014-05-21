@@ -1149,13 +1149,6 @@ class MultiModels(object):
         self.runtime.set_sl(lst)
         return SelectQuery(self.runtime)
 
-    def update(self, *lst):
-        self.runtime.set_st(lst)
-        return UpdateQuery(self.runtime)
-
-    def delete(self):
-        return DeleteQuery(self.runtime)
-
     def where(self, *lst):
         self.runtime.set_wh(lst)
         return self
