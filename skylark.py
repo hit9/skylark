@@ -367,6 +367,7 @@ class Leaf(object):
     __rsub__ = _e(OP_SUB, invert=True)
     __rmul__ = _e(OP_MUL, invert=True)
     __rdiv__ = _e(OP_DIV, invert=True)
+    __rtruediv__ = _e(OP_DIV, invert=True)
     __rmod__ = _e(OP_MOD, invert=True)
     __rand__ = _e(OP_AND, invert=True)
     __ror__ = _e(OP_OR, invert=True)
