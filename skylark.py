@@ -1062,7 +1062,7 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
 
     @classmethod
     def findall(cls, *lst, **dct):
-        query = cls.where(*lst, **dct)
+        query = cls.where(*lst, **dct).select()
         result = query.execute()
         return result.all()
 
