@@ -10,7 +10,6 @@ docs/_build
 venv
 venvpy3
 testx
-docs/en/_build
-docs/zh/_build
+docs/_build
 __pycache__
 skylarktests*
