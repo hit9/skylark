@@ -547,8 +547,8 @@ class TestModel(Test):
         assert User.create(name='jack', email='jack@gmail.com')
         assert User.create(name='amy', email='amy@gmail.com')
 
-        query = User.where(User.email.like('%@gmail.com')).select(User.name)
-        assert ['jack', 'amy'] == [user.name for user in query]
+        users = User.findall(User.email.like('%@gmail.com'))
+        assert ['jack', 'amy'] == [user.name for user in users]
 
     def test_getone(self):
         assert User.create(name='jack', email='jack@gmail.com')
