@@ -358,6 +358,7 @@ class Leaf(object):
     __sub__ = _e(OP_SUB)
     __mul__ = _e(OP_MUL)
     __div__ = _e(OP_DIV)
+    __truediv__ = _e(OP_DIV)
     __mod__ = _e(OP_MOD)
     __and__ = _e(OP_AND)
     __or__ = _e(OP_OR)

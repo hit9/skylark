@@ -9,7 +9,7 @@ import toml
 
 sys.path.insert(0, '..')
 from skylark import Database, database, DBAPI_MAPPINGS, DatabaseType,\
-    Model, fn, sql, distinct, PrimaryKeyValueNotFound
+    Model, fn, sql, distinct, PrimaryKeyValueNotFound, compiler
 
 from models import User, Post
 
@@ -640,12 +640,13 @@ class TestModel(Test):
         assert result.count == 2
 
     def test_right_join(self):
-        User.create(name='jack', email='jack@gmail.com')
-        User.create(name='amy', email='amy@gmail.com')
-        Post.create(name='Hello world', user_id=1)
-        query = Post.right_join(User).select()
-        result = query.execute()
-        assert result.count == 2
+        if db_type != 'sqlite':  # sqlite3 current not support right join
+            User.create(name='jack', email='jack@gmail.com')
+            User.create(name='amy', email='amy@gmail.com')
+            Post.create(name='Hello world', user_id=1)
+            query = Post.right_join(User).select()
+            result = query.execute()
+            assert result.count == 2
 
 
 class TestSelectResult(Test):
@@ -660,16 +661,47 @@ class TestSelectResult(Test):
         assert result.count == 1
 
     def test_one(self):
-        pass
+        self.create_data(3, table=1)
+        query = User.orderby(User.id).select()
+        result = query.execute()
+        user = result.one()
+        assert user.id == 1
+
+    def test_all(self):
+        self.create_data(3, table=1)
+        query = User.orderby(User.id).select()
+        result = query.execute()
+        users = result.all()
+        assert [user.id for user in users] == [1, 2, 3]
 
     def test_tuples(self):
-        pass
+        assert User.create(name='jack', email='jack@gmail.com')
+        assert User.create(name='amy', email='amy@gmail.com')
+        assert User.create(name='tom', email='tom@gmail.com')
+        query = User.select(User.id)
+        result = query.execute()
+        assert result.tuples() == ((1,), (2,), (3,))
 
     def test_selected_inst_in_db(self):
-        pass
+        self.create_data(4, table=1)
+        query = User.select()
+        result = query.execute()
+        user = result.one()
+        assert user._in_db is True
+        users = result.all()
+        for user in users:
+            assert user._in_db is True
 
     def test_distinct_nodes(self):
-        pass
+        assert User.create(name='jack', email='jack@gmail.com')
+        assert User.create(name='amy', email='amy@gmail.com')
+        assert User.create(name='amy', email='amy@gmail.com')
+        assert User.create(name='tom', email='tom@gmail.com')
+
+        query = User.select(distinct(User.name))
+        result = query.execute()
+        users = result.all()
+        assert [user.name for user in users] == ['jack', 'amy', 'tom']
 
 
 class TestOperators(Test):
@@ -692,3 +724,59 @@ class TestOperators(Test):
                 User.name == 'jack') | (User.email == 'jack@gmail.com')
         ).select()
         assert query.execute().count == 1
+
+    def test_bitwise_operator(self):
+        assert User.create(name='jack', email='jack@gmail.com')
+        if db_type != 'sqlite':  # sqlite3 dosen't know operator '^'
+            query = User.select(User.id.op('^')(1))
+            result = query.execute()
+            assert result.tuples()[0][0] == 0
+
+        query = User.select(User.id.op('&')(0))
+        result = query.execute()
+        assert result.tuples()[0][0] == 0
+
+        query = User.select(sql('').op('~-')(User.id))
+        result = query.execute()
+        assert result.tuples()[0][0] == 0
+
+
+class TestOperators_:
+
+    def test_operators(self):
+        def eq(expr, string, data):
+            string = string.replace('?', database.dbapi.placeholder)
+            sq1 = compiler.sql(expr)
+            sq2 = sql(string, *data)
+            return sq1.literal == sq2.literal and sq1.params == sq2.params
+
+        assert eq(User.id < 1, 't_user.id < ?', (1,))
+        assert eq(User.id <= 1, 't_user.id <= ?', (1,))
+        assert eq(User.id > 1, 't_user.id > ?', (1,))
+        assert eq(User.id >= 1, 't_user.id >= ?', (1,))
+        assert eq(User.id == 1, 't_user.id = ?', (1,))
+        assert eq(User.id != 1, 't_user.id <> ?', (1,))
+        assert eq(User.id + 1, 't_user.id + ?', (1,))
+        assert eq(User.id - 1, 't_user.id - ?', (1,))
+        assert eq(User.id * 1, 't_user.id * ?', (1,))
+        assert eq(User.id / 1, 't_user.id / ?', (1,))
+        assert eq(User.id % 1, 't_user.id % ?', (1,))
+        assert eq((User.id > 1) & (User.id < 4),
+                  '(t_user.id > ? and t_user.id < ?)', (1, 4))
+        assert eq((User.id > 1) | (User.id < 4),
+                  '(t_user.id > ? or t_user.id < ?)', (1, 4))
+        assert eq(1 + User.id, '? + t_user.id', (1,))
+        assert eq(1 - User.id, '? - t_user.id', (1,))
+        assert eq(1 * User.id, '? * t_user.id', (1,))
+        assert eq(1 / User.id, '? / t_user.id', (1,))
+        assert eq(1 % User.id, '? % t_user.id', (1,))
+        assert eq(1 & User.id, '(? and t_user.id)', (1,))
+        assert eq(1 | User.id, '(? or t_user.id)', (1,))
+        assert eq(User.name.like('%a'), 't_user.name like ?', ('%a',))
+        assert eq(User.id._in(1, 2), 't_user.id in (?, ?)', (1, 2))
+        assert eq(User.id.not_in(1, 2), 't_user.id not in (?, ?)', (1, 2))
+        assert eq(User.id.between(1, 2), 't_user.id between ? and ?', (1, 2))
+        # custom bitwise ops
+        assert eq(User.id.op('^')(1), 't_user.id ^ ?', (1,))
+        assert eq(User.id.op('&')(1), 't_user.id & ?', (1,))
+        assert eq(sql('').op('~')(User.id), ' ~ t_user.id', tuple())
