@@ -340,11 +340,11 @@ class Transaction(object):
 
 class Leaf(object):
 
-    def _e(op, invert=False):
+    def _e(op_type, invert=False):
         def e(self, right):
             if invert:
-                return Expr(right, self, op)
-            return Expr(self, right, op)
+                return Expr(right, self, op_type)
+            return Expr(self, right, op_type)
         return e
 
     __lt__ = _e(OP_LT)
@@ -451,10 +451,10 @@ sql = SQL
 
 class Expr(Leaf):
 
-    def __init__(self, left, right, op, op_str=None):
+    def __init__(self, left, right, op_type, op_str=None):
         self.left = left
         self.right = right
-        self.op = op
+        self.op_type = op_type
         self.op_str = op_str
 
 
@@ -698,23 +698,23 @@ class Compiler(object):
 
     def expr2sql(expr):
         if expr.op_str is None:
-            op_str = compiler.mappings[expr.op]
+            op_str = compiler.mappings[expr.op_type]
         else:
             op_str = expr.op_str
 
         left = compiler.sql(expr.left)
 
-        if expr.op < 100:  # common ops
+        if expr.op_type < 100:  # common ops
             right = compiler.sql(expr.right)
-        elif expr.op is OP_BETWEEN:
+        elif expr.op_type is OP_BETWEEN:
             right = sql.join(' and ', map(compiler.sql, expr.right))
-        elif expr.op in (OP_IN, OP_NOT_IN):
+        elif expr.op_type in (OP_IN, OP_NOT_IN):
             vals = sql.join(', ', map(compiler.sql, expr.right))
             right = sql.format('(%s)', vals)
 
         spec = '%%s %s %%s' % op_str
 
-        if expr.op in (OP_AND, OP_OR):
+        if expr.op_type in (OP_AND, OP_OR):
             spec = '(%s)' % spec
 
         return sql.format(spec, left, right)
