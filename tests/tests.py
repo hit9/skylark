@@ -9,7 +9,7 @@ import toml
 
 sys.path.insert(0, '..')
 from skylark import Database, database, DBAPI_MAPPINGS, DatabaseType,\
-    Model, fn, sql, distinct, PrimaryKeyValueNotFound, compiler
+    Model, fn, sql, distinct, PrimaryKeyValueNotFound, compiler, Models
 
 from models import User, Post
 
@@ -47,17 +47,21 @@ class Test(object):
         database.execute("drop table t_user")
 
     def create_data(self, count, table=None):
-        if table is 1:  # only create data in table `user`
-            for i in range(1, count + 1):
-                User.create(name='name' + str(i), email='email' + str(i))
-        elif table is 2:  # only create data in table `post`
-            for i in range(1, count + 1):
-                Post.create(name='name' + str(i), user_id=count + 1 - i)
-        else:  # both, default
-            for i in range(1, count + 1):
-                User.create(name='name' + str(i), email='email' + str(i))
-            for i in range(1, count + 1):
-                Post.create(name='name' + str(i), user_id=count + 1 - i)
+        database.set_autocommit(False)
+        # lots of insert in a transaction
+        with database.transaction():
+            if table is 1:  # only create data in table `user`
+                for i in range(1, count + 1):
+                    User.create(name='name' + str(i), email='email' + str(i))
+            elif table is 2:  # only create data in table `post`
+                for i in range(1, count + 1):
+                    Post.create(name='name' + str(i), user_id=count + 1 - i)
+            else:  # both, default
+                for i in range(1, count + 1):
+                    User.create(name='name' + str(i), email='email' + str(i))
+                for i in range(1, count + 1):
+                    Post.create(name='name' + str(i), user_id=count + 1 - i)
+        database.set_autocommit(True)
 
 
 class TestDatabase_:
@@ -703,6 +707,13 @@ class TestSelectResult(Test):
         users = result.all()
         assert [user.name for user in users] == ['jack', 'amy', 'tom']
 
+    def test_a_lot_of_insert_in_transaction(self):
+        database.set_autocommit(False)
+        with database.transaction():
+            for i in range(1000):
+                User.create(name=str(i), email=str(i))
+        database.set_autocommit(True)
+
 
 class TestOperators(Test):
 
@@ -780,3 +791,146 @@ class TestOperators_:
         assert eq(User.id.op('^')(1), 't_user.id ^ ?', (1,))
         assert eq(User.id.op('&')(1), 't_user.id & ?', (1,))
         assert eq(sql('').op('~')(User.id), ' ~ t_user.id', tuple())
+
+
+class TestCommonFunctions(Test):
+
+    def test_count(self):
+        self.create_data(4)
+        assert User.count() == 4
+        assert Post.count() == 4
+        query = User.select(fn.count(User.id))
+        result = query.execute()
+        assert result.count == 1
+        assert result.tuples()[0][0] == 4
+
+    def test_max(self):
+        self.create_data(4)
+        query = User.select(fn.max(User.id))
+        result = query.execute()
+        assert result.count == 1
+        assert result.tuples()[0][0] == 4
+
+    def test_min(self):
+        self.create_data(4)
+        query = User.where(User.id > 2).select(fn.min(User.id))
+        result = query.execute()
+        assert result.count == 1
+        assert result.tuples()[0][0] == 3
+
+    def test_sum(self):
+        self.create_data(4)
+        query = User.select(fn.sum(User.id))
+        result = query.execute()
+        assert result.count == 1
+        assert result.tuples()[0][0] == 10
+        assert User.sum(User.id) == 10
+
+    def test_avg(self):
+        self.create_data(4)
+        query = User.select(fn.avg(User.id))
+        result = query.execute()
+        assert result.count == 1
+        assert result.tuples()[0][0] == 2.5
+        assert User.avg(User.id) == 2.5
+
+    def test_concat(self):
+        assert User.create(name='jack', email='jack@gmail.com')
+        if db_type != 'sqlite':  # in sqlite, `||` is concat
+            query = User.select(fn.concat(User.name, ' + ', User.email))
+            result = query.execute()
+            assert result.tuples()[0][0] == 'jack + jack@gmail.com'
+            query = User.at(1).update(name=fn.concat(User.name, ':'))
+            result = query.execute()
+            assert result == 1
+            jack = User.at(1).getone()
+            assert jack.name == 'jack:'
+        else:
+            query = User.select(User.name.op('||')(' + ').op('||')(User.email))
+            result = query.execute()
+            assert result.tuples()[0][0] == 'jack + jack@gmail.com'
+            query = User.at(1).update(name=User.name.op('||')(':'))
+            result = query.execute()
+            assert result == 1
+            jack = User.at(1).getone()
+            assert jack.name == 'jack:'
+
+
+class TestMultiModels(Test):
+
+    def setUp(self):
+        super(TestMultiModels, self).setUp()
+        self.create_data(4)
+        self.models = Models(Post, User)
+
+    def test_where(self):
+        assert self.models.where(
+            User.id == Post.user_id).select().execute().count == 4
+        assert self.models.where(
+            User.id == Post.user_id, User.id == 1
+        ).select().execute().count == 1
+
+    def test_select(self):
+        for post, user in self.models.where(
+            User.id == Post.user_id
+        ).select():
+            assert user.id == post.user_id
+
+        post, user = self.models.where(
+            Post.post_id == User.id
+        ).getone()
+
+        assert user.id == post.post_id == 1
+
+    def test_groupby(self):
+        query = self.models.groupby(User.name).select()
+        results = query.execute()
+        assert results.count == 4
+
+        query = self.models.groupby(User.name, Post.name).select()
+        result = query.execute()
+        assert result.count == 16
+
+    def test_having(self):
+        query = self.models.groupby(
+            User.name).having(fn.count(User.id) >= 1).select()
+        results = query.execute()
+        assert results.count == 4
+
+        query = self.models.groupby(
+            User.name).having(fn.count(User.id) > 4).select()
+        results = query.execute()
+        assert results.count == 0
+
+        query = self.models.groupby(
+            User.name).having(fn.count(User.id) == 4).select()
+        results = query.execute()
+        assert results.count == 4   # 16 / 4 =4
+
+    def test_distinct(self):
+        query = self.models.select(distinct(User.name))
+        result = query.execute()
+        assert result.count == 4
+
+    def test_orderby(self):
+        g = self.models.where(
+            Post.post_id == User.id
+        ).orderby(User.name, desc=True).getall()
+        d = tuple(g)
+        assert d == tuple(sorted(d, key=lambda x: x[1].name, reverse=True))
+
+    def test_limit(self):
+        query = self.models.where(
+            (Post.user_id == User.id) & (User.id > 1)
+        ).limit(4, offset=2).select()
+        result = query.execute()
+        assert result.count == 1
+
+    def test_getone(self):
+        post, user = self.models.where(User.id == Post.user_id).getone()
+        assert user.id == post.user_id
+
+    def test_getall(self):
+        g = self.models.where(User.id == Post.user_id).getall()
+        for post, user in g:
+            assert post.user_id == user.id
