@@ -17,7 +17,7 @@
     skylark
     ~~~~~~~
 
-    Nice micro python orm for mysql and sqlite.
+    A micro python orm for mysql and sqlite.
 
     :author: Chao Wang (Hit9).
     :license: BSD.
