@@ -11,6 +11,7 @@ jack = User.where(name='jack').getone()
 for user in User.select():
     print user.name
 
-# have a look at who has written posts
-for user, post in User.join(Post).select(User.name, Post.name):
-    print 'Author: %s, PostName: %s' % (user.name, post.name)
+# have a look at posts written by 'jack'
+
+[post.name
+ for post in Post.join(User).where(User.name == 'jack').select(Post.name)]
