@@ -882,6 +882,22 @@ class TestMultiModels(Test):
 
         assert user.id == post.post_id == 1
 
+    def test_delete(self):
+        if db_type != 'sqlite':  # sqlite dosen't support 'delete xx from xxx'
+            assert self.models.where(
+                User.id == Post.user_id).delete().execute() == 8
+            assert self.models.where(
+                User.id == Post.user_id).select().execute().count == 0
+            assert Post.count() == 0
+            assert User.count() == 0
+
+    def test_delete2(self):
+        if db_type != 'sqlite':  # sqlite dosen't support 'delete xx from xxx'
+            assert self.models.where(
+                User.id == Post.user_id).delete(Post).execute() == 4
+            assert User.select().execute().count == 4
+            assert Post.count() == 0
+
     def test_groupby(self):
         query = self.models.groupby(User.name).select()
         results = query.execute()

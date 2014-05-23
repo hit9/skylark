@@ -43,7 +43,8 @@ __all__ = (
     'fn',
     'distinct', 'Distinct'
     'Model',
-    'MultiModels', 'Models'
+    'MultiModels', 'Models',
+    'JoinModel'
 )
 
 
@@ -98,6 +99,8 @@ RT_HV = 6
 RT_OD = 7
 RT_LM = 8
 RT_JN = 9
+RT_TG = 10
+RT_FM = 11
 
 
 # query types
@@ -796,6 +799,14 @@ class Compiler(object):
         arg = sql.join(', ', vals)
         return sql.format(spec, arg)
 
+    def tg2sql(lst):
+        args = map(sql, [m.table_name for m in lst])
+        return sql.join(', ', args)
+
+    def fm2sql(lst):
+        args = map(sql, [m.table_name for m in lst])
+        return sql.join(', ', args)
+
     rt_conversions = {
         RT_OD: od2sql,
         RT_GP: gp2sql,
@@ -806,29 +817,26 @@ class Compiler(object):
         RT_ST: st2sql,
         RT_VL: vl2sql,
         RT_JN: jn2sql,
+        RT_TG: tg2sql,
+        RT_FM: fm2sql,
     }
 
     patterns = {
-        QUERY_INSERT: ('insert into {table} %s', (RT_VL,)),
-        QUERY_UPDATE: ('update {table} set %s %s', (RT_ST, RT_WH)),
-        QUERY_SELECT: ('select %s from {table} %s %s %s %s %s %s',
-                       (RT_SL, RT_JN, RT_WH, RT_GP, RT_HV, RT_OD, RT_LM)),
-        QUERY_DELETE: ('delete from {table} %s', (RT_WH,))
+        QUERY_INSERT: ('insert into %s %s', (RT_TG, RT_VL)),
+        QUERY_UPDATE: ('update %s set %s %s', (RT_TG, RT_ST, RT_WH)),
+        QUERY_SELECT: ('select %s from %s %s %s %s %s %s %s', (
+            RT_SL, RT_FM, RT_JN, RT_WH, RT_GP, RT_HV, RT_OD, RT_LM)),
+        QUERY_DELETE: ('delete %s from %s %s', (RT_TG, RT_FM, RT_WH))
     }
 
     def compile(self, type, runtime):
         pattern = self.patterns[type]
 
-        if runtime.model.single:
-            table = runtime.model.table_name
-        else:
-            table = ', '.join(m.table_name for m in runtime.model.models)
-
-        spec = pattern[0].format(table=table)
+        spec, rts = pattern
 
         args = []
 
-        for tp in pattern[1]:
+        for tp in rts:
             data = runtime.data[tp]
             if data:
                 args.append(self.rt_conversions[tp](data))
@@ -855,6 +863,8 @@ class Runtime(object):
         RT_OD,  # order by
         RT_LM,  # limit
         RT_JN,  # join (inner, left, inner)
+        RT_TG,  # target table
+        RT_FM,  # from table
     )
 
     def __init__(self, model):
@@ -886,6 +896,10 @@ class Runtime(object):
     set_lm = _e(RT_LM)
 
     set_jn = _e(RT_JN)
+
+    set_tg = _e(RT_TG)
+
+    set_fm = _e(RT_FM)
 
 
 class MetaModel(type):
@@ -967,11 +981,13 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
     @__kwargs
     def insert(cls, *lst, **dct):
         cls.runtime.set_vl(lst)
+        cls.runtime.set_tg([cls])
         return InsertQuery(cls.runtime)
 
     @__kwargs
     def update(cls, *lst, **dct):
         cls.runtime.set_st(lst)
+        cls.runtime.set_tg([cls])
         return UpdateQuery(cls.runtime)
 
     @classmethod
@@ -979,10 +995,12 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
         if not lst:
             lst = cls.fields.values()
         cls.runtime.set_sl(lst)
+        cls.runtime.set_fm([cls])
         return SelectQuery(cls.runtime)
 
     @classmethod
     def delete(cls):
+        cls.runtime.set_fm([cls])
         return DeleteQuery(cls.runtime)
 
     @classmethod
@@ -1136,7 +1154,20 @@ class MultiModels(object):
         if not lst:
             lst = sum([list(m.fields.values()) for m in self.models], [])
         self.runtime.set_sl(lst)
+        self.runtime.set_fm(self.models)
         return SelectQuery(self.runtime)
+
+    def delete(self, *targets):  # default target: all (mysql only)
+        if not targets:
+            targets = self.models
+        self.runtime.set_fm(self.models)
+        self.runtime.set_tg(targets)
+        return DeleteQuery(self.runtime)
+
+    def update(self, *lst):
+        self.runtime.set_fm(self.models)
+        self.runtime.set_set(lst, {})
+        return UpdateQuery(self.runtime)
 
     def where(self, *lst):
         self.runtime.set_wh(lst)
@@ -1194,6 +1225,14 @@ class JoinModel(MultiModels):
     @build_bridge
     def select(self, *lst):
         return super(JoinModel, self).select(*lst)
+
+    @build_bridge
+    def update(self, *lst):
+        return super(JoinModel, self).update(*lst)
+
+    @build_bridge
+    def delete(self, *targets):
+        return super(JoinModel, self).delete(*targets)
 
 
 def _detect_bridge(m, n):
