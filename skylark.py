@@ -627,9 +627,10 @@ class SelectResult(object):
         inst.set_in_db(True)
 
         for idx, node in enumerate(self.nodes):
-            if isinstance(node, Field):
+            if isinstance(node, Field) and node.model is model:
                 inst.data[node.name] = row[idx]
-            if isinstance(node, Alias) and isinstance(node.inst, Field):
+            if isinstance(node, Alias) and isinstance(node.inst, Field) \
+                    and node.inst.model is model:
                 setattr(inst, node.name, row[idx])
         return inst
 
@@ -744,25 +745,10 @@ class Compiler(object):
     def jn2sql(lst):
         prefix, main, join, expr = lst
 
-        if prefix is None:
-            prefix = ''
-        else:
-            prefix += ' '
+        prefix = '' if prefix is None else '%s ' % prefix
 
         if expr is None:
-            models = (main, join)
-            foreignkey = None
-            for i, m in enumerate(models):
-                for field in m.fields.values():
-                    j = models[1 ^ i]
-                    if field.is_foreignkey and field.reference is j.primarykey:
-                        foreignkey = field
-                        break
-                if foreignkey:
-                    break
-            if foreignkey is None:
-                raise ForeignKeyNotFound
-
+            foreignkey = _detect_bridge(main, join)
             expr = foreignkey == foreignkey.reference
 
         spec = '%sjoin %s on %%s' % (prefix, join.table_name)
@@ -946,6 +932,9 @@ class MetaModel(type):
             if result.tuples()[0][0] > 0:
                 return True
         return False
+
+    def __and__(cls, other):
+        return JoinModel(cls, other)
 
 
 class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
@@ -1187,3 +1176,33 @@ class MultiModels(object):
 
 
 Models = MultiModels
+
+
+class JoinModel(MultiModels):
+
+    def __init__(self, main, join):
+        super(JoinModel, self).__init__(main, join)
+        self.bridge = _detect_bridge(main, join)
+
+    def build_bridge(func):
+        def _func(self, *args, **kwargs):
+            self.runtime.data[RT_WH].append(
+                self.bridge == self.bridge.reference)
+            return func(self, *args, **kwargs)
+        return _func
+
+    @build_bridge
+    def select(self, *lst):
+        return super(JoinModel, self).select(*lst)
+
+
+def _detect_bridge(m, n):
+    # detect foreignkey point between m and n
+    models = (m, n)
+
+    for i, k in enumerate(models):
+        for field in k.fields.values():
+            j = models[1 ^ i]
+            if field.is_foreignkey and field.reference is j.primarykey:
+                return field
+    raise ForeignKeyNotFound

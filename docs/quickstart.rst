@@ -377,6 +377,12 @@ samples::
     >>> query.sql
     <sql 'select user.id from user full join post on post.user_id = user.id' ()>
 
+
+See all posts written by jack::
+
+    >>> [post.name for post in Post.join(User).where(User.name == 'jack').select()]
+    [u'hello world!']
+
 SQL Functions
 -------------
 

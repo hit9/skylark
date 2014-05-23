@@ -934,3 +934,14 @@ class TestMultiModels(Test):
         g = self.models.where(User.id == Post.user_id).getall()
         for post, user in g:
             assert post.user_id == user.id
+
+
+class TestJoinModel(Test):
+
+    def test_select(self):
+        assert User.create(name='jack', email='jack@gmail.com')
+        assert User.create(name='amy', email='amy@gmail.com')
+        assert Post.create(name='hello world!', user_id=1)
+
+        assert [('jack', 'hello world!')] == [
+            (user.name, post.name) for user, post in (User & Post).select()]

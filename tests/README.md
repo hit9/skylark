@@ -19,6 +19,6 @@ How to run tests
 3. Run tests:
 
    ```bash
-   chmod u+x ./runtests.sh
-   ./runtests.sh
+   chmod u+x ./runtests.py
+   ./runtests.py
    ```
