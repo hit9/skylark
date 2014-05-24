@@ -8,6 +8,7 @@ dist/
 docs/_build
 .ropeproject
 venv
+venvpy26
 venvpy3
 testx
 docs/_build
