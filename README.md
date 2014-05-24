@@ -3,7 +3,7 @@
 
 A micro python orm for mysql and sqlite3. (Original named `CURD.py`).
 
-Latest version: [v0.9.0](https://github.com/hit9/skylark/releases/tag/v0.9.0)
+Latest version: [v0.9.0](https://github.com/hit9/skylark/releases/tag/v0.9.0-LTS)
 
 Development status: **4 - Beta**
 
