@@ -1,9 +1,9 @@
 ![](https://raw.githubusercontent.com/hit9/artworks/master/png/Skylark.png)
 ===========================================================================
 
-A nice micro orm for python, mysql only. (Original named `CURD.py`).
+A micro python orm for mysql and sqlite3. (Original named `CURD.py`).
 
-Latest version: [v0.7.1](https://github.com/hit9/skylark/releases/tag/v0.7.1)
+Latest version: [v0.9.0](https://github.com/hit9/skylark/releases/tag/v0.9.0)
 
 Development status: **4 - Beta**
 
@@ -39,8 +39,7 @@ Requirements
 
 - Python >= 2.6 or >= 3.3
 
-- [MySQLdb(MySQL-python)](https://pypi.python.org/pypi/MySQL-python) or
-[PyMySQL](https://github.com/PyMySQL/PyMySQL)
+- For mysql users: [MySQLdb(MySQL-python)](https://pypi.python.org/pypi/MySQL-python) or [PyMySQL](https://github.com/PyMySQL/PyMySQL)
 
 Install
 -------
@@ -58,15 +57,6 @@ Sample App
 ----------
 
 - A simple message board built with skylark and Flask: [examples/messageboard](examples/messageboard)
-
-- A clean style blog system built with skylark and Flask: https://github.com/hit9/zhiz
-
-FAQ
----
-
-- [FAQ](http://skylark.readthedocs.org/en/latest/faq.html)
-
-- [ISSUES TRACKER](https://github.com/hit9/skylark/issues)
 
 Tests
 -----
