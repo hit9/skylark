@@ -63,7 +63,7 @@ Tests
 
 - Status: [![Build Status](https://travis-ci.org/hit9/skylark.png?branch=master)](https://travis-ci.org/hit9/skylark)
 
-- [How to Run Tests](tests/README.rst)
+- [How to Run Tests](tests/README.md)
 
 License
 -------
