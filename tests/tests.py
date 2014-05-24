@@ -832,7 +832,11 @@ class TestCommonFunctions(Test):
         query = User.select(fn.avg(User.id))
         result = query.execute()
         assert result.count == 1
-        assert result.tuples()[0][0] == User.avg(User.id) == Decimal('2.5')
+        if db_type == 'mysql':  # return decimal
+            # py2.6 compat
+            assert result.tuples()[0][0] == User.avg(User.id) == Decimal('2.5')
+        else:
+            assert result.tuples()[0][0] == User.avg(User.id) == 2.5
 
     def test_concat(self):
         assert User.create(name='jack', email='jack@gmail.com')
