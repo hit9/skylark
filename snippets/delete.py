@@ -1,6 +1,6 @@
 from models import User
 
-User.at(1).delete()  # 1L
+User.at(1).delete()  # rows affected
 
 user = User.at(2).getone()
-user.destroy()  # 2L
+user.destroy()  # rows affected

@@ -1,6 +1,6 @@
 from models import User
 
-User.at(1).update(name='tom')  # 1L
+User.at(1).update(name='tom')  # rows affected
 
 user = User.at(1).getone()
-user.save()  # 1L
+user.save()  # rows affected

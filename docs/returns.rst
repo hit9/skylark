@@ -15,8 +15,6 @@ For all queries (C, U, R, D), their executed returns are:
 
 - **D**:  ``rows affected``
 
-Here are examples:
-
 Create
 -------
 
@@ -30,7 +28,7 @@ Create
 
     >>> user = User(name='jack')
     >>> user.save()
-    7L
+    7
 
 Update
 -------
@@ -40,27 +38,27 @@ Update queries return number of the rows affected::
 
     >>> query = User.where(name='jack').update(email='jack@gmail.com')
     >>> query.execute()
-    2L
+    2
 
 even queries from ``model.save``::
 
     >>> user = User.at(1),getone()
     >>> user.name = 'aNewName'
     >>> user.save()
-    1L
+    1
 
 Read
 ----
 
 Return ``SelectResult object``::
 
-    >>> results = User.where(name='jack').select().execute()
-    >>> results
+    >>> result = User.where(name='jack').select().execute()
+    >>> result
     <skylark.SelectResult object at 0xb6f8df6c>
 
 And from ``SelectResult object``, we can fetch ``user``::
 
-    >>> results.one()
+    >>> result.one()
     <models.User object at 0xb6f8dccc>
 
 
@@ -71,6 +69,6 @@ Return number of the rows deleted::
 
 
     >>> user.destroy()
-    1L
+    1
     >>> User.where(name='jack').delete().execute()
-    4L
+    4

@@ -1,2 +1,3 @@
-skylark>=0.7.0
+pymysql
+skylark>=0.9.0
 Flask

@@ -17,27 +17,38 @@
     skylark
     ~~~~~~~
 
-    A nice micro orm for python, mysql only.
+    A micro python orm for mysql and sqlite.
 
-    :copyright: (c) 2014 by Chao Wang (Hit9).
+    :author: Chao Wang (Hit9).
     :license: BSD.
 """
 
+
+__version__ = '0.9.0'
+
+
+__all__ = (
+    '__version__',
+    'SkylarkException',
+    'UnSupportedDBAPI',
+    'PrimaryKeyValueNotFound',
+    'SQLSyntaxError',
+    'ForeignKeyNotFound',
+    'Database', 'database',
+    'sql', 'SQL',
+    'Field',
+    'PrimaryKey',
+    'ForeignKey',
+    'compiler',
+    'fn',
+    'distinct', 'Distinct'
+    'Model',
+    'MultiModels', 'Models',
+    'JoinModel'
+)
+
+
 import sys
-from datetime import date, datetime, time, timedelta
-
-lib_mysqldb = 0
-lib_pymysql = 0
-
-try:  # try to use MySQLdb, then pymysql
-    import MySQLdb as mysql
-    from _mysql import escape_dict, escape_sequence, NULL, string_literal
-    lib_mysqldb = 1
-except ImportError:
-    import pymysql as mysql
-    from pymysql import NULL, escape_dict, escape_sequence
-    from pymysql.converters import escape_str as string_literal
-    lib_pymysql = 1
 
 
 if sys.hexversion < 0x03000000:
@@ -45,14 +56,12 @@ if sys.hexversion < 0x03000000:
 else:
     PY_VERSION = 3
 
-
 if PY_VERSION == 3:
     from functools import reduce
 
 
-__version__ = '0.7.1'
-
-
+# common operators (~100)
+OP_OP = 0  # custom op
 OP_LT = 1
 OP_LE = 2
 OP_GT = 3
@@ -60,25 +69,52 @@ OP_GE = 4
 OP_EQ = 5
 OP_NE = 6
 OP_ADD = 7
-OP_AND = 8
-OP_OR = 9
-OP_LIKE = 10
-OP_BETWEEN = 11
-OP_IN = 12
-OP_NOT_IN = 13
+OP_SUB = 8
+OP_MUL = 9
+OP_DIV = 10
+OP_MOD = 11
+OP_AND = 12
+OP_OR = 13
+OP_RADD = 27
+OP_RSUB = 28
+OP_RMUL = 29
+OP_RDIV = 30
+OP_RMOD = 31
+OP_RAND = 32
+OP_ROR = 33
+OP_LIKE = 99
+
+# special operators (100+)
+OP_BETWEEN = 101
+OP_IN = 102
+OP_NOT_IN = 103
+
+# runtimes
+RT_ST = 1
+RT_VL = 2
+RT_SL = 3
+RT_WH = 4
+RT_GP = 5
+RT_HV = 6
+RT_OD = 7
+RT_LM = 8
+RT_JN = 9
+RT_TG = 10
+RT_FM = 11
 
 
-QUERY_INSERT = 21
-QUERY_UPDATE = 22
-QUERY_SELECT = 23
-QUERY_DELETE = 24
+# query types
+QUERY_INSERT = 1
+QUERY_UPDATE = 2
+QUERY_SELECT = 3
+QUERY_DELETE = 4
 
 
 class SkylarkException(Exception):
     pass
 
 
-class UnSupportedType(SkylarkException):
+class UnSupportedDBAPI(SkylarkException):
     pass
 
 
@@ -86,146 +122,331 @@ class PrimaryKeyValueNotFound(SkylarkException):
     pass
 
 
+class SQLSyntaxError(SkylarkException):
+    pass
+
+
 class ForeignKeyNotFound(SkylarkException):
     pass
 
 
-def patch_mysqldb_cursor(cursor):
-    # let MySQLdb.cursor enable fetching after close
-    rows = tuple(cursor.fetchall())
+class DBAPI(object):
 
-    def create_generator():
-        for row in rows:
-            yield row
+    placeholder = '%s'
 
-    generator = create_generator()
+    def __init__(self, module):
+        self.module = module
 
-    def fetchall():
-        return generator
+    def conn_is_open(self, conn):
+        return conn and conn.open
 
-    def fetchone():
+    def close_conn(self, conn):
+        return conn.close()
+
+    def connect(self, configs):
+        return self.module.connect(**configs)
+
+    def set_autocommit(self, conn, boolean):
+        return conn.autocommit(boolean)
+
+    def conn_is_alive(self, conn):
         try:
-            return generator.next()
-        except StopIteration:
-            pass
+            conn.ping()
+        except self.module.OperationalError:
+            return False
+        return True  # ok
 
-    cursor.fetchall = fetchall
-    cursor.fetchone = fetchone
-    return cursor
+    def get_cursor(self, conn):
+        return conn.cursor()
+
+    def execute_cursor(self, cursor, args):
+        return cursor.execute(*args)
+
+    def select_db(self, db, conn, configs):
+        configs.update({'db': db})
+        if self.conn_is_open(conn):
+            conn.select_db(db)
+
+    def begin_transaction(self, conn):
+        pass
+
+    def commit_transaction(self, conn):
+        return conn.commit()
+
+    def rollback_transaction(self, conn):
+        return conn.rollback()
+
+
+class MySQLdbAPI(DBAPI):
+    pass
+
+
+class PyMySQLAPI(DBAPI):
+
+    def conn_is_open(self, conn):
+        return conn and conn.socket and conn._rfile
+
+
+class Sqlite3API(DBAPI):
+
+    placeholder = '?'
+
+    def conn_is_open(self, conn):
+        if conn:
+            try:
+                # return the total number of db rows that have been modified
+                conn.total_changes
+            except self.module.ProgrammingError:
+                return False
+            return True
+        return False
+
+    def connect(self, configs):
+        db = configs['db']
+        return self.module.connect(db)
+
+    def set_autocommit(self, conn, boolean):
+        if boolean:
+            conn.isolation_level = None
+        else:
+            conn.isolation_level = ''
+
+    def select_db(self, db, conn, configs):
+        # for sqlite3, to change database, must create a new connection
+        configs.update({'db': db})
+        if self.conn_is_open(conn):
+            self.close_conn(conn)
+
+    def conn_is_alive(self, conn):
+        return 1   # sqlite is serverless
+
+
+DBAPI_MAPPINGS = {
+    'MySQLdb': MySQLdbAPI,
+    'pymysql': PyMySQLAPI,
+    'sqlite3': Sqlite3API,
+}
+
+
+DBAPI_LOAD_ORDER = ('MySQLdb', 'pymysql', 'sqlite3')
 
 
 class DatabaseType(object):
 
     def __init__(self):
-        self.configs = {
-            'host': 'localhost',
-            'port': 3306,
-            'db': '',
-            'user': '',
-            'passwd': '',
-            'charset': 'utf8'
-        }
-        self.autocommit = True
+        self.dbapi = None
         self.conn = None
+        self.configs = {}
+        self.autocommit = None
 
-    def conn_is_up(self):
-        if lib_pymysql:
-            return self.conn and self.conn.socket and self.conn._rfile
-        if lib_mysqldb:
-            return self.conn and self.conn.open
+        for name in DBAPI_LOAD_ORDER:
+            try:
+                module = __import__(name)
+            except ImportError:
+                continue
+            self.set_dbapi(module)
+            break
 
-    def config(self, autocommit=True, **configs):
+    def set_dbapi(self, module):
+        name = module.__name__
+
+        if name in DBAPI_MAPPINGS:
+            # clear current configs and connection
+            if self.dbapi and self.dbapi.conn_is_open(self.conn):
+                self.conn.close()
+            self.configs = {}
+            self.conn = None
+            self.dbapi = DBAPI_MAPPINGS[name](module)
+        else:
+            raise UnSupportedDBAPI
+
+    def config(self, **configs):
+        self.autocommit = configs.pop('autocommit', True)
         self.configs.update(configs)
-        self.autocommit = autocommit
 
         # close active connection on configs change
-        if self.conn_is_up():
-            self.conn.close()
+        if self.dbapi.conn_is_open(self.conn):
+            self.dbapi.close_conn(self.conn)
 
     def connect(self):
-        self.conn = mysql.connect(**self.configs)
-        self.conn.autocommit(self.autocommit)
+        self.conn = self.dbapi.connect(self.configs)
+        self.dbapi.set_autocommit(self.conn, self.autocommit)
+        return self.conn
 
     def get_conn(self):
-        if not self.conn_is_up():
+        if not (
+            self.dbapi.conn_is_open(self.conn) and
+            self.dbapi.conn_is_alive(self.conn)
+        ):
             self.connect()
-
-        # make sure current connection is working
-        try:
-            self.conn.ping()
-        except mysql.OperationalError:
-            self.connect()
-
         return self.conn
 
     def __del__(self):
-        if self.conn_is_up():
-            return self.conn.close()
+        if self.dbapi.conn_is_open(self.conn):
+            return self.dbapi.close_conn(self.conn)
 
-    def execute(self, sql):
-        cursor = self.get_conn().cursor()
-        cursor.execute(sql)
-        if lib_mysqldb:
-            # copy all data from origin cursor
-            patch_mysqldb_cursor(cursor)
-        cursor.close()
+    def execute(self, *args):
+        cursor = self.dbapi.get_cursor(self.get_conn())
+        self.dbapi.execute_cursor(cursor, args)
         return cursor
 
-    def change(self, db):
-        self.configs['db'] = db
+    def execute_sql(self, sql):  # execute a sql object
+        return self.execute(sql.literal, sql.params)
 
-        if self.conn_is_up():
-            self.conn.select_db(db)
+    def change(self, db):
+        return self.dbapi.select_db(db, self.conn, self.configs)
+
+    def set_autocommit(self, boolean):
+        self.autocommit = boolean
+        if self.dbapi.conn_is_open(self.conn):
+            return self.dbapi.set_autocommit(self.conn, boolean)
+
+    def begin(self):
+        return self.dbapi.begin_transaction(self.conn)
+
+    def commit(self):
+        return self.dbapi.commit_transaction(self.conn)
+
+    def rollback(self):
+        return self.dbapi.rollback_transaction(self.conn)
+
+    def transaction(self):
+        return Transaction(self)
 
     select_db = change  # alias
 
 
-Database = database = DatabaseType()
+database = Database = DatabaseType()
 
 
-class Node(object):
+class Transaction(object):
 
-    def __repr__(self):
-        return '<%s %r>' % (type(self).__name__, Compiler.tostr(self))
+    def __init__(self, database):
+        self.database = database
 
-    def clone(self, *args, **kwargs):
-        obj = type(self)(*args, **kwargs)
+    def begin(self):
+        return self.database.begin()
 
-        for key, value in self.__dict__.items():
-            setattr(obj, key, value)
-        return obj
+    def commit(self):
+        return self.database.commit()
+
+    def rollback(self):
+        return self.database.rollback()
+
+    def __enter__(self):
+        self.begin()
+        return self
+
+    def __exit__(self, except_tp, except_val, trace):
+        return self.commit()
 
 
-class Leaf(Node):
+class Leaf(object):
 
-    def _e(op):
+    def _e(op_type, invert=False):
         def e(self, right):
-            return Expr(self, right, op)
+            if invert:
+                return Expr(right, self, op_type)
+            return Expr(self, right, op_type)
         return e
 
     __lt__ = _e(OP_LT)
-
     __le__ = _e(OP_LE)
-
     __gt__ = _e(OP_GT)
-
     __ge__ = _e(OP_GE)
-
     __eq__ = _e(OP_EQ)
-
     __ne__ = _e(OP_NE)
 
     __add__ = _e(OP_ADD)
-
+    __sub__ = _e(OP_SUB)
+    __mul__ = _e(OP_MUL)
+    __div__ = _e(OP_DIV)
+    __truediv__ = _e(OP_DIV)
+    __mod__ = _e(OP_MOD)
     __and__ = _e(OP_AND)
-
     __or__ = _e(OP_OR)
+
+    __radd__ = _e(OP_ADD, invert=True)
+    __rsub__ = _e(OP_SUB, invert=True)
+    __rmul__ = _e(OP_MUL, invert=True)
+    __rdiv__ = _e(OP_DIV, invert=True)
+    __rtruediv__ = _e(OP_DIV, invert=True)
+    __rmod__ = _e(OP_MOD, invert=True)
+    __rand__ = _e(OP_AND, invert=True)
+    __ror__ = _e(OP_OR, invert=True)
+
+    def like(self, pattern):
+        return Expr(self, pattern, OP_LIKE)
+
+    def between(self, left, right):
+        return Expr(self, (left, right), OP_BETWEEN)
+
+    def _in(self, *vals):
+        return Expr(self, vals, OP_IN)
+
+    def not_in(self, *vals):
+        return Expr(self, vals, OP_NOT_IN)
+
+    def op(self, op_str):
+        def func(other):
+            return Expr(self, other, OP_OP, op_str=op_str)
+        return func
 
 
 class SQL(Leaf):
 
-    def __init__(self, literal):
+    def __init__(self, literal, *params):
         self.literal = literal
+        self.params = params
+
+    def __repr__(self):
+        return '<sql %r %r>' % (self.literal, self.params)
+
+    @classmethod
+    def format(cls, spec, *args):
+        literal = spec % tuple(arg.literal for arg in args)
+        params = sum([arg.params for arg in args], tuple())
+        return cls(literal, *params)
+
+    @classmethod
+    def join(cls, sptr, seq):
+        # seq maybe a generator, so cast it static to iter twice
+        seq = tuple(seq)
+        literal = sptr.join(sql.literal for sql in seq)
+        params = sum([sql.params for sql in seq], tuple())
+        return cls(literal, *params)
+
+    def normalize(self):
+        # let sql literal behave normal
+        self.literal = ' '.join(self.literal.split())  # remove spaces
+        # remove unnecessary parentheses
+        size = len(self.literal)
+        count = 0
+        pairs = []
+
+        for p in range(size):
+            if self.literal[p] != '(':
+                continue
+            for q in range(p, size):
+                if self.literal[q] == '(':
+                    count += 1
+                if self.literal[q] == ')':
+                    count -= 1
+                if count == 0:
+                    break
+            if count != 0:
+                raise SQLSyntaxError  # unbalanced '()'
+            pairs.append((p, q))
+
+        blacklist = []
+
+        for p, q in pairs:
+            if (p + 1, q - 1) in pairs:
+                blacklist.append(p)
+                blacklist.append(q)
+
+        self.literal = ''.join(v for k, v in enumerate(self.literal)
+                               if k not in blacklist)
 
 
 sql = SQL
@@ -233,10 +454,18 @@ sql = SQL
 
 class Expr(Leaf):
 
-    def __init__(self, left, right, op):
+    def __init__(self, left, right, op_type, op_str=None):
         self.left = left
         self.right = right
-        self.op = op
+        self.op_type = op_type
+        self.op_str = op_str
+
+
+class Alias(object):
+
+    def __init__(self, name, inst):
+        self.name = name
+        self.inst = inst
 
 
 class FieldDescriptor(object):
@@ -244,13 +473,13 @@ class FieldDescriptor(object):
     def __init__(self, field):
         self.field = field
 
-    def __get__(self, instance, type=None):
-        if instance:
-            return instance.data[self.field.name]
+    def __get__(self, inst, type=None):
+        if inst:
+            return inst.data[self.field.name]
         return self.field
 
-    def __set__(self, instance, value):
-        instance.data[self.field.name] = value
+    def __set__(self, inst, val):
+        inst.data[self.field.name] = val
 
 
 class Field(Leaf):
@@ -262,27 +491,11 @@ class Field(Leaf):
     def describe(self, name, model):
         self.name = name
         self.model = model
-        self.fullname = '%s.%s' % (self.model.table_name, self.name)
+        self.fullname = '%s.%s' % (model.table_name, name)
         setattr(model, name, FieldDescriptor(self))
 
-    def like(self, pattern):
-        return Expr(self, pattern, OP_LIKE)
-
-    def between(self, left, right):
-        return Expr(self, (left, right), OP_BETWEEN)
-
-    def _in(self, *values):
-        return Expr(self, values, OP_IN)
-
-    def not_in(self, *values):
-        return Expr(self, values, OP_NOT_IN)
-
-    def alias(self, _alias):
-        field = self.clone()
-        field.name = _alias
-        field.fullname = '%s as %s' % (self.fullname, _alias)
-        setattr(self.model, field.name, FieldDescriptor(field))
-        return field
+    def alias(self, name):
+        return Alias(name, self)
 
 
 class PrimaryKey(Field):
@@ -293,9 +506,9 @@ class PrimaryKey(Field):
 
 class ForeignKey(Field):
 
-    def __init__(self, point_to):
+    def __init__(self, reference):
         super(ForeignKey, self).__init__(is_foreignkey=True)
-        self.point_to = point_to
+        self.reference = reference
 
 
 class Function(Leaf):
@@ -303,30 +516,9 @@ class Function(Leaf):
     def __init__(self, name, *args):
         self.name = name
         self.args = args
-        self.fullname = '%s(%s)' % (
-            self.name, ', '.join(map(Compiler.tostr, self.args)))
 
-    def alias(self, _alias):
-        fn = self.clone(self.name, *self.args)
-        fn.name = _alias
-        fn.fullname = '%s as %s' % (self.fullname, _alias)
-        return fn
-
-
-class Func(object):
-
-    def __init__(self, data=None):
-        if data is None:
-            data = {}
-        self.data = data
-
-    def __getattr__(self, name):
-        if name in self.data:
-            return self.data[name]
-        raise AttributeError
-
-    def __getitem__(self, name):
-        return self.data[name]
+    def alias(self, name):
+        return Alias(name, self)
 
 
 class Fn(object):
@@ -343,15 +535,13 @@ class Fn(object):
 fn = Fn()
 
 
-class Distinct(Node):
+class Distinct(object):
     # 'distinct user.name, user.email..' -> legal
     # 'user.id distinct user.name' -> illegal
     # 'user.id, count(distinct user.name)' -> legal
 
     def __init__(self, *args):
         self.args = args
-        self.fullname = 'distinct(%s)' % ', '.join(
-            map(Compiler.tostr, args))
 
 
 distinct = Distinct
@@ -359,152 +549,111 @@ distinct = Distinct
 
 class Query(object):
 
-    def __init__(self, type, runtime, target=None):
+    def __init__(self, type, runtime):
         self.type = type
-        self.sql = Compiler.compile(runtime, self.type, target)
+        self.sql = compiler.compile(self.type, runtime)
         runtime.reset_data()
-
-    def __repr__(self):
-        return '<%s %r>' % (type(self).__name__, self.sql)
 
 
 class InsertQuery(Query):
 
-    def __init__(self, runtime, target=None):
-        super(InsertQuery, self).__init__(QUERY_INSERT, runtime, target)
+    def __init__(self, runtime):
+        super(InsertQuery, self).__init__(QUERY_INSERT, runtime)
 
     def execute(self):
-        cursor = Database.execute(self.sql)
-        return cursor.lastrowid if cursor.rowcount else None
+        cursor = database.execute_sql(self.sql)
+        last_insert_id = cursor.lastrowid
+        rows_affected = cursor.rowcount
+        cursor.close()
+        if rows_affected:
+            return last_insert_id
 
 
 class UpdateQuery(Query):
 
-    def __init__(self, runtime, target=None):
-        super(UpdateQuery, self).__init__(QUERY_UPDATE, runtime, target)
+    def __init__(self, runtime):
+        super(UpdateQuery, self).__init__(QUERY_UPDATE, runtime)
 
     def execute(self):
-        cursor = Database.execute(self.sql)
-        return cursor.rowcount
+        cursor = database.execute_sql(self.sql)
+        rows_affected = cursor.rowcount
+        cursor.close()
+        return rows_affected
 
 
 class SelectQuery(Query):
 
-    def __init__(self, runtime, target=None):
-        self.from_model = runtime.model
-        self.selects = runtime.data['select']
-        super(SelectQuery, self).__init__(QUERY_SELECT, runtime, target)
-
-    def __iter__(self):
-        results = self.execute()
-        return results.all()
+    def __init__(self, runtime):
+        self.model = runtime.model
+        self.nodes = runtime.data[RT_SL]
+        super(SelectQuery, self).__init__(QUERY_SELECT, runtime)
 
     def execute(self):
-        cursor = Database.execute(self.sql)
-        return SelectResult(cursor, self.from_model, self.selects)
+        cursor = database.execute_sql(self.sql)
+        result = SelectResult(tuple(cursor.fetchall()), self.model, self.nodes)
+        cursor.close()
+        return result
+
+    def __iter__(self):
+        result = self.execute()
+        return iter(result.all())
 
 
 class DeleteQuery(Query):
 
-    def __init__(self, runtime, target=None):
-        super(DeleteQuery, self).__init__(QUERY_DELETE, runtime, target)
+    def __init__(self, runtime):
+        super(DeleteQuery, self).__init__(QUERY_DELETE, runtime)
 
     def execute(self):
-        cursor = Database.execute(self.sql)
-        return cursor.rowcount
+        cursor = database.execute_sql(self.sql)
+        rows_affected = cursor.rowcount
+        cursor.close()
+        return rows_affected
 
 
 class SelectResult(object):
 
-    def __init__(self, cursor, model, nodes):
-        self.cursor = cursor
+    def __init__(self, rows, model, nodes, rowcount=-1):
+        self.rows = rows
         self.model = model
-        self.count = self.cursor.rowcount
+        # for sqlite3, DBAPI2 said rowcount on select will always be -1
+        self.count = rowcount if rowcount >= 0 else len(rows)
+        self._rows = (row for row in self.rows)
 
         # distinct should be the first select node if it exists
-        if len(nodes) >= 1 and isinstance(nodes[0], Distinct):
+        if nodes and isinstance(nodes[0], Distinct):
             nodes = list(nodes[0].args) + nodes[1:]
-
-        self.fields = {}
-        self.funcs = {}
-
-        for idx, node in enumerate(nodes):
-            if isinstance(node, Field):
-                self.fields[idx] = node
-            elif isinstance(node, Function):
-                self.funcs[idx] = node
-
-        # returns: 0->inst, 1->func, 2->inst, func
-        if self.fields and not self.funcs:
-            self.returns = 0
-        elif not self.fields and self.funcs:
-            self.returns = 1
-        elif self.fields and self.funcs:
-            self.returns = 2
+        self.nodes = nodes
 
     def inst(self, model, row):
         inst = model()
         inst.set_in_db(True)
 
-        for idx, field in self.fields.items():
-            if field.model is model:
-                inst.data[field.name] = row[idx]
+        for idx, node in enumerate(self.nodes):
+            if isinstance(node, Field) and node.model is model:
+                inst.data[node.name] = row[idx]
+            if isinstance(node, Alias) and isinstance(node.inst, Field) \
+                    and node.inst.model is model:
+                setattr(inst, node.name, row[idx])
         return inst
 
-    def func(self, row):
-        func = Func()
-
-        for idx, function in self.funcs.items():
-            func.data[function.name] = row[idx]
-        return func
-
     def __one(self, row):
-
-        func = self.func(row)
-
         if self.model.single:
-            inst = self.inst(self.model, row)
-            return {
-                0: inst,
-                1: func,
-                2: (inst, func)
-            }[self.returns]
-        else:
-            insts = tuple(map(lambda m: self.inst(m, row), self.model.models))
-            return {
-                0: insts,
-                1: func,
-                2: insts + (func, )
-            }[self.returns]
+            return self.inst(self.model, row)
+        return tuple(map(lambda m: self.inst(m, row), self.model.models))
 
     def one(self):
-        row = self.cursor.fetchone()
-
-        if row is None:
+        try:
+            row = next(self._rows)  # py2.6+/3.0+
+        except StopIteration:
             return None
         return self.__one(row)
 
     def all(self):
-        rows = self.cursor.fetchall()
-
-        for row in rows:
-            yield self.__one(row)
+        return tuple(map(self.__one, self.rows))
 
     def tuples(self):
-        for row in self.cursor.fetchall():
-            yield row
-
-    def dicts(self):
-        for row in self.cursor.fetchall():
-            dct = {}
-            for idx, field in self.fields.items():
-                if field.name not in dct:
-                    dct[field.name] = row[idx]
-                else:
-                    dct[field.fullname] = row[idx]
-            for idx, func in self.funcs.items():
-                dct[func.name] = row[idx]
-            yield dct
+        return self.rows
 
 
 class Compiler(object):
@@ -517,290 +666,289 @@ class Compiler(object):
         OP_EQ: '=',
         OP_NE: '<>',
         OP_ADD: '+',
+        OP_SUB: '-',
+        OP_MUL: '*',
+        OP_DIV: '/',
+        OP_MOD: '%%',  # escape '%'
         OP_AND: 'and',
         OP_OR: 'or',
         OP_LIKE: 'like',
         OP_BETWEEN: 'between',
         OP_IN: 'in',
-        OP_NOT_IN: 'not in'
+        OP_NOT_IN: 'not in',
+    }
+
+    def sql2sql(sql):
+        return sql
+
+    def query2sql(query):
+        return sql.format('(%s)', query.sql)
+
+    def alias2sql(alias):
+        spec = '%%s as %s' % alias.name
+        return sql.format(spec, compiler.sql(alias.inst))
+
+    def field2sql(field):
+        return sql(field.fullname)
+
+    def function2sql(function):
+        spec = '%s(%%s)' % function.name
+        args = sql.join(', ', map(compiler.sql, function.args))
+        return sql.format(spec, args)
+
+    def distinct2sql(distinct):
+        args = sql.join(', ', map(compiler.sql, distinct.args))
+        return sql.format('distinct(%s)', args)
+
+    def expr2sql(expr):
+        if expr.op_str is None:
+            op_str = compiler.mappings[expr.op_type]
+        else:
+            op_str = expr.op_str
+
+        left = compiler.sql(expr.left)
+
+        if expr.op_type < 100:  # common ops
+            right = compiler.sql(expr.right)
+        elif expr.op_type is OP_BETWEEN:
+            right = sql.join(' and ', map(compiler.sql, expr.right))
+        elif expr.op_type in (OP_IN, OP_NOT_IN):
+            vals = sql.join(', ', map(compiler.sql, expr.right))
+            right = sql.format('(%s)', vals)
+
+        spec = '%%s %s %%s' % op_str
+
+        if expr.op_type in (OP_AND, OP_OR):
+            spec = '(%s)' % spec
+
+        return sql.format(spec, left, right)
+
+    conversions = {
+        SQL: sql2sql,
+        Expr: expr2sql,
+        Alias: alias2sql,
+        Field: field2sql,
+        PrimaryKey: field2sql,
+        ForeignKey: field2sql,
+        Function: function2sql,
+        Distinct: distinct2sql,
+        Query: query2sql,
+        InsertQuery: query2sql,
+        UpdateQuery: query2sql,
+        SelectQuery: query2sql,
+        DeleteQuery: query2sql
+    }
+
+    def sql(self, inst):
+        tp = type(inst)
+        if tp in self.conversions:
+            return self.conversions[tp](inst)
+        return sql(database.dbapi.placeholder, inst)
+
+    def jn2sql(lst):
+        prefix, main, join, expr = lst
+
+        prefix = '' if prefix is None else '%s ' % prefix
+
+        if expr is None:
+            foreignkey = _detect_bridge(main, join)
+            expr = foreignkey == foreignkey.reference
+
+        spec = '%sjoin %s on %%s' % (prefix, join.table_name)
+        return sql.format(spec, compiler.sql(expr))
+
+    def od2sql(lst):
+        node, desc = lst
+        spec = 'order by %%s%s' % (' desc' if desc else '')
+        return sql.format(spec, compiler.sql(node))
+
+    def gp2sql(lst):
+        spec = 'group by %s'
+        arg = sql.join(', ', map(compiler.sql, lst))
+        return sql.format(spec, arg)
+
+    def hv2sql(lst):
+        spec = 'having %s'
+        arg = sql.join(' and ', map(compiler.sql, lst))
+        return sql.format(spec, arg)
+
+    def wh2sql(lst):
+        spec = 'where %s'
+        arg = sql.join(' and ', map(compiler.sql, lst))
+        return sql.format(spec, arg)
+
+    def sl2sql(lst):
+        return sql.join(', ', map(compiler.sql, lst))
+
+    def lm2sql(lst):
+        offset, rows = lst
+        literal = 'limit %s%s' % (
+            '%s, ' % offset if offset is not None else '', rows)
+        return sql(literal)
+
+    def st2sql(lst):
+        pairs = [
+            sql.format('%s=%%s' % expr.left.name, compiler.sql(expr.right))
+            for expr in lst]
+        return sql.join(', ', pairs)
+
+    def vl2sql(lst):
+        keys = ', '.join([expr.left.name for expr in lst])
+        vals = map(compiler.sql, [expr.right for expr in lst])
+        spec = '(%s) values (%%s)' % keys
+        arg = sql.join(', ', vals)
+        return sql.format(spec, arg)
+
+    def tg2sql(lst):
+        args = map(sql, [m.table_name for m in lst])
+        return sql.join(', ', args)
+
+    def fm2sql(lst):
+        args = map(sql, [m.table_name for m in lst])
+        return sql.join(', ', args)
+
+    rt_conversions = {
+        RT_OD: od2sql,
+        RT_GP: gp2sql,
+        RT_HV: hv2sql,
+        RT_WH: wh2sql,
+        RT_SL: sl2sql,
+        RT_LM: lm2sql,
+        RT_ST: st2sql,
+        RT_VL: vl2sql,
+        RT_JN: jn2sql,
+        RT_TG: tg2sql,
+        RT_FM: fm2sql,
     }
 
     patterns = {
-        QUERY_INSERT: 'insert into {target} {set}',
-        QUERY_UPDATE: 'update {target} {set} {where}',
-        QUERY_SELECT: 'select {select} from {from} {where} {groupby}'
-                      ' {having} {orderby} {limit}',
-        QUERY_DELETE: 'delete {target} from {from} {where}'
+        QUERY_INSERT: ('insert into %s %s', (RT_TG, RT_VL)),
+        QUERY_UPDATE: ('update %s set %s %s', (RT_TG, RT_ST, RT_WH)),
+        QUERY_SELECT: ('select %s from %s %s %s %s %s %s %s', (
+            RT_SL, RT_FM, RT_JN, RT_WH, RT_GP, RT_HV, RT_OD, RT_LM)),
+        QUERY_DELETE: ('delete %s from %s %s', (RT_TG, RT_FM, RT_WH))
     }
 
-    encoding = 'utf8'
+    def compile(self, type, runtime):
+        pattern = self.patterns[type]
 
-    def thing2str(data):
-        return string_literal(str(data))
+        spec, rts = pattern
 
-    def float2str(data):
-        return '%.15g' % data
+        args = []
 
-    def None2Null(data):
-        return NULL
+        for tp in rts:
+            data = runtime.data[tp]
+            if data:
+                args.append(self.rt_conversions[tp](data))
+            else:
+                args.append(sql(''))
 
-    def bool2str(data):
-        return str(int(data))
+        sq = sql.format(spec, *args)
+        sq.normalize()
+        return sq
 
-    def unicode2str(data):
-        return string_literal(data.encode(Compiler.encoding))
 
-    def datetime2str(data):
-        return string_literal(data.strftime('%Y-%m-%d %H:%M:%S'))
-
-    def date2str(data):
-        return string_literal(data.strftime('%Y-%m-%d'))
-
-    def time2str(data):
-        return string_literal(data.strftime('%H:%M:%S'))
-
-    def timedelta2str(data):
-        seconds = int(data.seconds) % 60
-        minutes = int(data.seconds / 60) % 60
-        hours = int(data.seconds / 3600) % 24
-        return string_literal('%d %d:%d:%d' % (
-            data.days, hours, minutes, seconds))
-
-    def node2str(node):
-        return node.fullname
-
-    def expr2str(expr):
-        return Compiler.parse_expr(expr)
-
-    def query2str(query):
-        return '(%s)' % query.sql
-
-    def sql2str(sql):
-        return str(sql.literal)
-
-    conversions = {
-        datetime: datetime2str,
-        date: date2str,
-        Field: node2str,
-        PrimaryKey: node2str,
-        ForeignKey: node2str,
-        Function: node2str,
-        Distinct: node2str,
-        sql: sql2str,
-        Expr: expr2str,
-        Query: query2str,
-        InsertQuery: query2str,
-        UpdateQuery: query2str,
-        SelectQuery: query2str,
-        DeleteQuery: query2str,
-        time: time2str,
-        timedelta: timedelta2str,
-        int: thing2str,
-        float: float2str,
-        str: thing2str,
-        bool: bool2str,
-        type(None): None2Null,
-        tuple: escape_sequence,
-        list: escape_sequence,
-        dict: escape_dict
-    }
-
-    if PY_VERSION == 2:
-        conversions.update({
-            long: thing2str,
-            unicode: unicode2str
-        })
-
-    @staticmethod
-    def tostr(e):
-        tp = type(e)
-        if tp in Compiler.conversions:
-            return Compiler.conversions[tp](e)
-        raise UnSupportedType
-
-    @staticmethod
-    def parse_expr(expr):
-        tostr = Compiler.tostr
-        mappings = Compiler.mappings
-
-        left = tostr(expr.left)
-
-        if expr.op in (
-            OP_LT, OP_LE, OP_GT, OP_GE, OP_EQ, OP_NE,
-            OP_ADD, OP_AND, OP_OR,  OP_LIKE
-        ):
-            right = tostr(expr.right)
-        elif expr.op is OP_BETWEEN:
-            right = '%s and %s' % tuple(map(tostr, expr.right))
-        elif expr.op in (OP_IN, OP_NOT_IN):
-            right = '(%s)' % ', '.join(map(tostr, expr.right))
-
-        string = '%s %s %s' % (left, mappings[expr.op], right)
-
-        if expr.op in (OP_AND, OP_OR):
-            string = '(%s)' % string
-
-        return string
-
-    def _compile(pattern):
-        def _e(func):
-            def e(lst):
-                if not lst:
-                    return ''
-                return pattern.format(*func(lst))
-            return e
-        return _e
-
-    @_compile('order by {0}{1}')
-    def _orderby(lst):
-        node, desc = lst
-        return Compiler.tostr(node), ' desc' if desc else ''
-
-    @_compile('group by {0}')
-    def _groupby(lst):
-        return ', '.join(map(Compiler.tostr, lst)),
-
-    @_compile('having {0}')
-    def _having(lst):
-        return ' and '.join(map(Compiler.parse_expr, lst)),
-
-    @_compile('where {0}')
-    def _where(lst):
-        return ' and '.join(map(Compiler.parse_expr, lst)),
-
-    @_compile('{0}')
-    def _select(lst):
-        return ', '.join(f.fullname for f in lst),
-
-    @_compile('limit {0}{1}')
-    def _limit(lst):
-        offset, rows = lst
-        return '%s, ' % offset if offset else '', rows
-
-    @_compile('set {0}')
-    def _set(lst):
-        return ', '.join(map(Compiler.parse_expr, lst)),
-
-    compilers = {
-        'orderby': _orderby,
-        'groupby': _groupby,
-        'having': _having,
-        'where': _where,
-        'select': _select,
-        'limit': _limit,
-        'set': _set
-    }
-
-    @staticmethod
-    def compile(runtime, type, target=None):
-
-        if target is None:
-            target = runtime.model
-
-        args = {
-            'target': target.table_name,
-            'from': runtime.model.table_name
-        }
-
-        for key, func in Compiler.compilers.items():
-            args[key] = func(runtime.data[key])
-
-        pattern = Compiler.patterns[type]
-
-        return ' '.join(pattern.format(**args).split())
+compiler = Compiler()
 
 
 class Runtime(object):
 
-    def __init__(self, model=None):
+    RUNTIMES = (
+        RT_ST,  # update set
+        RT_VL,  # insert values
+        RT_SL,  # select fields
+        RT_WH,  # where
+        RT_GP,  # group by
+        RT_HV,  # having
+        RT_OD,  # order by
+        RT_LM,  # limit
+        RT_JN,  # join (inner, left, inner)
+        RT_TG,  # target table
+        RT_FM,  # from table
+    )
+
+    def __init__(self, model):
         self.model = model
         self.reset_data()
 
     def reset_data(self):
-        keys = (
-            'where', 'set', 'orderby', 'select', 'limit', 'groupby', 'having')
-        # dont use {}.fromkeys(keys, [])
-        self.data = dict((key, []) for key in keys)
+        self.data = dict((k, []) for k in self.RUNTIMES)
 
-    def __repr__(self):
-        return '<Runtime %r>' % self.data
+    def _e(tp):
+        def e(self, lst):
+            self.data[tp] = list(lst)
+        return e
 
-    def set_orderby(self, lst):
-        self.data['orderby'] = list(lst)
+    set_st = _e(RT_ST)
 
-    def set_groupby(self, lst):
-        self.data['groupby'] = list(lst)
+    set_vl = _e(RT_VL)
 
-    def set_having(self, lst):
-        self.data['having'] = list(lst)
+    set_sl = _e(RT_SL)
 
-    def set_limit(self, lst):
-        self.data['limit'] = list(lst)
+    set_wh = _e(RT_WH)
 
-    def set_select(self, lst):
-        self.data['select'] = list(lst or self.model.get_fields())
+    set_gp = _e(RT_GP)
 
-    def set_where(self, lst, dct):
-        lst = list(lst)
+    set_hv = _e(RT_HV)
 
-        if self.model.single:
-            lst.extend(self.model.fields[k] == v for k, v in dct.items())
+    set_od = _e(RT_OD)
 
-        self.data['where'] = lst
+    set_lm = _e(RT_LM)
 
-    def set_set(self, lst, dct):
-        lst = list(lst)
+    set_jn = _e(RT_JN)
 
-        if self.model.single:
-            lst.extend(self.model.fields[k] == v for k, v in dct.items())
+    set_tg = _e(RT_TG)
 
-        self.data['set'] = lst
+    set_fm = _e(RT_FM)
 
 
 class MetaModel(type):
 
     def __init__(cls, name, bases, attrs):
-        table_name = None
+        # table_name is not inheritable
+        table_name = cls.__dict__.get(
+            'table_name', cls.__default_table_name())
+        # table_prefix is inheritable
+        table_prefix = getattr(cls, 'table_prefix', None)
+        if table_prefix:
+            table_name = table_prefix + table_name
+        cls.table_name = table_name
+        cls.table_prefix = table_prefix
+
         primarykey = None
         fields = {}
-
-        for name, value in cls.__dict__.items():
-            if isinstance(value, Field):
-                fields[name] = value
-                if value.is_primarykey:
-                    primarykey = value
-            elif name == 'table_name':
-                table_name = value
-
-        if table_name is None:
-            # default: 'User' => 'user', 'CuteCat' => 'cute_cat'
-            table_name = reduce(
-                lambda x, y: ('_' if y.isupper() else '').join((x, y)),
-                list(cls.__name__)
-            ).lower()
-
+        for key, val in cls.__dict__.items():
+            if isinstance(val, Field):
+                fields[key] = val
+                if val.is_primarykey:
+                    primarykey = val
         if primarykey is None:
             fields['id'] = primarykey = PrimaryKey()
-
-        cls.primarykey = primarykey
-        cls.table_name = table_name
-        cls.fields = fields
-
-        for name, field in cls.fields.items():
+        for name, field in fields.items():
             field.describe(name, cls)
 
+        cls.fields = fields
+        cls.primarykey = primarykey
         cls.runtime = Runtime(cls)
+
+    def __default_table_name(cls):
+        def _e(x, y):
+            s = '_' if y.isupper() else ''
+            return s.join((x, y))
+        return reduce(_e, list(cls.__name__)).lower()
 
     def __contains__(cls, inst):
         if isinstance(inst, cls):
-            query = cls.where(**inst.data).select()
-            results = query.execute()
-            if results.count:
+            if inst._in_db:
+                return True
+            query = cls.where(**inst.data).select(fn.count(cls.primarykey))
+            result = query.execute()
+            if result.tuples()[0][0] > 0:
                 return True
         return False
 
-    def __and__(cls, join):
-        return JoinModel(cls, join)
+    def __and__(cls, other):
+        return JoinModel(cls, other)
 
 
 class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
@@ -811,8 +959,8 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
         self.data = {}
 
         for expr in lst:
-            field, value = expr.left, expr.right
-            self.data[field.name] = value
+            field, val = expr.left, expr.right
+            self.data[field.name] = val
 
         self.data.update(dct)
         self._cache = self.data.copy()
@@ -821,24 +969,39 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
     def set_in_db(self, boolean):
         self._in_db = boolean
 
-    @classmethod
-    def get_fields(cls):
-        return list(cls.fields.values())
+    def __kwargs(func):
+        @classmethod
+        def _func(cls, *lst, **dct):
+            lst = list(lst)
+            if dct:
+                lst.extend([cls.fields[k] == v for k, v in dct.items()])
+            return func(cls, *lst)
+        return _func
 
-    @classmethod
+    @__kwargs
     def insert(cls, *lst, **dct):
-        cls.runtime.set_set(lst, dct)
+        cls.runtime.set_vl(lst)
+        cls.runtime.set_tg([cls])
         return InsertQuery(cls.runtime)
+
+    @__kwargs
+    def update(cls, *lst, **dct):
+        cls.runtime.set_st(lst)
+        cls.runtime.set_tg([cls])
+        return UpdateQuery(cls.runtime)
 
     @classmethod
     def select(cls, *lst):
-        cls.runtime.set_select(lst)
+        if not lst:
+            lst = cls.fields.values()
+        cls.runtime.set_sl(lst)
+        cls.runtime.set_fm([cls])
         return SelectQuery(cls.runtime)
 
     @classmethod
-    def update(cls, *lst, **dct):
-        cls.runtime.set_set(lst, dct)
-        return UpdateQuery(cls.runtime)
+    def delete(cls):
+        cls.runtime.set_fm([cls])
+        return DeleteQuery(cls.runtime)
 
     @classmethod
     def create(cls, *lst, **dct):
@@ -847,18 +1010,14 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
 
         if id is not None:
             dct[cls.primarykey.name] = id
-            instance = cls(*lst, **dct)
-            instance.set_in_db(True)
-            return instance
+            inst = cls(*lst, **dct)
+            inst.set_in_db(True)
+            return inst
         return None
 
-    @classmethod
-    def delete(cls):
-        return DeleteQuery(cls.runtime)
-
-    @classmethod
+    @__kwargs
     def where(cls, *lst, **dct):
-        cls.runtime.set_where(lst, dct)
+        cls.runtime.set_wh(lst)
         return cls
 
     @classmethod
@@ -867,35 +1026,52 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
 
     @classmethod
     def orderby(cls, field, desc=False):
-        cls.runtime.set_orderby((field, desc))
+        cls.runtime.set_od((field, desc))
         return cls
 
     @classmethod
     def groupby(cls, *lst):
-        cls.runtime.set_groupby(lst)
+        cls.runtime.set_gp(lst)
         return cls
 
     @classmethod
     def having(cls, *lst):
-        cls.runtime.set_having(lst)
+        cls.runtime.set_hv(lst)
         return cls
 
     @classmethod
     def limit(cls, rows, offset=None):
-        cls.runtime.set_limit((offset, rows))
+        cls.runtime.set_lm((offset, rows))
         return cls
+
+    @classmethod
+    def join(cls, model, on=None, prefix=None):
+        cls.runtime.set_jn((prefix, cls, model, on))
+        return cls
+
+    @classmethod
+    def left_join(cls, model, on=None):
+        return cls.join(model, on=on, prefix='left')
+
+    @classmethod
+    def right_join(cls, model, on=None):
+        return cls.join(model, on=on, prefix='right')
+
+    @classmethod
+    def full_join(cls, model, on=None):
+        return cls.join(model, on=on, prefix='full')
 
     @classmethod
     def findone(cls, *lst, **dct):
         query = cls.where(*lst, **dct).select()
-        results = query.execute()
-        return results.one()
+        result = query.execute()
+        return result.one()
 
     @classmethod
     def findall(cls, *lst, **dct):
         query = cls.where(*lst, **dct).select()
-        results = query.execute()
-        return results.all()
+        result = query.execute()
+        return result.all()
 
     @classmethod
     def getone(cls):
@@ -952,8 +1128,7 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
             function = Function(name, arg)
             query = cls.select(function)
             result = query.execute()
-            func = result.one()
-            return func.data[function.name]
+            return result.tuples()[0][0]
         return _func
 
     count = aggregator('count')
@@ -967,58 +1142,62 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
     avg = aggregator('avg')
 
 
-class Models(object):
+class MultiModels(object):
+
+    single = False
 
     def __init__(self, *models):
-        self.models = list(models)
-        self.single = False
+        self.models = models
         self.runtime = Runtime(self)
-        self.table_name = ', '.join(m.table_name for m in self.models)
-        self.primarykey = [m.primarykey for m in self.models]
-
-    def get_fields(self):
-        return sum((list(m.get_fields()) for m in self.models), [])
 
     def select(self, *lst):
-        self.runtime.set_select(lst)
+        if not lst:
+            lst = sum([list(m.fields.values()) for m in self.models], [])
+        self.runtime.set_sl(lst)
+        self.runtime.set_fm(self.models)
         return SelectQuery(self.runtime)
 
+    def delete(self, *targets):  # default target: all (mysql only)
+        if not targets:
+            targets = self.models
+        self.runtime.set_fm(self.models)
+        self.runtime.set_tg(targets)
+        return DeleteQuery(self.runtime)
+
     def update(self, *lst):
+        self.runtime.set_fm(self.models)
         self.runtime.set_set(lst, {})
         return UpdateQuery(self.runtime)
 
-    def delete(self, target=None):
-        return DeleteQuery(self.runtime, target=target)
-
     def where(self, *lst):
-        self.runtime.set_where(lst, {})
+        self.runtime.set_wh(lst)
         return self
 
     def orderby(self, field, desc=False):
-        self.runtime.set_orderby((field, desc))
+        self.runtime.set_od((field, desc))
         return self
 
     def groupby(self, *lst):
-        self.runtime.set_groupby(lst)
+        self.runtime.set_gp(lst)
         return self
 
     def having(self, *lst):
-        self.runtime.set_having(lst)
+        self.runtime.set_hv(lst)
         return self
 
     def limit(self, rows, offset=None):
-        self.runtime.set_limit((offset, rows))
+        self.runtime.set_lm((offset, rows))
         return self
 
     def findone(self, *lst):
         query = self.where(*lst).select()
-        results = query.execute()
-        return results.one()
+        result = query.execute()
+        return result.one()
 
     def findall(self, *lst):
         query = self.where(*lst).select()
-        results = query.execute()
-        return results.all()
+        result = query.execute()
+        return result.all()
 
     def getone(self):
         return self.select().execute().one()
@@ -1027,35 +1206,42 @@ class Models(object):
         return self.select().execute().all()
 
 
-class JoinModel(Models):
+Models = MultiModels
+
+
+class JoinModel(MultiModels):
 
     def __init__(self, main, join):
         super(JoinModel, self).__init__(main, join)
-        self.bridge = None
+        self.bridge = _detect_bridge(main, join)
 
-        for field in main.get_fields():
-            if field.is_foreignkey and field.point_to is join.primarykey:
-                self.bridge = field
-
-        if self.bridge is None:
-            raise ForeignKeyNotFound
-
-    def _bridge(func):
-        def e(self, *args, **kwargs):
-            self.runtime.data['where'].append(
-                self.bridge == self.bridge.point_to
-            )
+    def build_bridge(func):
+        def _func(self, *args, **kwargs):
+            self.runtime.data[RT_WH].append(
+                self.bridge == self.bridge.reference)
             return func(self, *args, **kwargs)
-        return e
+        return _func
 
-    @_bridge
+    @build_bridge
     def select(self, *lst):
         return super(JoinModel, self).select(*lst)
 
-    @_bridge
+    @build_bridge
     def update(self, *lst):
         return super(JoinModel, self).update(*lst)
 
-    @_bridge
-    def delete(self, target=None):
-        return super(JoinModel, self).delete(target)
+    @build_bridge
+    def delete(self, *targets):
+        return super(JoinModel, self).delete(*targets)
+
+
+def _detect_bridge(m, n):
+    # detect foreignkey point between m and n
+    models = (m, n)
+
+    for i, k in enumerate(models):
+        for field in k.fields.values():
+            j = models[1 ^ i]
+            if field.is_foreignkey and field.reference is j.primarykey:
+                return field
+    raise ForeignKeyNotFound

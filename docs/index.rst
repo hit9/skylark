@@ -3,17 +3,17 @@
 Overview
 ========
 
-A nice micro orm for python, mysql only. (Original named CURD.py).
+Nice micro python orm for mysql and sqlite3. (Original named CURD.py).
 
-Release: v\ |version| - Beta (:ref:`Installation <install>`) 
+Release: v\ |version| - Beta (:ref:`Installation <install>`)
 
-Tests status:
+Build status:
 
 .. image:: https://travis-ci.org/hit9/skylark.png?branch=master
 
 .. Contents::
 
-.. _SimpleExample:
+.. _Sample:
 
 Sample
 ------
@@ -39,8 +39,7 @@ Sample
     1L
 
 More sample codes `here
-<https://github.com/hit9/skylark/tree/dev/sample>`_
-
+<https://github.com/hit9/skylark/tree/master/sample>`_
 
 .. _requirements:
 
@@ -49,7 +48,7 @@ Requirements
 
 * Python >= 2.6 or >= 3.3
 
-* `MySQLdb(MySQL-python) <https://pypi.python.org/pypi/MySQL-python>`_ or `PyMySQL <https://github.com/PyMySQL/PyMySQL>`_
+* For mysql users: `MySQLdb(MySQL-python) <https://pypi.python.org/pypi/MySQL-python>`_ or `PyMySQL <https://github.com/PyMySQL/PyMySQL>`_
 
 .. _install:
 
@@ -60,26 +59,19 @@ Installation
 
     $ pip install skylark
 
-Plat
-----
 
-Python2.6+ or 3.3+, OS Independent
-
-Documentaion
-------------
+Documentation
+-------------
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 2
     :numbered:
 
     quickstart
     models
-    returns
-    types
     database
-    apps
+    returns
+    operators
     tips
-    cases
     exceptions
-    faq
-    changes
+    apps

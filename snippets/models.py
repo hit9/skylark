@@ -1,3 +1,4 @@
+import MySQLdb
 from skylark import Database, Model, Field, PrimaryKey, ForeignKey
 
 
@@ -11,5 +12,5 @@ class Post(Model):
     post_id = PrimaryKey()
     user_id = ForeignKey(User.id)
 
-
+Database.set_dbapi(MySQLdb)
 Database.config(db='mydb', user='root', passwd='')

@@ -11,4 +11,7 @@ query = User.groupby(User.name).having(
     sql('count_id') >= 2
 ).select(fn.count(User.id).alias('count_id'), User.name)
 result = query.execute()
-user, func = result.one()  # user.name, func.count_id
+
+for row in result.tuples():
+    print row[0]  # count of id
+    print row[1]  # user's name

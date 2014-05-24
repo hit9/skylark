@@ -1,10 +1,10 @@
 # coding=utf8
 
-# database connection configuration
 DB_CONN_CFG = {
     'db': 'mydb',
     'user': 'root',
-    'passwd': ''
+    'passwd': '',
+    'charset': 'utf8'
 }
 
 # app's secret_key, you can use `os.urandom(24)` to generate one

@@ -36,6 +36,7 @@
           <h2>{{message.title}}</h2>
           <p class="create_at">{{message.create_at.strftime("%Y-%m-%d %H:%M")}}</p>
           <p class="content">{{message.content}}</p>
+          <p class="delete-btn"><a href="{{url_for('delete', id=message.id)}}">drop</a></p>
         </li>
       {% endfor %}
     </ul>

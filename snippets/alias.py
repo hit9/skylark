@@ -4,9 +4,8 @@ from skylark import fn
 query = User.at(1).select(User.name.alias('un'))
 result = query.execute()
 user = result.one()
-assert user.un  # retrieve `name` by user.un
+user.un  # retrieve `name` by user.un
 
-query = User.select(fn.count(User.name).alias('count_name'))
+query = User.select(fn.count(User.name))
 result = query.execute()
-func = result.one()
-assert func.count_name  # retrieve count result by func.count_name
+result.tuples()[0][0]  # retrieve count result by result.tuples()
