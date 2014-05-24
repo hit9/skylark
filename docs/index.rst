@@ -74,3 +74,4 @@ Documentation
     operators
     tips
     exceptions
+    apps

@@ -266,5 +266,6 @@ html_theme_options = {
     # 'project_logo': 'https://raw.githubusercontent.com/hit9/artworks/master/png/Skylark.png',  # your project logo address
     'project_logo': 'http://project-logos.qiniudn.com/Skylark.png',
     'navs': [('index', 'overview'), ('quickstart', 'quickstart'), ('snippets', 'snippets'),
-             ('https://github.com/hit9/skylark/issues', 'issues')]
+             ('https://github.com/hit9/skylark/issues', 'issues'),
+             ('https://github.com/hit9/skylark/blob/master/CHANGES', 'changes')]
 }
