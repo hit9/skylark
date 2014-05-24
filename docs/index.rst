@@ -23,20 +23,20 @@ Sample
     >>> from models import User
     >>> user = User(name='Tom', email='tom@gmail.com')
     >>> user.save()  # insert
-    1L
+    1
     >>> user.email = 'tom@github.com'
     >>> user.save()  # update
-    1L
+    1
     >>> [user.name for user in User.select()]  # select
     [u'Tom']
     >>> query = User.where(name='Tom').delete()
     >>> query.execute()  # delete
-    1L
+    1
     >>> user = User.create(name='Kate', email='kate@gmail.com')  # another insert
     >>> user.data
-    {'email': 'kate@gmail.com', 'name': 'Kate', 'id': 2L}
+    {'email': 'kate@gmail.com', 'name': 'Kate', 'id': 2}
     >>> user.destroy()  # another delete
-    1L
+    1
 
 More sample codes `here
 <https://github.com/hit9/skylark/tree/master/sample>`_
