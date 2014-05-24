@@ -110,3 +110,11 @@ input, textarea, button {outline: none}
 .message .content {
   text-indent: 1.5em;
 }
+
+.message .delete-btn {
+  text-align: right;
+}
+
+.message .delete-btn a {
+  color: #777;
+}

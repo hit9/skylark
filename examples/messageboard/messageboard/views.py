@@ -32,3 +32,13 @@ def create():
     else:  # invalid input
         flash(dict(type='warning', content='Empty input'))
     return redirect(url_for('index'))
+
+
+@app.route('/delete/<int:id>')
+def delete(id):
+    query = Message.at(id).delete()
+    if query.execute():
+        flash(dict(type='success', content='Message %d dropped' % id))
+    else:
+        flash(dict(type='error', content='Failed to drop message %d' % id))
+    return redirect(url_for('index'))

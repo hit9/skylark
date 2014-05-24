@@ -71,3 +71,6 @@ Documentation
     models
     database
     returns
+    operators
+    tips
+    exceptions

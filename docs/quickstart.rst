@@ -23,7 +23,8 @@ With sqlite3 as an example:
 Set DB Connector
 ----------------
 
-Skylark will try to load connectors in this order: MySQLdb, pymysql, sqlite3,
+Skylark will try to load connectors in this order: ``MySQLdb, pymysql,
+sqlite3``,
 and use the connector found.
 
 To explicitly tell skylark to use a connector::
@@ -383,6 +384,15 @@ See all posts written by jack::
     >>> [post.name for post in Post.join(User).where(User.name == 'jack').select()]
     [u'hello world!']
 
+
+Use keyword argument ``on`` to specify the condition to join on::
+
+    >>> [post.name for post in Post.join(User, on=User.id == Post.user_id).where(User.name == 'jack').select()]
+    [u'hello world!']
+
+By default, the ``on`` condition will be: ``one's foreignkey == the other's primarykey``.
+
+
 SQL Functions
 -------------
 
@@ -424,3 +434,35 @@ There are 5 built-in aggregator functions for modles:
     2.5
     >>> User.where(User.id > 1).count()
     3
+
+
+Multiple Models
+----------------
+
+For more general multi-table queries like ``select .. from user, post ..``,
+there is ``MultiModels``::
+
+    >>> query = MultiModels(User, Post).select(User.name, Post.name)
+    >>> query.sql
+    <sql 'select user.name, post.name from user, post' ()>
+    >>> [(user.name, post.name) for user, post in query]
+    [(u'jack', u'hello world!'), (u'join', u'hello world!'), (u'Any', u'hello world!'), (u'jack', u'hello world!')]
+
+
+JoinModel
+'''''''''
+
+``JoinModel`` implements the implicit ``join``::
+
+    >>> [(user.name, post.name) for user, post in (User & Post).select()]
+    [(u'jack', u'hello world!')]
+
+    >>> query = (User & Post).select(User.name, Post.name)
+    >>> query.sql
+    <sql 'select user.name, post.name from user, post where post.user_id = user.id' ()>
+
+The query above can also be expressed as (the explicit ``join``)::
+
+    >>> query = User.join(Post).select(User.name, Post.name)
+    >>> query.sql
+    <sql 'select user.name, post.name from user join post on post.user_id = user.id' ()>

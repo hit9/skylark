@@ -21,18 +21,17 @@ Skylark currently supports 3 DBAPI(db connectors):
 
 - for sqlite: `sqlite3 <https://docs.python.org/2/library/sqlite3.html>`_
 
-Skylark will try to load them in this order: MySQLdb, pymysql, sqlite3, and use
+Skylark will try to load them in this order: ``MySQLdb, pymysql, sqlite3``, and use
 the connector found, to explicitly tell skylark to use a connector::
 
     import pymysql
-    from skylark import Database
     Database.set_dbapi(pymysql)
 
 
 DB configuration
 -----------------
 
-It depends on your connector.
+**It depends on your connector.**
 
 MySQLdb & PyMySQL
 ''''''''''''''''''
