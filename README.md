@@ -53,6 +53,8 @@ Documentation: http://skylark.readthedocs.org/
 
 Strongly recommend that you read [Quick Start](http://skylark.readthedocs.org/en/latest/quickstart.html) at first.
 
+NOTE: skylark is not currently threading safe.
+
 Sample App
 ----------
 
