@@ -415,7 +415,7 @@ class TestModel(Test):
 
     def test_create(self):
         user = User.create(name='jack', email='jack@gmail.com')
-        assert user.data == {
+        assert user == {
             'name': 'jack', 'email': 'jack@gmail.com', 'id': 1
         }
         assert user in User
@@ -423,7 +423,7 @@ class TestModel(Test):
         assert User.count() == 1
 
         _user = User.getone()
-        assert _user.data == user.data
+        assert _user == user
         assert _user._in_db
 
     def test_where(self):
