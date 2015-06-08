@@ -475,11 +475,11 @@ class FieldDescriptor(object):
 
     def __get__(self, inst, type=None):
         if inst:
-            return inst.data[self.field.name]
+            return inst[self.field.name]
         return self.field
 
     def __set__(self, inst, val):
-        inst.data[self.field.name] = val
+        inst[self.field.name] = val
 
 
 class Field(Leaf):
@@ -631,7 +631,7 @@ class SelectResult(object):
 
         for idx, node in enumerate(self.nodes):
             if isinstance(node, Field) and node.model is model:
-                inst.data[node.name] = row[idx]
+                inst[node.name] = row[idx]
             if isinstance(node, Alias) and isinstance(node.inst, Field) \
                     and node.inst.model is model:
                 setattr(inst, node.name, row[idx])
@@ -941,7 +941,7 @@ class MetaModel(type):
         if isinstance(inst, cls):
             if inst._in_db:
                 return True
-            query = cls.where(**inst.data).select(fn.count(cls.primarykey))
+            query = cls.where(**inst).select(fn.count(cls.primarykey))
             result = query.execute()
             if result.tuples()[0][0] > 0:
                 return True
@@ -951,19 +951,17 @@ class MetaModel(type):
         return JoinModel(cls, other)
 
 
-class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
+class Model(MetaModel('NewBase', (dict, ), {})):  # py3 compat
 
     single = True
 
     def __init__(self, *lst, **dct):
-        self.data = {}
-
         for expr in lst:
             field, val = expr.left, expr.right
-            self.data[field.name] = val
+            self[field.name] = val
 
-        self.data.update(dct)
-        self._cache = self.data.copy()
+        self.update(dct)
+        self._cache = self.copy()
         self.set_in_db(False)
 
     def set_in_db(self, boolean):
@@ -1083,21 +1081,21 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
 
     @property
     def _id(self):
-        return self.data.get(type(self).primarykey.name, None)
+        return self.get(type(self).primarykey.name, None)
 
     def save(self):
         model = type(self)
 
         if not self._in_db:  # insert
-            id = model.insert(**self.data).execute()
+            id = model.insert(**self).execute()
 
             if id is not None:
-                self.data[model.primarykey.name] = id
+                self[model.primarykey.name] = id
                 self.set_in_db(True)
-                self._cache = self.data.copy()  # sync cache on saving
+                self._cache = self.copy()  # sync cache on saving
             return id
         else:  # update
-            dct = dict(set(self.data.items()) - set(self._cache.items()))
+            dct = dict(set(self.items()) - set(self._cache.items()))
 
             if self._id is None:
                 raise PrimaryKeyValueNotFound
@@ -1107,7 +1105,7 @@ class Model(MetaModel('NewBase', (object, ), {})):  # py3 compat
                 rows_affected = query.execute()
             else:
                 rows_affected = 0
-            self._cache = self.data.copy()
+            self._cache = self.copy()
             return rows_affected
 
     def destroy(self):
