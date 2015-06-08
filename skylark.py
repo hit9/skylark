@@ -960,7 +960,7 @@ class Model(MetaModel('NewBase', (dict, ), {})):  # py3 compat
             field, val = expr.left, expr.right
             self[field.name] = val
 
-        self.update(dct)
+        super(Model, self).update(dct)
         self._cache = self.copy()
         self.set_in_db(False)
 
