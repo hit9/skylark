@@ -3,7 +3,7 @@
 
 A micro python orm for mysql and sqlite3. (Original named `CURD.py`).
 
-Latest version: [v0.9.0](https://github.com/hit9/skylark/releases/tag/v0.9.0-LTS)
+Latest version: [v0.9.1](https://github.com/hit9/skylark/releases/tag/v0.9.1)
 
 Development status: **4 - Beta**
 
@@ -26,7 +26,7 @@ Sample Code
 >>> query.execute()  # delete
 1
 >>> user = User.create(name='Kate', email='kate@gmail.com')  # another insert
->>> user.data
+>>> user
 {'email': 'kate@gmail.com', 'name': 'Kate', 'id': 2}
 >>> user.destroy()  # another delete
 1
@@ -66,6 +66,11 @@ Tests
 - Status: [![Build Status](https://travis-ci.org/hit9/skylark.png?branch=master)](https://travis-ci.org/hit9/skylark)
 
 - [How to Run Tests](tests/README.md)
+
+Contributors
+------------
+
+https://github.com/hit9/skylark/graphs/contributors
 
 License
 -------

@@ -24,7 +24,7 @@ Sample Usage
     >>> query.execute()  # delete
     1
     >>> user = User.create(name='Kate', email='kate@gmail.com')  # another insert
-    >>> user.data
+    >>> user
     {'email': 'kate@gmail.com', 'name': 'Kate', 'id': 2}
     >>> user.destroy()  # another delete
     1
@@ -51,7 +51,7 @@ from setuptools import setup
 
 setup(
     name='skylark',
-    version='0.9.0',
+    version='0.9.1',
     author='hit9',
     author_email='nz2324@126.com',
     description=('A micro python orm for mysql and sqlite.'),
