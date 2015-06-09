@@ -3,7 +3,7 @@
 from skylark import Database, Model, Field
 
 
-Database.config(user='root', passwd='', db='mytest')
+Database.config(user='root', passwd='', db='mydb')
 
 
 class User(Model):
