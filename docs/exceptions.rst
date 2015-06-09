@@ -27,7 +27,7 @@ example, when id not selected, and skylark dosen’t know which row to update::
     >>> query = User.at(1).select(User.name)
     >>> result = query.execute()
     >>> user = result.one()
-    >>> user.data
+    >>> user
     {'name': 'jackx'}
     >>> user.name = 'amy'
     >>> user.save()

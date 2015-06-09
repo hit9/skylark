@@ -33,7 +33,7 @@ Sample
     >>> query.execute()  # delete
     1
     >>> user = User.create(name='Kate', email='kate@gmail.com')  # another insert
-    >>> user.data
+    >>> user
     {'email': 'kate@gmail.com', 'name': 'Kate', 'id': 2}
     >>> user.destroy()  # another delete
     1
