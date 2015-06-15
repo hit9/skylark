@@ -72,12 +72,19 @@ Contributors
 
 https://github.com/hit9/skylark/graphs/contributors
 
+About
+-----
+
+Many ideas are inspired by [peewee](https://github.com/coleifer/peewee), thanks a lot to @coleifer.
+([#34](https://github.com/hit9/skylark/issues/34))
+
 License
 -------
 
-[LICENSE-BSD](LICENSE-BSD)
+- [LICENSE-BSD](LICENSE-BSD)
+ [LICENSE-PEEWEE](LICENSE-PEEWE[E)
 
 Changes
 -------
 
-[CHANGES](CHANGES)
+CHANGES](CHANGES)
