@@ -82,7 +82,7 @@ License
 -------
 
 - [LICENSE-BSD](LICENSE-BSD)
- [LICENSE-PEEWEE](LICENSE-PEEWE[E)
+- [LICENSE-PEEWEE](LICENSE-PEEWE[E)
 
 Changes
 -------
