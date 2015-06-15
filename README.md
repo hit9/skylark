@@ -1,5 +1,5 @@
-![](https://raw.githubusercontent.com/hit9/artworks/master/png/Skylark.png)
-===========================================================================
+Skylark
+=======
 
 A micro python orm for mysql and sqlite3. (Original named `CURD.py`).
 

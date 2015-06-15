@@ -264,7 +264,7 @@ html_theme = 'plain'
 html_theme_options = {
     'github': 'hit9',  # Here, fill in your own GitHub ID
     # 'project_logo': 'https://raw.githubusercontent.com/hit9/artworks/master/png/Skylark.png',  # your project logo address
-    'project_logo': 'http://project-logos.qiniudn.com/Skylark.png',
+    # 'project_logo': 'http://project-logos.qiniudn.com/Skylark.png',
     'navs': [('index', 'overview'), ('quickstart', 'quickstart'), ('snippets', 'snippets'),
              ('https://github.com/hit9/skylark/issues', 'issues'),
              ('https://github.com/hit9/skylark/blob/master/CHANGES', 'changes')]

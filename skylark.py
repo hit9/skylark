@@ -1,17 +1,5 @@
 # -*- coding: utf-8 -*-
-#
-#            /)
-#           / )
-#    (\    /  )
-#    ( \  /   )
-#     ( \/ / )
-#     (@)   )
-#     / \_   \
-#        // \\\
-#        ((   \\
-#       ~ ~ ~   \
-#      skylark
-#
+# https://github.com/hit9/skylark/issues/34
 
 """
     skylark
